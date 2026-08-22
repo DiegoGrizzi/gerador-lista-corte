@@ -10,17 +10,30 @@ Funciona bem em qualquer tamanho de tela — no celular, a tabela de peças vira
 
 Requer [Node.js](https://nodejs.org/) 20+ instalado.
 
+### Uso do dia a dia (produção, início automático)
+
+O sistema fica rodando sozinho em segundo plano e sobe automaticamente com
+o Windows — não precisa abrir terminal nem rodar nenhum comando no dia a
+dia. Basta abrir o atalho **"Gerador de Lista de Corte"** (área de
+trabalho) ou acessar `http://localhost:5175` no navegador.
+
+Configuração inicial desse modo (uma vez só) e como atualizar depois de uma
+mudança no código: veja [`deploy/LEIA-ME.md`](deploy/LEIA-ME.md).
+
+### Desenvolvimento
+
 ```bash
 npm install
 npm run dev
 ```
 
-Isso sobe o backend (`http://localhost:5175`) e o frontend (`http://localhost:5173`) juntos. Abra `http://localhost:5173` no navegador.
+Isso sobe o backend (`http://localhost:5175`) e o frontend (`http://localhost:5173`) **separados**, com hot-reload. Abra `http://localhost:5173` no navegador.
 
 Outros comandos úteis (na raiz do monorepo):
 
 ```bash
 npm run build   # compila os três pacotes (parser, server, client) para produção
+npm run serve   # compila e roda o sistema completo num único processo (o mesmo usado no início automático)
 npm run test    # roda a suite de testes (Vitest) dos três pacotes
 npm run lint    # ESLint no monorepo inteiro
 ```
@@ -88,8 +101,10 @@ tende a melhorar bastante a leitura.
 gerador-lista-corte/
 ├── packages/
 │   └── parser/         → @corte-cloud/parser: motor de interpretação de texto (TS puro, sem DOM, com testes Vitest)
-├── server/              → @corte-cloud/server: API Express (POST /api/ocr — Tesseract local + fallback OCR.space)
-└── client/              → @corte-cloud/client: interface (React + Vite), consome @corte-cloud/parser e a API do server
+├── server/              → @corte-cloud/server: API Express (POST /api/ocr — Tesseract local + fallback OCR.space); em produção também serve a interface compilada (client/dist)
+├── client/              → @corte-cloud/client: interface (React + Vite), consome @corte-cloud/parser e a API do server
+└── deploy/              → início automático em produção (ver deploy/LEIA-ME.md)
+    └── iniciar-servidor-oculto.vbs
 ```
 
 `packages/parser` não depende do navegador nem do Node especificamente — só recebe texto e devolve dados (`analyzeText(...)`, `quickParseLine(...)`, `convertPieceToMm(...)`). Isso facilita testar a lógica de interpretação isoladamente, e é o pacote com a suite de testes mais extensa do projeto (regras de fitamento, sentido do veio, conversão de números, etc.).

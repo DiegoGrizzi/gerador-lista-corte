@@ -23,3 +23,6 @@ coverage/
 
 # Vite
 .vite/
+
+# Logs do launcher de producao
+deploy/server.log

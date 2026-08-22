@@ -21,8 +21,15 @@ import { toNumber } from './numbers.js';
 import { stripWhatsAppFormatting, normalizeTypos } from './text-normalize.js';
 import { parseFitamentoPhrase } from './fitamento.js';
 import { classifyHeaderLine, extractHeaderInfo } from './header.js';
-import { isValidPiece, tryMatchPieceLine, buildPieceFromMatch, splitIntoPieceSegments } from './piece-matcher.js';
-import type { PieceMatch } from './piece-matcher.js';
+import {
+  isValidPiece,
+  tryMatchPieceLine,
+  buildPieceFromMatch,
+  splitIntoPieceSegments,
+  tryMatchDimensionFirstLine,
+  buildPieceFromDimensionFirstMatch,
+} from './piece-matcher.js';
+import type { PieceMatch, DimensionFirstMatch } from './piece-matcher.js';
 import { finalizePiece } from './finalize.js';
 import type { AnalyzeResult, DiscardedItem, FitamentoType, NextIdFn, ParseContext, Piece, RawPiece } from './types.js';
 
@@ -112,6 +119,17 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     if (built.thicknessPending) pendingThickness.push(built.piece);
   }
 
+  /** Constrói e registra uma peça a partir de um resultado de tryMatchDimensionFirstLine já validado. */
+  function addDimensionFirstPiece(match: DimensionFirstMatch, ctx: ParseContext): void {
+    const piece = buildPieceFromDimensionFirstMatch(match, ctx);
+    piece.id = nextId();
+    pieces.push(piece);
+
+    if (!currentMaterial) pendingMaterial.push(piece);
+    if (piece.fitaType == null) pendingFitamento.push(piece);
+    if (piece.thicknessMm == null) pendingThickness.push(piece);
+  }
+
   /**
    * Trata uma linha com mais de uma peça (ex: "2=47/47, 3=50/60"): separa
    * em segmentos e só aceita se TODOS os segmentos resultarem em peças
@@ -145,6 +163,19 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
   text.split('\n').forEach((rawLine) => {
     let line = stripWhatsAppFormatting(rawLine.trim());
     if (!line) return;
+
+    // Formato "comprimento x largura: quantidade" (ver DIMENSION_FIRST_RE) —
+    // checado antes do formato principal porque é uma linha inteira ancorada
+    // (^...$) que nunca deveria ser reinterpretada pelas regras abaixo.
+    const dimensionFirstMatch = tryMatchDimensionFirstLine(line);
+    if (dimensionFirstMatch) {
+      if (!isValidPiece(dimensionFirstMatch.compr, dimensionFirstMatch.larg, dimensionFirstMatch.qty)) {
+        pushDiscarded(line);
+        return;
+      }
+      addDimensionFirstPiece(dimensionFirstMatch, snapshotContext());
+      return;
+    }
 
     const quantityMatch = line.match(QUANTITY_RE);
     if (quantityMatch) {

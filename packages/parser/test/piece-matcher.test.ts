@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { tryMatchPieceLine, splitIntoPieceSegments } from '../src/piece-matcher.js';
+import { tryMatchPieceLine, splitIntoPieceSegments, tryMatchDimensionFirstLine } from '../src/piece-matcher.js';
 
 describe('tryMatchPieceLine — quantity markers', () => {
   it.each([
@@ -80,6 +80,37 @@ describe('tryMatchPieceLine — inline fita marker on a number', () => {
     expect(match!.dimensionMatch[2]).toBeUndefined();
     expect(match!.dimensionMatch[3]).toBe('59');
     expect(match!.dimensionMatch[4]).toBe('fita');
+  });
+});
+
+describe('tryMatchDimensionFirstLine — "comprimento x largura: quantidade" format', () => {
+  it.each([
+    ['760x395: 2 peças', 2, '760', '395'],
+    ['245x453: 2 peças', 2, '245', '453'],
+    ['210x 356: 1 peça', 1, '210', '356'],
+    ['765x585: 2 pecas', 2, '765', '585'],
+  ])('parses "%s"', (line, qty, compr, larg) => {
+    const match = tryMatchDimensionFirstLine(line);
+    expect(match).not.toBeNull();
+    expect(match!.qty).toBe(qty);
+    expect(match!.compr).toBe(Number(compr));
+    expect(match!.larg).toBe(Number(larg));
+  });
+
+  it('defaults to quantity 1 when no number follows the colon ("465x650: peça")', () => {
+    const match = tryMatchDimensionFirstLine('465x650: peça');
+    expect(match).not.toBeNull();
+    expect(match!.qty).toBe(1);
+    expect(match!.compr).toBe(465);
+    expect(match!.larg).toBe(650);
+  });
+
+  it('does not match the standard "quantidade=comprimento/largura" format', () => {
+    expect(tryMatchDimensionFirstLine('2=47/47')).toBeNull();
+  });
+
+  it('does not match a line without the colon separator', () => {
+    expect(tryMatchDimensionFirstLine('760x395 2 peças')).toBeNull();
   });
 });
 

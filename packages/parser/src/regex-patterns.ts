@@ -8,8 +8,13 @@
  * ---------------------------------------------------------------------------
  */
 
-/** Vocabulário de marcador de quantidade, reaproveitado por QUANTITY_RE e pela separação de múltiplas peças. */
-export const QUANTITY_MARKER_WORDS = 'peças|peça|pças|pça|pç|pc|unidades|unidade|unid|und|un';
+/**
+ * Vocabulário de marcador de quantidade, reaproveitado por QUANTITY_RE,
+ * DIMENSION_FIRST_RE e pela separação de múltiplas peças. "pe[çc]as?" aceita
+ * tanto "peça"/"peças" quanto a grafia sem cedilha "peca"/"pecas" (comum em
+ * mensagens digitadas rápido ou copiadas de fontes sem acentuação).
+ */
+export const QUANTITY_MARKER_WORDS = 'pe[çc]as?|pças|pça|pç|pc|unidades|unidade|unid|und|un';
 
 /** Quantidade no início da linha: "2=", "2 pç", "2 pc", "2 un", "2 -", ou apenas "2 ". */
 export const QUANTITY_RE = new RegExp('^(\\d+)\\s*(' + QUANTITY_MARKER_WORDS + '|=|-)?\\.?\\s*(.+)$', 'i');
@@ -38,6 +43,22 @@ export const DIMENSIONS_RE =
  */
 export const DIMENSIONS_NO_SLASH_RE =
   /(\d+(?:[.,']\d+)?)\s*(fita(?=\s*(?:x|pro)))?\s*(?:x|pro)\s*(\d+(?:[.,']\d+)?)\s*(fita(?![a-zà-öø-ÿ]))?(?:\s*(?:x|pro)?\s*(\d+(?:[.,']\d+)?))?/i;
+
+/**
+ * Formato alternativo, com as medidas ANTES da quantidade e separadas dela
+ * por dois-pontos: "760x395: 2 peças", "210x 356: 1 peça". Vem de listas
+ * exportadas de outros programas de otimização de corte, onde a convenção é
+ * "comprimento x largura: quantidade" em vez de "quantidade=comprimento/
+ * largura". A quantidade é opcional — "465x650: peça" (sem número) tem
+ * quantidade implícita 1, mesma regra usada em outros formatos sem marcador
+ * explícito. Diferente do formato principal, aqui não há como a peça
+ * carregar fita/espessura/material inline: sempre herda do contexto
+ * corrente (ver buildPieceFromDimensionFirstMatch).
+ */
+export const DIMENSION_FIRST_RE = new RegExp(
+  '^(\\d+(?:[.,\']\\d+)?)\\s*x\\s*(\\d+(?:[.,\']\\d+)?)\\s*:\\s*(\\d+)?\\s*(?:' + QUANTITY_MARKER_WORDS + ')?\\.?$',
+  'i',
+);
 
 /** Linha só com a espessura padrão do bloco: "De 15", "Tudo de 15mm", "Todas de 6 mm". */
 export const THICKNESS_ONLY_RE = /^(?:tudo|todos|todas)?\s*de\s+(\d+)\s*(?:mm|m)?\.?$/i;

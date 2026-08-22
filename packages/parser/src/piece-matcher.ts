@@ -7,7 +7,14 @@
  * ---------------------------------------------------------------------------
  */
 
-import { QUANTITY_RE, DIMENSIONS_RE, DIMENSIONS_NO_SLASH_RE, THICKNESS_SUFFIX_RE, PIECE_SEPARATOR_RE } from './regex-patterns.js';
+import {
+  QUANTITY_RE,
+  DIMENSIONS_RE,
+  DIMENSIONS_NO_SLASH_RE,
+  DIMENSION_FIRST_RE,
+  THICKNESS_SUFFIX_RE,
+  PIECE_SEPARATOR_RE,
+} from './regex-patterns.js';
 import { toNumber } from './numbers.js';
 import { stripFillers } from './text-normalize.js';
 import { parseFitamentoPhrase, resolveFitaFromType } from './fitamento.js';
@@ -89,6 +96,53 @@ export function tryMatchPieceLine(line: string): PieceMatch | null {
   }
 
   return null;
+}
+
+/** Resultado de tryMatchDimensionFirstLine: já convertido para número, sem sobrar texto pra interpretar. */
+export interface DimensionFirstMatch {
+  qty: number;
+  compr: number;
+  larg: number;
+}
+
+/**
+ * Tenta reconhecer o formato "comprimento x largura: quantidade" (ver
+ * DIMENSION_FIRST_RE) — usado por listas exportadas de outros programas de
+ * otimização de corte, na ordem oposta ao formato principal do sistema.
+ * Devolve null se a linha não bater com esse formato específico.
+ */
+export function tryMatchDimensionFirstLine(line: string): DimensionFirstMatch | null {
+  const match = DIMENSION_FIRST_RE.exec(line);
+  if (!match) return null;
+
+  return {
+    qty: match[3] ? parseInt(match[3], 10) : 1,
+    compr: toNumber(match[1]!),
+    larg: toNumber(match[2]!),
+  };
+}
+
+/**
+ * Monta a peça a partir de um resultado de tryMatchDimensionFirstLine.
+ * Diferente de buildPieceFromMatch, não há prefixo/sufixo de linha pra
+ * extrair função/fita/espessura/material — esse formato só carrega
+ * dimensão e quantidade, então tudo o mais vem do contexto corrente.
+ */
+export function buildPieceFromDimensionFirstMatch(match: DimensionFirstMatch, ctx: ParseContext): RawPiece {
+  return {
+    id: '',
+    material: ctx.material,
+    complemento: ctx.complemento,
+    funcao: ctx.funcao,
+    qtd: match.qty,
+    compr: match.compr,
+    larg: match.larg,
+    thicknessMm: ctx.thicknessMm,
+    fitaType: ctx.fitaType,
+    customFita: null,
+    isOverride: false,
+    note: '',
+  };
 }
 
 /** Resultado de buildPieceFromMatch. */

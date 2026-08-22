@@ -47,4 +47,15 @@ describe('quickParseLine', () => {
     expect(piece!.customFita).toEqual({ c1: true, c2: false, l1: false, l2: false });
     expect(piece!.fita).toEqual({ c1: true, c2: false, l1: false, l2: false });
   });
+
+  it('recognizes the "comprimento x largura: quantidade" format, inheriting funcao/material/fita from context', () => {
+    const piece = quickParseLine('760x395: 2 peças', ctx, makeNextId());
+
+    expect(piece).not.toBeNull();
+    expect(piece!.qtd).toBe(2);
+    expect(piece!.compr).toBe(760);
+    expect(piece!.larg).toBe(395);
+    expect(piece!.funcao).toBe(''); // não sobra ": 2 peças" no campo função.
+    expect(piece!.material).toBe('MDF branco 15mm');
+  });
 });

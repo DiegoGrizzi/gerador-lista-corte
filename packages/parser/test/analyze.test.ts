@@ -7,6 +7,7 @@ import {
   UNPARSEABLE_LINE,
   MULTI_PIECE_ALL_VALID,
   MULTI_PIECE_NOT_ALL_VALID,
+  DIMENSION_FIRST_LIST,
   REALISTIC_MESSAGE,
 } from './fixtures/sample-messages.js';
 
@@ -89,6 +90,34 @@ describe('analyzeText — multi-segment lines', () => {
     expect(result.pieces).toHaveLength(0);
     expect(result.discarded).toHaveLength(1);
     expect(result.discarded[0]!.text).toBe(MULTI_PIECE_NOT_ALL_VALID);
+  });
+});
+
+describe('analyzeText — "comprimento x largura: quantidade" format (real user list)', () => {
+  it('reads quantity from after the colon instead of defaulting every line to 1', () => {
+    const result = analyzeText(DIMENSION_FIRST_LIST, makeNextId());
+
+    expect(result.discarded).toHaveLength(0);
+    expect(result.pieces).toHaveLength(13);
+    expect(result.pieces.map((p) => ({ qtd: p.qtd, compr: p.compr, larg: p.larg }))).toEqual([
+      { qtd: 2, compr: 760, larg: 395 },
+      { qtd: 2, compr: 245, larg: 453 },
+      { qtd: 1, compr: 975, larg: 375 },
+      { qtd: 1, compr: 210, larg: 356 },
+      { qtd: 1, compr: 502, larg: 356 },
+      { qtd: 1, compr: 800, larg: 271 },
+      { qtd: 1, compr: 800, larg: 265 },
+      { qtd: 4, compr: 690, larg: 400 },
+      { qtd: 1, compr: 765, larg: 350 },
+      { qtd: 1, compr: 185, larg: 690 },
+      { qtd: 2, compr: 496, larg: 690 },
+      { qtd: 1, compr: 465, larg: 650 }, // "465x650: peça" — sem número, quantidade implícita 1.
+      { qtd: 2, compr: 765, larg: 585 }, // "2 pecas" sem cedilha.
+    ]);
+    // Nenhuma peça carrega o texto ": N peças" sobrando no campo função.
+    for (const piece of result.pieces) {
+      expect(piece.funcao).toBe('');
+    }
   });
 });
 

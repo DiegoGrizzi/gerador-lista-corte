@@ -9,7 +9,13 @@
 import { SUSPICIOUS_ADJACENT_RE, MULTIPLE_PIECES_RE } from './regex-patterns.js';
 import { toNumber } from './numbers.js';
 import { stripWhatsAppFormatting, normalizeTypos } from './text-normalize.js';
-import { isValidPiece, tryMatchPieceLine, buildPieceFromMatch } from './piece-matcher.js';
+import {
+  isValidPiece,
+  tryMatchPieceLine,
+  buildPieceFromMatch,
+  tryMatchDimensionFirstLine,
+  buildPieceFromDimensionFirstMatch,
+} from './piece-matcher.js';
 import { finalizePiece } from './finalize.js';
 import type { NextIdFn, ParseContext, Piece } from './types.js';
 
@@ -24,6 +30,14 @@ import type { NextIdFn, ParseContext, Piece } from './types.js';
 export function quickParseLine(line: string, ctx: ParseContext, nextId: NextIdFn): Piece | null {
   const cleanedLine = normalizeTypos(stripWhatsAppFormatting(line.trim()));
   if (!cleanedLine) return null;
+
+  const dimensionFirstMatch = tryMatchDimensionFirstLine(cleanedLine);
+  if (dimensionFirstMatch) {
+    if (!isValidPiece(dimensionFirstMatch.compr, dimensionFirstMatch.larg, dimensionFirstMatch.qty)) return null;
+    const piece = buildPieceFromDimensionFirstMatch(dimensionFirstMatch, ctx);
+    piece.id = nextId();
+    return finalizePiece(piece);
+  }
 
   const match = tryMatchPieceLine(cleanedLine);
   if (!match) return null;

@@ -1,0 +1,25 @@
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+# Node
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+
+# Ambiente / segredos
+.env
+.env.local
+!.env.example
+
+# Testes / cobertura
+coverage/
+
+# Vite
+.vite/

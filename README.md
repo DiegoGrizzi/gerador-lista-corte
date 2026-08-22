@@ -4,7 +4,7 @@ Sistema web local para a **Araújo Madeiras**. Recebe mensagens coladas (WhatsAp
 
 Funciona bem em qualquer tamanho de tela — no celular, a tabela de peças vira uma lista de cartões (um por peça) em vez de exigir rolagem lateral.
 
-> Este projeto foi migrado de HTML/CSS/JS puro para **TypeScript + React + Node** (monorepo com npm workspaces). A versão original, sem build, continua disponível em [`legacy/`](legacy/) como referência congelada — veja [Estrutura do projeto](#estrutura-do-projeto).
+> Este projeto foi migrado de HTML/CSS/JS puro para **TypeScript + React + Node** (monorepo com npm workspaces) — veja [Estrutura do projeto](#estrutura-do-projeto).
 
 ## Como rodar
 
@@ -36,7 +36,7 @@ npm run lint    # ESLint no monorepo inteiro
 ## O que o sistema reconhece automaticamente
 
 - **Material**: blocos de texto contendo "MDF" (cor, espessura, etc.)
-- **Peças**: linhas no formato `quantidade=comprimento/largura` (aceita também `x`, `-`, `pç`, `pc`, entre outras variações comuns de digitação)
+- **Peças**: linhas no formato `quantidade=comprimento/largura` (aceita também `x`, `-`, `pç`, `pc`, entre outras variações comuns de digitação), ou no formato invertido `comprimento x largura: quantidade` (comum em listas exportadas de outros programas de otimização de corte, ex: `760x395: 2 peças`)
 - **Fitamento**: frases como "fitado um lado maior", "fitado os 4 lados", "não precisa fita", ou fita indicada direto no número (ex: `70 fita x59`)
 - **Ambiente/móvel** (ex: "Cozinha", "Guarda-roupa") e **função da peça** (ex: "gaveta", "lateral"), a partir de uma lista de palavras-chave
 - **Erros de digitação comuns** (vírgula dupla, ponto duplicado, etc.) — ficam sinalizados na lista de conferência, com uma correção sugerida para você confirmar antes de entrar na lista final
@@ -51,7 +51,7 @@ Além dos formatos já vistos na prática, o parser também está preparado para
 - **Ponto como separador de milhar** — "2.400" é lido como 2400 (não 2,4), seguindo a formatação numérica brasileira. Só se aplica quando há exatamente 3 dígitos depois do ponto; "56.5" continua sendo lido como decimal normalmente.
 - **Negrito, itálico ou tachado do WhatsApp** (`*texto*`, `_texto_`, `~texto~`) envolvendo uma linha inteira — a marcação é removida antes de interpretar, então uma peça ou um cabeçalho de material destacado continuam funcionando normalmente.
 - **Duas ou mais peças na mesma linha** (ex: "2=47/47, 3=50/60") — cada peça é separada e processada individualmente. Se qualquer uma das peças não puder ser interpretada com confiança, a linha inteira vai para a lista de conferência (em vez de registrar parte errada ou perder informação em silêncio).
-- **Variações de marcador de quantidade** — além de "pç"/"pc"/"-"/"=", também reconhece "un", "und", "unid", "unidade".
+- **Variações de marcador de quantidade** — além de "pç"/"pc"/"-"/"=", também reconhece "un", "und", "unid", "unidade", e tanto "peça"/"peças" quanto a grafia sem cedilha "peca"/"pecas".
 
 **Limitação conhecida e proposital:** espaço como separador de milhar (ex: "1 200" para 1200) não é tratado, porque o mesmo padrão — número, espaço, número — é usado o tempo todo para separar quantidade de medida (ex: "2 pç 400 x 60"). Tratar espaço como milhar de forma ampla quebraria esse uso comum sempre que a medida tivesse exatamente 3 dígitos. Se esse formato aparecer na prática, o ideal é revisar caso a caso.
 
@@ -59,7 +59,9 @@ Além dos formatos já vistos na prática, o parser também está preparado para
 
 Além de colar texto, também é possível enviar uma ou **várias fotos** de uma vez de listas de peças **impressas ou digitais** (não funciona com letra de mão) — o botão **Enviar foto** manda cada imagem para o backend (`server/`), que lê o texto da tabela e devolve já reorganizado no formato que o sistema entende, deixando na caixa de mensagem para revisão antes de analisar.
 
-**Leitura híbrida**: por padrão, a leitura é feita 100% local com [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) — sem custo, sem internet, sem chave de nenhum tipo (veja como instalar o Tesseract em [`legacy/ocr-server/LEIA-ME.md`](legacy/ocr-server/LEIA-ME.md), o passo a passo de instalação do Tesseract em si não mudou). Quando o Tesseract não está instalado, falha, ou devolve pouco texto útil (foto difícil de ler), o backend tenta automaticamente o fallback em nuvem [OCR.space](https://ocr.space/ocrapi) (tier gratuito, sem cartão de crédito) — configurável via `OCR_SPACE_API_KEY` em `server/.env` (veja `server/.env.example`). Sem essa chave configurada, o fallback fica desativado e só o Tesseract local é usado.
+**Leitura híbrida**: por padrão, a leitura é feita 100% local com [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) — sem custo, sem internet, sem chave de nenhum tipo. Quando o Tesseract não está instalado, falha, ou devolve pouco texto útil (foto difícil de ler), o backend tenta automaticamente o fallback em nuvem [OCR.space](https://ocr.space/ocrapi) (tier gratuito, sem cartão de crédito) — configurável via `OCR_SPACE_API_KEY` em `server/.env` (veja `server/.env.example`). Sem essa chave configurada, o fallback fica desativado e só o Tesseract local é usado.
+
+**Instalar o Tesseract (Windows)**: baixe o instalador em [UB-Mannheim/tesseract](https://github.com/UB-Mannheim/tesseract/wiki), marcando o pacote de idioma **Portuguese** durante a instalação. O `server` detecta automaticamente o Tesseract instalado no caminho padrão (`C:\Program Files\Tesseract-OCR\tesseract.exe`) — não precisa configurar nada a mais. Se você instalou em outro lugar, defina `TESSERACT_PATH` em `server/.env` apontando para o executável.
 
 Ao enviar fotos, o sistema pergunta o **material de cada uma** (com uma pré-visualização da imagem para você confirmar qual é qual) — assim peças de materiais diferentes, mesmo vindo de fotos separadas, ficam corretamente identificadas. Na primeira foto, informar o material é obrigatório; a partir da segunda, também aparece a opção **"Herdar material anterior"**, para quando várias fotos forem do mesmo material.
 
@@ -87,12 +89,7 @@ gerador-lista-corte/
 ├── packages/
 │   └── parser/         → @corte-cloud/parser: motor de interpretação de texto (TS puro, sem DOM, com testes Vitest)
 ├── server/              → @corte-cloud/server: API Express (POST /api/ocr — Tesseract local + fallback OCR.space)
-├── client/              → @corte-cloud/client: interface (React + Vite), consome @corte-cloud/parser e a API do server
-└── legacy/              → versão original (HTML/CSS/JS puro, sem build) — referência congelada, não é mais mantida
-    ├── index.html
-    ├── css/style.css
-    ├── js/{parser,app,vision}.js
-    └── ocr-server/      → servidor de OCR original (Node sem dependências) + LEIA-ME.md com o passo a passo de instalação do Tesseract
+└── client/              → @corte-cloud/client: interface (React + Vite), consome @corte-cloud/parser e a API do server
 ```
 
 `packages/parser` não depende do navegador nem do Node especificamente — só recebe texto e devolve dados (`analyzeText(...)`, `quickParseLine(...)`, `convertPieceToMm(...)`). Isso facilita testar a lógica de interpretação isoladamente, e é o pacote com a suite de testes mais extensa do projeto (regras de fitamento, sentido do veio, conversão de números, etc.).

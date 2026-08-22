@@ -1,0 +1,54 @@
+import 'dotenv/config';
+
+interface OcrSpaceConfig {
+  apiKey: string | undefined;
+  endpoint: string;
+}
+
+interface TesseractConfig {
+  path: string;
+  lang: string;
+}
+
+interface OcrFallbackConfig {
+  minUsefulChars: number;
+}
+
+export interface AppConfig {
+  port: number;
+  clientOrigin: string;
+  tesseract: TesseractConfig;
+  ocrSpace: OcrSpaceConfig;
+  ocrFallback: OcrFallbackConfig;
+  bodyLimit: string;
+}
+
+function readNumber(value: string | undefined, fallback: number): number {
+  if (!value) return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+export const config: AppConfig = {
+  port: readNumber(process.env['OCR_SERVER_PORT'], 5175),
+  clientOrigin: process.env['CLIENT_ORIGIN'] || 'http://localhost:5173',
+  tesseract: {
+    path: process.env['TESSERACT_PATH'] || 'tesseract',
+    lang: process.env['TESSERACT_LANG'] || 'por',
+  },
+  ocrSpace: {
+    apiKey: process.env['OCR_SPACE_API_KEY'] || undefined,
+    endpoint: process.env['OCR_SPACE_ENDPOINT'] || 'https://api.ocr.space/parse/image',
+  },
+  ocrFallback: {
+    minUsefulChars: readNumber(process.env['OCR_MIN_USEFUL_CHARS'], 15),
+  },
+  bodyLimit: process.env['OCR_BODY_LIMIT'] || '15mb',
+};
+
+if (!config.ocrSpace.apiKey) {
+  // eslint-disable-next-line no-console
+  console.warn(
+    'Aviso: OCR_SPACE_API_KEY não definida. O fallback via OCR.space ficará desativado; apenas o Tesseract local será usado.',
+  );
+}

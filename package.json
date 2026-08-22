@@ -2,6 +2,7 @@
   "name": "gerador-lista-corte",
   "private": true,
   "version": "1.0.0",
+  "type": "module",
   "workspaces": [
     "packages/*",
     "server",

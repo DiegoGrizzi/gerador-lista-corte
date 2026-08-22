@@ -2,16 +2,36 @@
 
 Sistema web local para a **Araújo Madeiras**. Recebe mensagens coladas (WhatsApp, bloco de notas, etc.) com medidas de peças de marcenaria e gera uma lista pronta para colar no [CorteCloud](https://cortecloud.com.br/).
 
-Não precisa de instalação, servidor ou internet — é só abrir o `index.html` num navegador. Funciona bem em qualquer tamanho de tela — no celular, a tabela de peças vira uma lista de cartões (um por peça) em vez de exigir rolagem lateral.
+Funciona bem em qualquer tamanho de tela — no celular, a tabela de peças vira uma lista de cartões (um por peça) em vez de exigir rolagem lateral.
+
+> Este projeto foi migrado de HTML/CSS/JS puro para **TypeScript + React + Node** (monorepo com npm workspaces). A versão original, sem build, continua disponível em [`legacy/`](legacy/) como referência congelada — veja [Estrutura do projeto](#estrutura-do-projeto).
+
+## Como rodar
+
+Requer [Node.js](https://nodejs.org/) 20+ instalado.
+
+```bash
+npm install
+npm run dev
+```
+
+Isso sobe o backend (`http://localhost:5175`) e o frontend (`http://localhost:5173`) juntos. Abra `http://localhost:5173` no navegador.
+
+Outros comandos úteis (na raiz do monorepo):
+
+```bash
+npm run build   # compila os três pacotes (parser, server, client) para produção
+npm run test    # roda a suite de testes (Vitest) dos três pacotes
+npm run lint    # ESLint no monorepo inteiro
+```
 
 ## Como usar
 
-1. Abra `index.html` no navegador
-2. Cole a mensagem com as medidas
-3. Clique em **Analisar mensagem** — confirme se as medidas já estão em milímetros
-4. Confira a tabela de peças identificadas — edite qualquer campo se precisar
-5. Clique em **Gerar lista para o CorteCloud**
-6. Clique em **Copiar para Excel** e cole direto no CorteCloud
+1. Cole a mensagem com as medidas
+2. Clique em **Analisar mensagem** — confirme se as medidas já estão em milímetros
+3. Confira a tabela de peças identificadas — edite qualquer campo se precisar
+4. Clique em **Gerar lista para o CorteCloud**
+5. Clique em **Copiar para Excel** e cole direto no CorteCloud
 
 ## O que o sistema reconhece automaticamente
 
@@ -37,19 +57,11 @@ Além dos formatos já vistos na prática, o parser também está preparado para
 
 ## Enviar foto (opcional)
 
-Além de colar texto, também é possível enviar uma ou **várias fotos** de
-uma vez de listas de peças **impressas ou digitais** (não funciona com
-letra de mão) — o botão **Enviar foto** manda cada imagem para um pequeno
-servidor de OCR rodando no próprio computador, que lê o texto da tabela e
-devolve já reorganizado no formato que o sistema entende, deixando na
-caixa de mensagem para revisão antes de analisar.
+Além de colar texto, também é possível enviar uma ou **várias fotos** de uma vez de listas de peças **impressas ou digitais** (não funciona com letra de mão) — o botão **Enviar foto** manda cada imagem para o backend (`server/`), que lê o texto da tabela e devolve já reorganizado no formato que o sistema entende, deixando na caixa de mensagem para revisão antes de analisar.
 
-Ao enviar fotos, o sistema pergunta o **material de cada uma** (com uma
-pré-visualização da imagem para você confirmar qual é qual) — assim peças
-de materiais diferentes, mesmo vindo de fotos separadas, ficam
-corretamente identificadas. Na primeira foto, informar o material é
-obrigatório; a partir da segunda, também aparece a opção **"Herdar
-material anterior"**, para quando várias fotos forem do mesmo material.
+**Leitura híbrida**: por padrão, a leitura é feita 100% local com [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) — sem custo, sem internet, sem chave de nenhum tipo (veja como instalar o Tesseract em [`legacy/ocr-server/LEIA-ME.md`](legacy/ocr-server/LEIA-ME.md), o passo a passo de instalação do Tesseract em si não mudou). Quando o Tesseract não está instalado, falha, ou devolve pouco texto útil (foto difícil de ler), o backend tenta automaticamente o fallback em nuvem [OCR.space](https://ocr.space/ocrapi) (tier gratuito, sem cartão de crédito) — configurável via `OCR_SPACE_API_KEY` em `server/.env` (veja `server/.env.example`). Sem essa chave configurada, o fallback fica desativado e só o Tesseract local é usado.
+
+Ao enviar fotos, o sistema pergunta o **material de cada uma** (com uma pré-visualização da imagem para você confirmar qual é qual) — assim peças de materiais diferentes, mesmo vindo de fotos separadas, ficam corretamente identificadas. Na primeira foto, informar o material é obrigatório; a partir da segunda, também aparece a opção **"Herdar material anterior"**, para quando várias fotos forem do mesmo material.
 
 Dois formatos de tabela são reconhecidos:
 - Tabela com colunas separadas (#, Compr., Largura, Quant., Rotação, Nome, PA)
@@ -59,14 +71,7 @@ Dois formatos de tabela são reconhecidos:
   leitura de texto); a fita fica em branco para ser marcada manualmente
   na tabela de conferência.
 
-Diferente de uma API paga, esse servidor roda 100% local — sem custo, sem
-internet, sem chave de nenhum tipo. Em compensação, precisa ser configurado
-uma vez e mantido rodando; veja o passo a passo completo em
-[`ocr-server/LEIA-ME.md`](ocr-server/LEIA-ME.md).
-
-Sem essa configuração, o botão "Enviar foto" simplesmente mostra uma
-mensagem avisando que o servidor não está disponível — o resto do sistema
-(colar texto) continua funcionando normalmente.
+Se nem o Tesseract nem o fallback conseguirem ler a imagem, o botão "Enviar foto" mostra uma mensagem de erro clara — o resto do sistema (colar texto) continua funcionando normalmente.
 
 **Sempre revise o texto reconhecido antes de clicar em "Analisar mensagem"**
 — OCR pode errar números, e um comprimento ou largura errado só é
@@ -75,60 +80,26 @@ pequena ou muitas linhas/checkboxes disputando espaço com os números —
 nesses casos, fotografar mais de perto (focando só na coluna de medidas)
 tende a melhorar bastante a leitura.
 
-## Ícone personalizado (atalho na área de trabalho)
-
-Arquivos `.html` sempre mostram o ícone do navegador associado — não dá
-pra mudar isso no próprio arquivo. Mas dá pra ter um ícone personalizado
-criando um **atalho** pro `index.html` e aplicando o ícone nesse atalho:
-
-1. Clique com o botão direito no `index.html` → **Criar atalho**
-2. Coloque esse atalho na área de trabalho (ou onde preferir)
-3. Clique com o botão direito no atalho → **Propriedades**
-4. Na aba "Atalho", clique em **Alterar Ícone...**
-5. Clique em **Procurar** e selecione o arquivo `assets/icone.ico` (dentro
-   da pasta do projeto)
-6. **OK** → **Aplicar**
-
-O ícone (`assets/icone.ico`) já vem pronto no projeto, em várias
-resoluções — não precisa criar nada, só apontar pra ele nesse passo 5.
-
 ## Estrutura do projeto
 
 ```
 gerador-lista-corte/
-├── index.html       → estrutura da página
-├── assets/
-│   ├── icone.ico     → ícone para usar num atalho (área de trabalho)
-│   └── favicon.png   → ícone exibido na aba do navegador
-├── css/
-│   └── style.css    → estilos, organizados por seção
-├── js/
-│   ├── parser.js     → motor de interpretação de texto (puro, sem DOM)
-│   ├── app.js        → estado da tela, renderização e eventos
-│   └── vision.js     → envia fotos ao servidor de OCR local (opcional)
-├── ocr-server/
-│   ├── server-ocr.js              → servidor local de OCR (Node, sem dependências)
-│   ├── iniciar-servidor-oculto.vbs → liga o servidor sem abrir janela
-│   └── LEIA-ME.md                 → passo a passo de instalação (Windows)
-└── README.md
+├── packages/
+│   └── parser/         → @corte-cloud/parser: motor de interpretação de texto (TS puro, sem DOM, com testes Vitest)
+├── server/              → @corte-cloud/server: API Express (POST /api/ocr — Tesseract local + fallback OCR.space)
+├── client/              → @corte-cloud/client: interface (React + Vite), consome @corte-cloud/parser e a API do server
+└── legacy/              → versão original (HTML/CSS/JS puro, sem build) — referência congelada, não é mais mantida
+    ├── index.html
+    ├── css/style.css
+    ├── js/{parser,app,vision}.js
+    └── ocr-server/      → servidor de OCR original (Node sem dependências) + LEIA-ME.md com o passo a passo de instalação do Tesseract
 ```
 
-`parser.js` não depende do navegador — ele só recebe texto e devolve dados
-(`CutListParser.analyzeText(...)`). Isso facilita testar a lógica de
-interpretação isoladamente (inclusive fora do navegador, com Node) sem
-precisar simular clique em botão ou preenchimento de formulário.
+`packages/parser` não depende do navegador nem do Node especificamente — só recebe texto e devolve dados (`analyzeText(...)`, `quickParseLine(...)`, `convertPieceToMm(...)`). Isso facilita testar a lógica de interpretação isoladamente, e é o pacote com a suite de testes mais extensa do projeto (regras de fitamento, sentido do veio, conversão de números, etc.).
 
-`app.js` cuida só da tela: chama o `parser.js`, guarda o estado atual
-(peças, itens em conferência) e liga os botões.
+`server` cuida só do OCR: recebe uma foto em base64, tenta o Tesseract local e cai para o OCR.space quando necessário — nenhuma interpretação de peça/material/fita acontece aqui, isso é sempre trabalho do `packages/parser`.
 
-`vision.js` só sabe conversar com o servidor de OCR local e reorganizar o
-texto que ele devolve — nenhuma interpretação de fita/material/ambiente
-acontece aqui, isso é sempre trabalho do `parser.js`.
-
-O sistema principal continua sem dependências externas, sem build, sem
-`node_modules` — apenas HTML, CSS e JavaScript puro (vanilla). Só o
-`ocr-server` (opcional) usa Node.js diretamente, e mesmo assim sem
-nenhuma biblioteca de terceiros.
+`client` cuida da tela: chama o `packages/parser`, guarda o estado atual (peças, itens em conferência) num reducer React, e chama a API do `server` para o fluxo de foto.
 
 ## Desenvolvido por
 

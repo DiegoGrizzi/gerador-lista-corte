@@ -47,7 +47,6 @@ export const config: AppConfig = {
 };
 
 if (!config.ocrSpace.apiKey) {
-  // eslint-disable-next-line no-console
   console.warn(
     'Aviso: OCR_SPACE_API_KEY não definida. O fallback via OCR.space ficará desativado; apenas o Tesseract local será usado.',
   );

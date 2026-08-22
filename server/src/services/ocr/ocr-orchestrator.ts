@@ -25,16 +25,13 @@ export async function runOcrWithFallback(
   providers: OcrOrchestratorProviders,
   opts: OcrOrchestratorOptions,
 ): Promise<OcrOrchestratorResult> {
-  let primaryText: string | undefined;
-
   try {
     const result = await providers.primary.recognize(imageBuffer);
-    primaryText = result.text;
-    if (primaryText.trim().length >= opts.minUsefulChars) {
-      return { text: primaryText, engine: providers.primary.name };
+    if (result.text.trim().length >= opts.minUsefulChars) {
+      return { text: result.text, engine: providers.primary.name };
     }
   } catch {
-    primaryText = undefined;
+    // Primário falhou — tenta o fallback abaixo.
   }
 
   try {
@@ -43,13 +40,7 @@ export async function runOcrWithFallback(
       return { text: fallbackResult.text, engine: providers.fallback.name };
     }
   } catch {
-    // segue para o erro final abaixo
-  }
-
-  // Se o primário ao menos devolveu algum texto (ainda que curto) e o
-  // fallback não trouxe nada melhor, usa o que o primário conseguiu.
-  if (primaryText !== undefined && primaryText.trim().length > 0) {
-    return { text: primaryText, engine: providers.primary.name };
+    // Fallback também falhou — cai no erro final abaixo.
   }
 
   throw new OcrFailureError('Nenhum engine de OCR conseguiu ler o texto da imagem.');

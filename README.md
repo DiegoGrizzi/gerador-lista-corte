@@ -8,17 +8,25 @@ Funciona bem em qualquer tamanho de tela — no celular, a tabela de peças vira
 
 ## Como rodar
 
-Requer [Node.js](https://nodejs.org/) 20+ instalado.
+### Instalar numa loja/computador novo
 
-### Uso do dia a dia (produção, início automático)
+Cada computador roda sua própria instalação (não fica compartilhado pela
+rede). Copie `deploy/instalar-em-novo-computador.bat` e
+`deploy/instalar-em-novo-computador.ps1` para a máquina e dê duplo clique
+no `.bat` — o instalador cuida de tudo sozinho (Node.js, Tesseract OCR com
+pacote de português, baixar o projeto, compilar, e deixar rodando
+automaticamente com o Windows). Detalhes em [`deploy/LEIA-ME.md`](deploy/LEIA-ME.md).
+
+### Uso do dia a dia (depois de instalado)
 
 O sistema fica rodando sozinho em segundo plano e sobe automaticamente com
 o Windows — não precisa abrir terminal nem rodar nenhum comando no dia a
 dia. Basta abrir o atalho **"Gerador de Lista de Corte"** (área de
 trabalho) ou acessar `http://localhost:5175` no navegador.
 
-Configuração inicial desse modo (uma vez só) e como atualizar depois de uma
-mudança no código: veja [`deploy/LEIA-ME.md`](deploy/LEIA-ME.md).
+### Desenvolvimento
+
+Requer [Node.js](https://nodejs.org/) 20+ instalado.
 
 ### Desenvolvimento
 
@@ -103,7 +111,9 @@ gerador-lista-corte/
 │   └── parser/         → @corte-cloud/parser: motor de interpretação de texto (TS puro, sem DOM, com testes Vitest)
 ├── server/              → @corte-cloud/server: API Express (POST /api/ocr — Tesseract local + fallback OCR.space); em produção também serve a interface compilada (client/dist)
 ├── client/              → @corte-cloud/client: interface (React + Vite), consome @corte-cloud/parser e a API do server
-└── deploy/              → início automático em produção (ver deploy/LEIA-ME.md)
+└── deploy/              → instalação e início automático em produção (ver deploy/LEIA-ME.md)
+    ├── instalar-em-novo-computador.bat  → instalador de ponta a ponta pra uma máquina nova
+    ├── instalar-em-novo-computador.ps1
     └── iniciar-servidor-oculto.vbs
 ```
 

@@ -4,7 +4,29 @@ Este modo compila o sistema inteiro (interface + API de OCR) num único
 processo Node, que fica rodando em segundo plano e sobe sozinho toda vez
 que o Windows liga — sem precisar abrir terminal, sem `npm run dev`.
 
-## Configuração inicial (uma vez só)
+## Instalar numa máquina nova (loja)
+
+Cada computador da loja é uma instalação independente (não fica na rede) —
+mas o processo é todo automático. Copie os dois arquivos abaixo para a
+máquina nova (pendrive, e-mail, pasta compartilhada — não precisa do
+projeto inteiro, só esses dois arquivos) e dê duplo clique no `.bat`:
+
+- `deploy/instalar-em-novo-computador.bat`
+- `deploy/instalar-em-novo-computador.ps1`
+
+O instalador sozinho:
+1. Instala o Node.js, se não tiver
+2. Instala o Tesseract OCR com o pacote de idioma Português, se não tiver
+3. Baixa o projeto (repositório é público — não pede login) em `%USERPROFILE%\gerador-lista-corte`
+4. Instala as dependências e compila
+5. Cria o atalho de início automático e o atalho na área de trabalho
+6. Já deixa o servidor rodando
+
+Rodar o mesmo instalador de novo no futuro **atualiza** o sistema para a
+versão mais recente (baixa o código novo, recompila, reinicia) — é o mesmo
+processo pra instalar pela primeira vez ou pra atualizar depois.
+
+## Configuração manual (alternativa, se preferir passo a passo)
 
 1. Instale as dependências e compile o projeto, na raiz:
    ```bash
@@ -18,8 +40,6 @@ que o Windows liga — sem precisar abrir terminal, sem `npm run dev`.
    você fizer login no Windows.
 3. Crie um atalho na área de trabalho (ou fixe na barra de tarefas) para
    `http://localhost:5175` — é o link que abre o sistema no navegador.
-   Um atalho pronto (`Gerador de Lista de Corte.url`) já foi colocado na
-   área de trabalho durante a configuração inicial.
 
 ## Uso do dia a dia
 
@@ -31,17 +51,12 @@ que o Windows liga — sem precisar abrir terminal, sem `npm run dev`.
 
 ## Depois de atualizar o código
 
-Sempre que o código mudar (uma nova versão do sistema), é preciso recompilar
-e reiniciar o servidor:
-
-```bash
-npm run build
-```
-
-Depois, feche o processo Node antigo (Gerenciador de Tarefas → procure por
-"Node.js JavaScript Runtime", ou reinicie o Windows) e rode o
-`deploy/iniciar-servidor-oculto.vbs` de novo (duplo clique) — ou simplesmente
-reinicie o computador, já que ele sobe sozinho no login.
+Rode o `instalar-em-novo-computador.bat` de novo (mesma máquina, mesmo
+arquivo) — ele baixa a versão mais recente, recompila e reinicia o
+servidor sozinho. Se preferir fazer manualmente: feche o processo Node
+antigo (Gerenciador de Tarefas → "Node.js JavaScript Runtime"), rode
+`npm run build` e dê duplo clique em `deploy/iniciar-servidor-oculto.vbs`
+de novo.
 
 ## Onde ver os logs
 

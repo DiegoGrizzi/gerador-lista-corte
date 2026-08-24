@@ -110,23 +110,31 @@ if ((Test-Path $tessDataDir) -and -not (Test-Path $porFile)) {
         Invoke-WebRequest -Uri 'https://github.com/tesseract-ocr/tessdata/raw/main/por.traineddata' -OutFile $porFile -ErrorAction Stop
     } catch {
         Write-Host "AVISO: nao consegui baixar o pacote de portugues do Tesseract ($($_.Exception.Message))." -ForegroundColor Yellow
+        Write-Host 'Isso normalmente acontece por falta de permissao para escrever em "Program Files". Feche esta janela e rode o instalador.bat de novo (ele pede permissao de administrador automaticamente).' -ForegroundColor Yellow
     }
 }
 
 # 3. Baixar ou atualizar o projeto ---------------------------------------
-if (Test-Path $InstallDir) {
-    if (Test-Path (Join-Path $InstallDir '.git')) {
-        Write-Host 'Atualizando projeto existente...'
-        Push-Location $InstallDir
-        git pull
-        $gitExitCode = $LASTEXITCODE
-        Pop-Location
-        if ($gitExitCode -ne 0) {
-            Stop-OnFailure 'git pull falhou. Confira a conexao com a internet e tente de novo.'
-        }
-    } else {
-        Write-Host "Pasta $InstallDir ja existe, mas nao e um repositorio git - pulando download."
+$installDirExists = Test-Path $InstallDir
+$isGitRepo = $installDirExists -and (Test-Path (Join-Path $InstallDir '.git'))
+$isEmptyDir = $installDirExists -and -not $isGitRepo -and
+    ((Get-ChildItem $InstallDir -Force -ErrorAction SilentlyContinue | Measure-Object).Count -eq 0)
+
+if ($isGitRepo) {
+    Write-Host 'Atualizando projeto existente...'
+    Push-Location $InstallDir
+    git pull
+    $gitExitCode = $LASTEXITCODE
+    Pop-Location
+    if ($gitExitCode -ne 0) {
+        Stop-OnFailure 'git pull falhou. Confira a conexao com a internet e tente de novo.'
     }
+} elseif ($installDirExists -and -not $isEmptyDir) {
+    # Pasta existe, tem coisa dentro, mas nao e uma instalacao valida deste
+    # sistema (nao tem .git) - nao mexe nela para nao arriscar apagar algo
+    # do usuario. Sem isso, o instalador prosseguia direto para "npm
+    # install" numa pasta sem package.json e falhava de um jeito confuso.
+    Stop-OnFailure "A pasta $InstallDir ja existe e nao esta vazia, mas nao e uma instalacao valida do Gerador de Lista de Corte. Apague essa pasta manualmente (ou edite `$InstallDir no topo deste script para usar outro local) e rode o instalador de novo."
 } elseif (Test-CommandExists 'git') {
     Write-Host 'Baixando projeto (git clone)...'
     git clone $RepoUrl $InstallDir
@@ -141,7 +149,12 @@ if (Test-Path $InstallDir) {
         Invoke-WebRequest -Uri "$RepoUrl/archive/refs/heads/main.zip" -OutFile $zipPath -ErrorAction Stop
         if (Test-Path $extractDir) { Remove-Item $extractDir -Recurse -Force }
         Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force -ErrorAction Stop
-        Move-Item (Join-Path $extractDir 'gerador-lista-corte-main') $InstallDir -ErrorAction Stop
+        # Copia o CONTEUDO da pasta extraida para dentro de $InstallDir, em
+        # vez de renomear a pasta extraida para $InstallDir - isso funciona
+        # tanto quando $InstallDir ainda nao existe quanto quando ja existe
+        # vazia (Move-Item falharia nesse segundo caso).
+        New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
+        Copy-Item -Path (Join-Path $extractDir 'gerador-lista-corte-main\*') -Destination $InstallDir -Recurse -Force -ErrorAction Stop
     } catch {
         Stop-OnFailure "Nao consegui baixar/extrair o projeto ($($_.Exception.Message))."
     } finally {

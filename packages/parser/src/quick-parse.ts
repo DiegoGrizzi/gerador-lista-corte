@@ -17,6 +17,7 @@ import {
   tryMatchPcAsteriskLine,
   buildPieceFromDimensionFirstMatch,
 } from './piece-matcher.js';
+import { extractTrailingFitaCodes, applyFitaCodesToPiece } from './fita-codes.js';
 import { finalizePiece } from './finalize.js';
 import type { NextIdFn, ParseContext, Piece } from './types.js';
 
@@ -29,14 +30,30 @@ import type { NextIdFn, ParseContext, Piece } from './types.js';
  * @returns a peça pronta, ou null se ainda não for possível interpretar
  */
 export function quickParseLine(line: string, ctx: ParseContext, nextId: NextIdFn): Piece | null {
-  const cleanedLine = normalizeTypos(stripWhatsAppFormatting(line.trim()));
+  let cleanedLine = normalizeTypos(stripWhatsAppFormatting(line.trim()));
   if (!cleanedLine) return null;
+
+  // Ver comentário equivalente em analyze.ts: códigos de fita colados ao
+  // final da linha (ex: "... 1M 1m", "... 3L"), só em linhas que começam
+  // com a quantidade.
+  let fitaCodes: string[] = [];
+  if (/^\d/.test(cleanedLine)) {
+    const stripped = extractTrailingFitaCodes(cleanedLine);
+    if (stripped.codes.length > 0) {
+      cleanedLine = stripped.line;
+      fitaCodes = stripped.codes;
+    }
+    // Ver comentário equivalente em analyze.ts sobre o "X" repetido entre
+    // quantidade e comprimento no formato "quantidade X compr X larg".
+    cleanedLine = cleanedLine.replace(/^(\d+)\s+[xX]\s+/, '$1 ');
+  }
 
   const dimensionFirstMatch = tryMatchDimensionFirstLine(cleanedLine);
   if (dimensionFirstMatch) {
     if (!isValidPiece(dimensionFirstMatch.compr, dimensionFirstMatch.larg, dimensionFirstMatch.qty)) return null;
     const piece = buildPieceFromDimensionFirstMatch(dimensionFirstMatch, ctx);
     piece.id = nextId();
+    if (fitaCodes.length > 0) applyFitaCodesToPiece(piece, fitaCodes);
     return finalizePiece(piece);
   }
 
@@ -45,6 +62,7 @@ export function quickParseLine(line: string, ctx: ParseContext, nextId: NextIdFn
     if (!isValidPiece(pcAsteriskMatch.compr, pcAsteriskMatch.larg, pcAsteriskMatch.qty)) return null;
     const piece = buildPieceFromDimensionFirstMatch(pcAsteriskMatch, ctx);
     piece.id = nextId();
+    if (fitaCodes.length > 0) applyFitaCodesToPiece(piece, fitaCodes);
     return finalizePiece(piece);
   }
 
@@ -58,5 +76,6 @@ export function quickParseLine(line: string, ctx: ParseContext, nextId: NextIdFn
 
   const built = buildPieceFromMatch(match.qty, match.prefix, match.dimensionMatch, match.suffix, ctx);
   built.piece.id = nextId();
+  if (fitaCodes.length > 0) applyFitaCodesToPiece(built.piece, fitaCodes);
   return finalizePiece(built.piece);
 }

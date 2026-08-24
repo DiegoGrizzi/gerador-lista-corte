@@ -65,6 +65,12 @@ export interface HeaderInfo {
  *
  * `id` é preenchido pelo chamador (`nextId()`) imediatamente após a peça
  * ser construída por buildPieceFromMatch — nunca é lido antes disso.
+ *
+ * `pendingThreeLados` só existe quando a linha trazia o código "3L" (ver
+ * fita-codes.ts): 3 dos 4 lados fitados, mas ambíguo entre "2 lados
+ * maiores + 1 menor" e "2 lados menores + 1 maior" — fica `true` até a
+ * pergunta correspondente ser respondida na interface, com `customFita`
+ * provisoriamente "sem nenhum lado" nesse meio tempo.
  */
 export interface RawPiece {
   id: string;
@@ -79,6 +85,7 @@ export interface RawPiece {
   customFita: FitaState | null;
   isOverride: boolean;
   note: string;
+  pendingThreeLados?: boolean;
 }
 
 /**

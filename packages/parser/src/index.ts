@@ -10,6 +10,7 @@ export { toNumber } from './numbers.js';
 export { analyzeText } from './analyze.js';
 export { quickParseLine } from './quick-parse.js';
 export { convertPieceToMm } from './finalize.js';
+export { resolveThreeLadosFita } from './fita-codes.js';
 
 export type {
   Piece,

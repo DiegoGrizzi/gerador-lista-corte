@@ -25,6 +25,7 @@ import { PasteOrPhotoCard } from './components/PasteOrPhotoCard.js';
 import { PieceReviewTable } from './components/PieceReviewTable.js';
 import { ResultCard } from './components/ResultCard.js';
 import { MmUnitModal } from './components/modals/MmUnitModal.js';
+import { ThreeLadosModal } from './components/modals/ThreeLadosModal.js';
 import { MaterialModal } from './components/modals/MaterialModal.js';
 import { PhotoMaterialModal } from './components/modals/PhotoMaterialModal.js';
 import { ErrorModal } from './components/modals/ErrorModal.js';
@@ -154,6 +155,10 @@ export function App(): JSX.Element {
       <MmUnitModal
         isOpen={state.activeModal === 'mm'}
         onAnswered={(factor) => dispatch({ type: 'MM_ANSWERED', factor })}
+      />
+      <ThreeLadosModal
+        isOpen={state.activeModal === 'threeLados'}
+        onAnswered={(choice) => dispatch({ type: 'THREE_LADOS_ANSWERED', choice })}
       />
       <MaterialModal
         isOpen={state.activeModal === 'material'}

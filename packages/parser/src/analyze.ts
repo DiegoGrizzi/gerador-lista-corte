@@ -11,6 +11,7 @@
 import {
   QUANTITY_RE,
   THICKNESS_ONLY_RE,
+  PECAS_HEADER_RE,
   DISCARD_LABELS,
   SEPARATOR_LINE_RE,
   LOOKS_LIKE_PIECE_RE,
@@ -20,6 +21,7 @@ import {
 import { toNumber } from './numbers.js';
 import { stripWhatsAppFormatting, normalizeTypos, expandPcSeparatedPieces } from './text-normalize.js';
 import { parseFitamentoPhrase } from './fitamento.js';
+import { extractTrailingFitaCodes, applyFitaCodesToPiece } from './fita-codes.js';
 import { classifyHeaderLine, extractHeaderInfo } from './header.js';
 import {
   isValidPiece,
@@ -175,6 +177,25 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     let line = stripWhatsAppFormatting(rawLine.trim());
     if (!line) return;
 
+    // Códigos de fita colados ao final da linha (ex: "... 1M 1m", "... 3L")
+    // — ver fita-codes.ts. Só tenta em linhas que começam com dígito (a
+    // quantidade), o mesmo universo de linhas que os formatos de peça
+    // abaixo reconhecem — evita mexer em cabeçalhos/complementos que por
+    // acaso terminem com algo parecido (ex: "Quarto 2").
+    let fitaCodes: string[] = [];
+    if (/^\d/.test(line)) {
+      const stripped = extractTrailingFitaCodes(line);
+      if (stripped.codes.length > 0) {
+        line = stripped.line;
+        fitaCodes = stripped.codes;
+      }
+      // Formato "quantidade X comprimento X largura" (ex: "3 X 0,80 X
+      // 0,505") repete o separador "X" também entre a quantidade e o
+      // comprimento — sem remover esse "X" solto, ele sobraria como prefixo
+      // da linha e viraria (erroneamente) a Função da peça.
+      line = line.replace(/^(\d+)\s+[xX]\s+/, '$1 ');
+    }
+
     // Formato "comprimento x largura: quantidade" (ver DIMENSION_FIRST_RE) e
     // "quantidade+pc+comprimento*largura" (ver PC_ASTERISK_RE) — checados
     // antes do formato principal porque são linhas inteiras ancoradas
@@ -189,6 +210,7 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
         return;
       }
       addDimensionFirstPiece(dimensionFirstMatch, snapshotContext());
+      if (fitaCodes.length > 0) applyFitaCodesToPiece(pieces[pieces.length - 1]!, fitaCodes);
       return;
     }
 
@@ -199,6 +221,7 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
         return;
       }
       addDimensionFirstPiece(pcAsteriskMatch, snapshotContext());
+      if (fitaCodes.length > 0) applyFitaCodesToPiece(pieces[pieces.length - 1]!, fitaCodes);
       return;
     }
 
@@ -235,6 +258,7 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
         }
 
         addSinglePiece(match, snapshotContext());
+        if (fitaCodes.length > 0) applyFitaCodesToPiece(pieces[pieces.length - 1]!, fitaCodes);
         return;
       }
       // Tinha formato de quantidade, mas não achou medidas depois dela —
@@ -265,6 +289,16 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     if (/mdf/i.test(line)) {
       const headerInfo = extractHeaderInfo(line);
       setNewMaterial(headerInfo.material, headerInfo.fitamento, headerInfo.thickness);
+      return;
+    }
+
+    // Cabeçalho sem "MDF" (ex: "PEÇAS 15mm NAVAL BR") — fitamento fica
+    // null de propósito: nesse formato cada peça declara a própria fita
+    // através de códigos ao final da linha (ver fita-codes.ts), não há um
+    // padrão de bloco a aplicar retroativamente.
+    const pecasHeaderMatch = line.match(PECAS_HEADER_RE);
+    if (pecasHeaderMatch) {
+      setNewMaterial(pecasHeaderMatch[2]!.trim(), null, toNumber(pecasHeaderMatch[1]!));
       return;
     }
 

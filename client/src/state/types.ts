@@ -19,7 +19,7 @@
 
 import type { DiscardedItem, Piece } from '@corte-cloud/parser';
 
-export type ActiveModal = 'none' | 'mm' | 'material' | 'photoMaterial' | 'error';
+export type ActiveModal = 'none' | 'mm' | 'threeLados' | 'material' | 'photoMaterial' | 'error';
 
 export type EditablePieceTextField = 'qtd' | 'compr' | 'larg' | 'material' | 'complemento' | 'funcao';
 export type EditablePieceFitaField = 'c1' | 'c2' | 'l1' | 'l2';
@@ -51,6 +51,12 @@ export interface CutListState {
 
   /** Fator de conversão confirmado (1 = já em mm, 10 = cm→mm, 1000 = m→mm). */
   mmFactor: number;
+
+  /**
+   * Se a pergunta sobre peças com código de fita ambíguo ("3L": 3 dos 4
+   * lados, ver Piece.pendingThreeLados) já foi respondida nesta mensagem.
+   */
+  threeLadosAsked: boolean;
 
   /**
    * Peça resgatada da conferência enquanto a pergunta de mm ainda não tinha
@@ -98,6 +104,7 @@ export type CutListAction =
   | { type: 'ERROR_MODAL_CLOSED' }
   | { type: 'CLEAR_INPUT' }
   | { type: 'MM_ANSWERED'; factor: number }
+  | { type: 'THREE_LADOS_ANSWERED'; choice: 'maior' | 'menor' }
   | { type: 'MATERIAL_CONFIRMED'; material: string }
   | { type: 'MATERIAL_SKIPPED' }
   | { type: 'DISCARD_RETRY_FAILED'; index: number; message: string }

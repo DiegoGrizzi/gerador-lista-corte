@@ -163,27 +163,32 @@ if ($isGitRepo) {
     }
 }
 
-# 3.4. Auto-atualizar os proprios arquivos do instalador -------------------
-# O .bat/.ps1 que voce baixou e roda direto (ex: da area de trabalho) sao
-# copias separadas do projeto - eles nao se atualizam sozinhos so por
-# existir. Depois de baixar/atualizar o projeto acima, copia a versao mais
-# recente desses dois arquivos de volta para onde voce esta rodando o
-# instalador - assim, da proxima vez, mesmo sem baixar de novo, voce ja
-# roda a versao mais nova (só a PRIMEIRA vez em cada computador exige
-# baixar manualmente).
+# 3.4. Auto-atualizar o proprio .ps1 -----------------------------------
+# O .ps1 que voce baixou e roda direto (ex: area de trabalho) e uma copia
+# separada do projeto - nao se atualiza sozinho so por existir. Depois de
+# baixar/atualizar o projeto acima, copia a versao mais recente de si
+# mesmo de volta para onde voce esta rodando o instalador - assim, da
+# proxima vez, mesmo sem baixar de novo, voce ja roda a versao mais nova.
+#
+# So o .ps1 se auto-atualiza, DE PROPOSITO nao o instalador.bat: o
+# PowerShell le o script inteiro antes de comecar a rodar (seguro
+# sobrescrever o arquivo durante a propria execucao), mas o cmd.exe (que
+# roda o .bat) le o arquivo aos poucos, lembrando a posicao onde parou -
+# se o conteudo do .bat mudar por baixo dele no meio da execucao, o
+# cmd.exe volta a ler na posicao errada e corrompe o resto do script
+# (foi exatamente isso que causou o erro "novo-computador.ps1 nao e
+# reconhecido..." reportado pelo usuario). O instalador.bat e pequeno e
+# raramente muda - se mudar, precisa baixar esse arquivo manualmente.
 try {
     $selfDir = $PSScriptRoot
-    $sourceBat = Join-Path $InstallDir 'deploy\instalador.bat'
     $sourcePs1 = Join-Path $InstallDir 'deploy\instalar-em-novo-computador.ps1'
-    $targetBat = Join-Path $selfDir 'instalador.bat'
     $targetPs1 = Join-Path $selfDir 'instalar-em-novo-computador.ps1'
 
     if ((Resolve-Path $sourcePs1 -ErrorAction SilentlyContinue).Path -ne (Resolve-Path $targetPs1 -ErrorAction SilentlyContinue).Path) {
-        Copy-Item -Path $sourceBat -Destination $targetBat -Force -ErrorAction Stop
         Copy-Item -Path $sourcePs1 -Destination $targetPs1 -Force -ErrorAction Stop
     }
 } catch {
-    Write-Host "AVISO: nao consegui auto-atualizar o instalador.bat/.ps1 ($($_.Exception.Message)) - sem problema, so vai precisar baixar manualmente da proxima vez que houver uma correcao neles." -ForegroundColor Yellow
+    Write-Host "AVISO: nao consegui auto-atualizar o instalar-em-novo-computador.ps1 ($($_.Exception.Message)) - sem problema, so vai precisar baixar manualmente da proxima vez que houver uma correcao nele." -ForegroundColor Yellow
 }
 
 # 3.5. Chave da API OCR.space (opcional, fallback de leitura de foto) -----

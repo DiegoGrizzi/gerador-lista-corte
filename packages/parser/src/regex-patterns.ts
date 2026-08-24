@@ -86,6 +86,28 @@ export const THICKNESS_SUFFIX_RE = /de\s+(\d+)\s*(?:mm|m)?\.?/i;
  */
 export const PECAS_HEADER_RE = new RegExp('^(?:' + QUANTITY_MARKER_WORDS + ')\\s+(\\d+)\\s*mm\\s+(.+)$', 'i');
 
+/**
+ * Cabeçalho de material sem "MDF" e sem nenhuma palavra de quantidade na
+ * frente — só o nome/cor do material seguido da espessura, terminando a
+ * linha (ex: "cinza jazz 18 mm", "branco tx 15mm"). Mais genérico que
+ * PECAS_HEADER_RE (aqui não há palavra-marcador alguma antes da
+ * espessura) — por isso só é testado depois que a linha já falhou como
+ * peça, espessura solta, frase de fitamento e os outros formatos de
+ * cabeçalho, evitando reinterpretar por engano o que já foi tratado antes.
+ */
+export const GENERIC_THICKNESS_HEADER_RE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*mm\.?$/i;
+
+/**
+ * Indica que o começo do sufixo é uma palavra de fitamento (sem o número
+ * na frente) — usada por buildPieceFromMatch para desfazer uma captura
+ * errada do "terceiro número" de DIMENSIONS_RE (a espessura embutida
+ * opcional, ex: "820 x 400 x 18"): quando a linha é na verdade uma
+ * abreviação de fitamento sem a palavra "lado(s)" (ex: "73x90 1 menor",
+ * "168x78 4 lados"), esse dígito solto some capturado como espessura por
+ * engano, e o resto ("menor"/"lados") bate aqui.
+ */
+export const FITAMENTO_ADJECTIVE_AT_START_RE = /^(?:lados?|maior(?:es)?|menor(?:es)?|grandes?|pequen[oa]s?)\b/i;
+
 /** Rótulos de seção que devem ir para conferência, mas nunca virar peça ou ambiente. */
 export const DISCARD_LABELS = ['ferragens', 'acessórios', 'acessorios', 'hardware', 'acabamentos'];
 

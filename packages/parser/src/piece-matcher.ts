@@ -15,6 +15,7 @@ import {
   PC_ASTERISK_RE,
   THICKNESS_SUFFIX_RE,
   PIECE_SEPARATOR_RE,
+  FITAMENTO_ADJECTIVE_AT_START_RE,
 } from './regex-patterns.js';
 import { toNumber } from './numbers.js';
 import { stripFillers } from './text-normalize.js';
@@ -197,7 +198,18 @@ export function buildPieceFromMatch(
   const largura = toNumber(dimensionMatch[3]!);
   const fitaNoComprimento = !!dimensionMatch[2]; // "fita" colada ao 1º número
   const fitaNaLargura = !!dimensionMatch[4]; // "fita" colada ao 2º número
-  const inlineThickness = dimensionMatch[5] != null ? toNumber(dimensionMatch[5]) : null;
+  let inlineThickness = dimensionMatch[5] != null ? toNumber(dimensionMatch[5]) : null;
+
+  // O "terceiro número" capturado acima não é uma espessura embutida
+  // quando o que sobra na linha é uma abreviação de fitamento sem a
+  // palavra "lado(s)" (ex: "73x90 1 menor", "168x78 4 lados") — o dígito
+  // era o começo dessa frase, não uma medida. Devolve ele para o sufixo
+  // antes de seguir, senão ele é lido (errado) como espessura e o resto
+  // ("menor"/"lados") vira Função por engano.
+  if (inlineThickness != null && FITAMENTO_ADJECTIVE_AT_START_RE.test(suffix)) {
+    suffix = dimensionMatch[5]! + ' ' + suffix;
+    inlineThickness = null;
+  }
 
   let funcao = '';
   let material = ctx.material;

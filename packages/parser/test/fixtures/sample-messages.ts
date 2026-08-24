@@ -94,3 +94,25 @@ export const NAVAL_BR_FITA_CODES = [
   '1 X 0,20 X 0,60    3L',
   '4 X 0,60 X 0,258  3L',
 ].join('\n');
+
+/**
+ * Lista real de um usuário: cabeçalho SEM "MDF" e sem nenhuma palavra de
+ * quantidade — só a cor do MDF seguida da espessura ("cinza jazz 18 mm") —
+ * e cada peça declara a própria fita em abreviação curta, sem a palavra
+ * "lado(s)" ("1 menor", "2 menor", "sem") ou já na frase clássica ("4
+ * lados"). Inclui o "." sobrando de "73x1,20. 2 menor", digitado por
+ * engano junto com a fita.
+ */
+export const CINZA_JAZZ_SHORTHAND_FITA = [
+  'cinza jazz 18 mm',
+  '1-137x137 sem',
+  '2-73x90 1 menor',
+  '1-168x78 4 lados',
+  '2-73x78 2 menor',
+  '1-2,00x1,20 4 lados',
+  '2-73x1,20. 2 menor',
+  '1- 196,3x20',
+  '1- 73x90 2 menor',
+  '6- 72,5x42,8 4 lados',
+  '4- 46,3x72,5',
+].join('\n');

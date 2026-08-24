@@ -11,6 +11,7 @@ import {
   PC_ASTERISK_LIST,
   REALISTIC_MESSAGE,
   NAVAL_BR_FITA_CODES,
+  CINZA_JAZZ_SHORTHAND_FITA,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -201,5 +202,58 @@ describe('analyzeText — "quantidade X compr X larg" com códigos de fita por p
     for (const piece of threeLadosPieces) {
       expect(piece.fita).toEqual({ c1: false, c2: false, l1: false, l2: false });
     }
+  });
+});
+
+describe('analyzeText — cabeçalho genérico sem "MDF" e fitamento em abreviação curta (real user list)', () => {
+  it('lê a cor/espessura do cabeçalho mesmo sem "MDF" nem palavra de quantidade', () => {
+    const result = analyzeText(CINZA_JAZZ_SHORTHAND_FITA, makeNextId());
+
+    expect(result.discarded).toHaveLength(0);
+    expect(result.materialMentioned).toBe(true);
+    expect(result.pieces).toHaveLength(10);
+    for (const piece of result.pieces) {
+      expect(piece.material).toBe('cinza jazz 18mm');
+      // O "1-"/"2-" da quantidade não deve sobrar como função.
+      expect(piece.funcao).toBe('');
+    }
+  });
+
+  it('"sem" sozinho (sem a palavra "fita") é entendido como none-explicit, não como função', () => {
+    const result = analyzeText(CINZA_JAZZ_SHORTHAND_FITA, makeNextId());
+    const piece = result.pieces[0]!; // 1-137x137 sem
+    expect(piece.funcao).toBe('');
+    expect(piece.fita).toEqual({ c1: false, c2: false, l1: false, l2: false });
+  });
+
+  it('"1 menor"/"2 menor" e "1 maior"/"2 maior" (sem a palavra "lado") aplicam a fita certa, não a função', () => {
+    const result = analyzeText(CINZA_JAZZ_SHORTHAND_FITA, makeNextId());
+
+    // 2-73x90 1 menor -> comprimento (73) é o lado menor -> C1.
+    expect(result.pieces[1]).toMatchObject({ funcao: '', fita: { c1: true, c2: false, l1: false, l2: false } });
+    // 2-73x78 2 menor -> comprimento (73) é o lado menor -> C1+C2.
+    expect(result.pieces[3]).toMatchObject({ funcao: '', fita: { c1: true, c2: true, l1: false, l2: false } });
+    // 1- 73x90 2 menor -> mesma peça de novo, mesma regra.
+    expect(result.pieces[7]).toMatchObject({ funcao: '', fita: { c1: true, c2: true, l1: false, l2: false } });
+  });
+
+  it('"4 lados" continua funcionando (fita nos 4 lados)', () => {
+    const result = analyzeText(CINZA_JAZZ_SHORTHAND_FITA, makeNextId());
+    expect(result.pieces[2]!.fita).toEqual({ c1: true, c2: true, l1: true, l2: true }); // 1-168x78 4 lados
+    expect(result.pieces[8]!.fita).toEqual({ c1: true, c2: true, l1: true, l2: true }); // 6- 72,5x42,8 4 lados
+  });
+
+  it('tolera o "." sobrando entre a medida e a fita ("73x1,20. 2 menor")', () => {
+    const result = analyzeText(CINZA_JAZZ_SHORTHAND_FITA, makeNextId());
+    const piece = result.pieces[5]!; // 2-73x1,20. 2 menor
+    expect(piece.funcao).toBe('');
+    // largura (1,20) é o lado menor aqui -> L1+L2.
+    expect(piece.fita).toEqual({ c1: false, c2: false, l1: true, l2: true });
+  });
+
+  it('linhas sem nenhuma anotação de fita ficam sem fita (default), sem quebrar nada', () => {
+    const result = analyzeText(CINZA_JAZZ_SHORTHAND_FITA, makeNextId());
+    expect(result.pieces[6]!.fita).toEqual({ c1: false, c2: false, l1: false, l2: false }); // 1- 196,3x20
+    expect(result.pieces[9]!.fita).toEqual({ c1: false, c2: false, l1: false, l2: false }); // 4- 46,3x72,5
   });
 });

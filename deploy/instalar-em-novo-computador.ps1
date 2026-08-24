@@ -49,6 +49,23 @@ function Stop-OnFailure {
     exit 1
 }
 
+function Stop-RunningServer {
+    # O launcher silencioso (iniciar-servidor-oculto.vbs) sempre inicia o
+    # servidor com este comando exato ("node dist\index.js") - da pra achar
+    # o processo por isso, sem precisar saber o caminho de instalacao (o
+    # node nao expoe a pasta de trabalho do processo de outro jeito facil
+    # via WMI). Usado tanto para liberar arquivos presos (ex: deploy\
+    # server.log, que fica aberto por escrita o tempo todo o servidor
+    # estiver rodando - a causa mais comum de "a pasta esta aberta" ao
+    # tentar apagar/reinstalar) quanto para nao deixar duas instancias
+    # rodando ao mesmo tempo depois de atualizar (passo 7 abaixo).
+    Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -match 'dist[\\/]index\.js' } |
+        ForEach-Object {
+            try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {}
+        }
+}
+
 function Test-OcrSpaceKey {
     # Confere se a chave funciona de verdade, chamando a API com uma
     # imagem minima (1x1 pixel) embutida no proprio script.
@@ -120,6 +137,27 @@ $isGitRepo = $installDirExists -and (Test-Path (Join-Path $InstallDir '.git'))
 $isEmptyDir = $installDirExists -and -not $isGitRepo -and
     ((Get-ChildItem $InstallDir -Force -ErrorAction SilentlyContinue | Measure-Object).Count -eq 0)
 
+if ($installDirExists -and -not $isGitRepo -and -not $isEmptyDir) {
+    # Pasta existe, tem coisa dentro, mas nao e uma instalacao valida deste
+    # sistema (nao tem .git) - normalmente sobra de uma instalacao antiga
+    # feita sem git (fallback por zip, que nunca vira um repositorio git) ou
+    # de um clone que falhou no meio. Em vez de travar pedindo pro usuario
+    # apagar manualmente, tenta apagar sozinho e reinstalar do zero - mas
+    # primeiro para o servidor antigo, se estiver rodando (a causa mais
+    # comum de nao conseguir apagar: o proprio servidor mantem deploy\
+    # server.log aberto o tempo todo).
+    Write-Host 'Pasta existente sem instalacao valida - encerrando o servidor antigo (se houver) e reinstalando do zero...'
+    Stop-RunningServer
+    Start-Sleep -Seconds 1
+    try {
+        Remove-Item $InstallDir -Recurse -Force -ErrorAction Stop
+    } catch {
+        Stop-OnFailure "A pasta $InstallDir ja existe, nao e uma instalacao valida do Gerador de Lista de Corte, e nao consegui apagar sozinho ($($_.Exception.Message)). Normalmente e algum programa com um arquivo dela ainda aberto (um terminal, o Explorer dentro da pasta, um antivirus escaneando...). Feche esses programas (ou reinicie o computador), apague a pasta manualmente e rode o instalador de novo."
+    }
+    $installDirExists = $false
+    $isGitRepo = $false
+}
+
 if ($isGitRepo) {
     Write-Host 'Atualizando projeto existente...'
     Push-Location $InstallDir
@@ -129,12 +167,6 @@ if ($isGitRepo) {
     if ($gitExitCode -ne 0) {
         Stop-OnFailure 'git pull falhou. Confira a conexao com a internet e tente de novo.'
     }
-} elseif ($installDirExists -and -not $isEmptyDir) {
-    # Pasta existe, tem coisa dentro, mas nao e uma instalacao valida deste
-    # sistema (nao tem .git) - nao mexe nela para nao arriscar apagar algo
-    # do usuario. Sem isso, o instalador prosseguia direto para "npm
-    # install" numa pasta sem package.json e falhava de um jeito confuso.
-    Stop-OnFailure "A pasta $InstallDir ja existe e nao esta vazia, mas nao e uma instalacao valida do Gerador de Lista de Corte. Apague essa pasta manualmente (ou edite `$InstallDir no topo deste script para usar outro local) e rode o instalador de novo."
 } elseif (Test-CommandExists 'git') {
     Write-Host 'Baixando projeto (git clone)...'
     git clone $RepoUrl $InstallDir
@@ -283,6 +315,11 @@ $urlContent = "[InternetShortcut]`r`nURL=http://localhost:$Port`r`nIconFile=$ico
 Set-Content -Path $urlShortcut -Value $urlContent -Encoding ASCII
 
 # 7. Iniciar agora -----------------------------------------------------------
+# Para uma instancia antiga primeiro (ex: a que ja estava rodando desde a
+# ultima vez que o Windows ligou) - sem isso, rodar o instalador de novo
+# para atualizar deixaria duas instancias do servidor rodando ao mesmo
+# tempo, a nova sem conseguir ocupar a porta.
+Stop-RunningServer
 Write-Host 'Iniciando o servidor...'
 Start-Process 'wscript.exe' -ArgumentList "`"$vbsPath`""
 Start-Sleep -Seconds 3

@@ -126,6 +126,39 @@ if (Test-Path $InstallDir) {
     }
 }
 
+# 3.5. Chave da API OCR.space (opcional, fallback de leitura de foto) -----
+# So perguntada quando ainda nao esta configurada - roda de novo no futuro
+# nao pede de novo se voce ja respondeu (ou pulou) antes. A chave fica
+# SOMENTE no arquivo local server/.env desta maquina, que nunca vai pro
+# GitHub (esta no .gitignore) - nunca e escrita no codigo do instalador.
+$envPath = Join-Path $InstallDir 'server\.env'
+$envExamplePath = Join-Path $InstallDir 'server\.env.example'
+
+if (-not (Test-Path $envPath)) {
+    Copy-Item $envExamplePath $envPath
+}
+
+$envContent = Get-Content -Path $envPath -Raw
+if ($envContent -match '(?m)^OCR_SPACE_API_KEY=\s*$') {
+    Write-Host ''
+    Write-Host 'Fallback de leitura de foto (OCR.space) - opcional.' -ForegroundColor Cyan
+    Write-Host 'O sistema ja funciona normalmente so com o Tesseract local sem isso.'
+    Write-Host 'Se voce ja tem uma chave gratuita (cadastro em https://ocr.space/OCRAPI/freekey), cole abaixo.'
+    Write-Host 'Sem chave em maos agora? So apertar Enter pula essa parte - da pra configurar depois editando server\.env.'
+    try {
+        $ocrKey = Read-Host 'Chave da API OCR.space'
+    } catch {
+        $ocrKey = $null
+    }
+    if ($ocrKey) {
+        $envContent = $envContent -replace '(?m)^OCR_SPACE_API_KEY=\s*$', "OCR_SPACE_API_KEY=$ocrKey"
+        Set-Content -Path $envPath -Value $envContent -NoNewline
+        Write-Host 'Chave configurada.' -ForegroundColor Green
+    } else {
+        Write-Host 'Pulado - so o Tesseract local sera usado por enquanto.'
+    }
+}
+
 # 4. Instalar dependencias e compilar -------------------------------------
 Push-Location $InstallDir
 Write-Host 'Instalando dependencias (pode demorar alguns minutos)...'

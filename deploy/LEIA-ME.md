@@ -18,9 +18,14 @@ O instalador sozinho:
 1. Instala o Node.js, se não tiver
 2. Instala o Tesseract OCR com o pacote de idioma Português, se não tiver
 3. Baixa o projeto (repositório é público — não pede login) em `%USERPROFILE%\gerador-lista-corte`
-4. Instala as dependências e compila
-5. Cria o atalho de início automático e o atalho na área de trabalho
-6. Já deixa o servidor rodando
+4. Pergunta a chave da API OCR.space (opcional — só na primeira vez, ou enquanto não for respondida; pode apertar Enter para pular)
+5. Instala as dependências e compila
+6. Cria o atalho de início automático e o atalho na área de trabalho
+7. Já deixa o servidor rodando
+
+A chave do OCR.space digitada fica só no `server\.env` **daquela máquina** —
+nunca é enviada para o GitHub nem gravada no instalador. Cada computador
+precisa da própria chave (ou pode pular e usar só o Tesseract local).
 
 Rodar o mesmo instalador de novo no futuro **atualiza** o sistema para a
 versão mais recente (baixa o código novo, recompila, reinicia) — é o mesmo

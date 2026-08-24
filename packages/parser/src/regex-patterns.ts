@@ -78,6 +78,14 @@ export const THICKNESS_ONLY_RE = /^(?:tudo|todos|todas)?\s*de\s+(\d+)\s*(?:mm|m)
 /** Espessura mencionada dentro de outra linha: "...de 15mm", "...de 6m". */
 export const THICKNESS_SUFFIX_RE = /de\s+(\d+)\s*(?:mm|m)?\.?/i;
 
+/**
+ * Cabeçalho de material sem a palavra "MDF": "PEÇAS 15mm NAVAL BR" —
+ * espessura e nome do material, usado em listas onde cada peça já declara a
+ * própria fita através de códigos ao final da linha (ver fita-codes.ts) em
+ * vez de um fitamento padrão do bloco inteiro.
+ */
+export const PECAS_HEADER_RE = new RegExp('^(?:' + QUANTITY_MARKER_WORDS + ')\\s+(\\d+)\\s*mm\\s+(.+)$', 'i');
+
 /** Rótulos de seção que devem ir para conferência, mas nunca virar peça ou ambiente. */
 export const DISCARD_LABELS = ['ferragens', 'acessórios', 'acessorios', 'hardware', 'acabamentos'];
 

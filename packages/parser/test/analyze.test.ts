@@ -10,6 +10,7 @@ import {
   DIMENSION_FIRST_LIST,
   PC_ASTERISK_LIST,
   REALISTIC_MESSAGE,
+  NAVAL_BR_FITA_CODES,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -161,5 +162,44 @@ describe('analyzeText — full realistic message', () => {
     // The separator line and the "Ferragens" label both go to conferência.
     expect(result.discarded).toHaveLength(2);
     expect(result.discarded.map((d) => d.text)).toEqual(['----------x-------------', 'Ferragens']);
+  });
+});
+
+describe('analyzeText — "quantidade X compr X larg" com códigos de fita por peça (real user list)', () => {
+  it('reconhece o cabeçalho sem "MDF", as 12 peças e nenhuma vai para conferência', () => {
+    const result = analyzeText(NAVAL_BR_FITA_CODES, makeNextId());
+
+    expect(result.discarded).toHaveLength(0);
+    expect(result.materialMentioned).toBe(true);
+    expect(result.pieces).toHaveLength(12);
+    for (const piece of result.pieces) {
+      expect(piece.material).toBe('NAVAL BR 15mm');
+      // O "X" repetido entre quantidade e comprimento não deve sobrar como função.
+      expect(piece.funcao).toBe('');
+    }
+  });
+
+  it('"1M" e "1m" na mesma linha combinam fita no lado maior e no menor', () => {
+    const result = analyzeText(NAVAL_BR_FITA_CODES, makeNextId());
+    const piece = result.pieces[0]!; // 3 X 0,80 X 0,505  1M  1m
+    expect(piece).toMatchObject({ qtd: 3, compr: 0.8, larg: 0.505 });
+    // comprimento (0,80) > largura (0,505) -> par maior é C.
+    expect(piece.fita).toEqual({ c1: true, c2: false, l1: true, l2: false });
+  });
+
+  it('"1M" sozinho marca só o lado maior', () => {
+    const result = analyzeText(NAVAL_BR_FITA_CODES, makeNextId());
+    const piece = result.pieces[1]!; // 1 X 1,46 X 0,505  1M
+    expect(piece.fita).toEqual({ c1: true, c2: false, l1: false, l2: false });
+  });
+
+  it('"3L" fica pendente (ambíguo) em vez de decidir uma fita sozinho', () => {
+    const result = analyzeText(NAVAL_BR_FITA_CODES, makeNextId());
+    const threeLadosPieces = result.pieces.filter((p) => p.pendingThreeLados);
+    // 5 linhas usam "3L" no fixture.
+    expect(threeLadosPieces).toHaveLength(5);
+    for (const piece of threeLadosPieces) {
+      expect(piece.fita).toEqual({ c1: false, c2: false, l1: false, l2: false });
+    }
   });
 });

@@ -71,3 +71,26 @@ export const REALISTIC_MESSAGE = [
   '----------x-------------',
   'Ferragens',
 ].join('\n');
+
+/**
+ * Lista real de um usuário, no formato "quantidade X comprimento X largura"
+ * seguido de códigos de fita ao final da linha (ver fita-codes.ts): "1M"/"2M"
+ * (lado maior), "1m"/"2m" (lado menor), "4L" (todos os lados) e "3L" (3 dos 4
+ * lados, ambíguo — vira pendência, ver pendingThreeLados). Cabeçalho sem
+ * "MDF" ("PEÇAS 15mm NAVAL BR"), decimais com vírgula.
+ */
+export const NAVAL_BR_FITA_CODES = [
+  'PEÇAS 15mm NAVAL BR',
+  '3 X 0,80 X 0,505  1M  1m',
+  '1 X 1,46 X 0,505  1M',
+  '1 X 1,46 X 0,060  1M',
+  '2 X 0,80 X 0,485  3L',
+  '4 X 0,19 X 0,485  3L',
+  '1 X 1,00 X 0,505  1M',
+  '3 X 0,80 X 0,505  1M',
+  '2 X 1,22 X 0,505  1M',
+  '1 X 1,22 X 0,060  1M',
+  '3 X 0,80 X 0,405  3L',
+  '1 X 0,20 X 0,60    3L',
+  '4 X 0,60 X 0,258  3L',
+].join('\n');

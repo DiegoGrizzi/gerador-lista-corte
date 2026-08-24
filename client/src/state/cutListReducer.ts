@@ -15,7 +15,7 @@
  * ---------------------------------------------------------------------------
  */
 
-import { convertPieceToMm, toNumber } from '@corte-cloud/parser';
+import { convertPieceToMm, resolveThreeLadosFita, toNumber } from '@corte-cloud/parser';
 import type { Piece } from '@corte-cloud/parser';
 import type { CutListAction, CutListState } from './types.js';
 
@@ -50,6 +50,7 @@ export function createInitialState(): CutListState {
     materialFallback: '',
     mmAsked: false,
     mmFactor: 1,
+    threeLadosAsked: false,
     pendingRescuedPiece: null,
     activeModal: 'none',
     errorMessage: '',
@@ -125,6 +126,7 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
         materialFallback: '',
         mmAsked: false,
         mmFactor: 1,
+        threeLadosAsked: false,
         pendingRescuedPiece: null,
         activeModal: pieces.length > 0 ? 'mm' : 'none',
         // Espelha handleAnalyze: só chama renderPreview() diretamente
@@ -144,6 +146,7 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
         materialFallback: '',
         mmAsked: false,
         mmFactor: 1,
+        threeLadosAsked: false,
         pendingRescuedPiece: null,
         previewVisible: false,
         resultVisible: false,
@@ -161,7 +164,12 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
         pieces = [...pieces, rescued];
       }
 
-      const openMaterialModal = !state.materialAsked && pieces.length > 0;
+      // pendingThreeLados só pode ser resolvido com a medida FINAL (já em
+      // mm) — por isso a pergunta correspondente vem depois desta, nunca
+      // antes (ver THREE_LADOS_ANSWERED).
+      const needsThreeLados = !state.threeLadosAsked && pieces.some((piece) => piece.pendingThreeLados);
+      const openMaterialModal = !needsThreeLados && !state.materialAsked && pieces.length > 0;
+      const activeModal = needsThreeLados ? 'threeLados' : openMaterialModal ? 'material' : 'none';
 
       return {
         ...state,
@@ -169,6 +177,24 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
         mmFactor: factor,
         pieces,
         pendingRescuedPiece: null,
+        activeModal,
+        previewVisible: activeModal === 'none' ? true : state.previewVisible,
+      };
+    }
+
+    case 'THREE_LADOS_ANSWERED': {
+      const pieces = state.pieces.map((piece) => {
+        if (!piece.pendingThreeLados) return piece;
+        const next = clonePiece(piece);
+        next.fita = resolveThreeLadosFita(piece.compr, piece.larg, action.choice);
+        next.pendingThreeLados = false;
+        return next;
+      });
+      const openMaterialModal = !state.materialAsked && pieces.length > 0;
+      return {
+        ...state,
+        threeLadosAsked: true,
+        pieces,
         activeModal: openMaterialModal ? 'material' : 'none',
         previewVisible: openMaterialModal ? state.previewVisible : true,
       };

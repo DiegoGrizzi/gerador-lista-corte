@@ -25,6 +25,13 @@ describe('reformatTableText', () => {
     expect(reformatTableText(raw)).toBe('2=1900/350\n1=800/400');
   });
 
+  it('reconhece o formato "Peças" mesmo quando o Tesseract engole o "X" (caso real testado)', () => {
+    // Confirmado com uma foto real: "1900 X 350 - 2" sai do OCR como
+    // "1900 350 - 2" (o "X" sozinho entre dois números desaparece).
+    const raw = ['Pecas', '1900 350 - 2', '1600 350 - 1'].join('\n');
+    expect(reformatTableText(raw)).toBe('2=1900/350\n1=1600/350');
+  });
+
   it('ignora silenciosamente linhas que não batem com nenhum dos dois formatos', () => {
     const raw = ['Lista de corte', 'Compr. Largura Quant. Rotação Nome PA', ''].join('\n');
     expect(reformatTableText(raw)).toBe('');

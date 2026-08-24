@@ -40,8 +40,17 @@ export const TABLE_ROW_RE = /(\d+(?:[.,]\d+)?)\s+(\d+(?:[.,]\d+)?)\s+(\d+(?:[.,]
  * indicada por sublinhado na imagem, que se perde na leitura de texto) —
  * a fita fica sempre em branco aqui, para o usuário preencher manualmente
  * na tabela de conferência.
+ *
+ * O "x"/"X" entre as duas medidas é tratado como opcional: em fotos reais
+ * o Tesseract frequentemente "come" essa letra sozinha entre dois números
+ * (confirmado testando com fotos reais — "1900 X 350 - 2" vira "1900 350
+ * - 2"), sobrando só o espaço. Sem essa tolerância a linha inteira era
+ * perdida silenciosamente. Ainda exige a letra OU pelo menos um espaço
+ * entre as medidas, para não juntar dois números colados sem separador
+ * nenhum como se fossem um só.
  */
-export const PECAS_COLUMN_ROW_RE = /(\d+(?:[.,]\d+)?)\s*[xX]\s*(\d+(?:[.,]\d+)?)\s*-\s*(\d+(?:[.,]\d+)?)/;
+export const PECAS_COLUMN_ROW_RE =
+  /(\d+(?:[.,]\d+)?)(?:\s*[xX]\s*|\s+)(\d+(?:[.,]\d+)?)\s*-\s*(\d+(?:[.,]\d+)?)/;
 
 /**
  * Resíduo de checkbox vazio da coluna "PA" mal reconhecido pelo OCR (o

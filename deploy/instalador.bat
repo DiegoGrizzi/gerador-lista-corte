@@ -16,12 +16,25 @@
 :: elevacao, cria o marcador; a segunda execucao (agora elevada) encontra
 :: o marcador, apaga ele, e segue direto para instalar - sem depender de
 :: nenhum argumento de linha de comando chegar correto.
+::
+:: O marcador so e considerado valido se tiver menos de 2 minutos - um
+:: marcador de uma tentativa anterior que nunca terminou de elevar (ex:
+:: usuario fechou a janela do UAC sem responder, ou o processo caiu) senao
+:: ficaria valendo pra sempre, fazendo uma execucao futura pular a
+:: elevacao sem nunca ter sido elevada de verdade naquela vez.
 set "MARCADOR=%TEMP%\gerador-lista-corte-elevando.tmp"
+set "MARCADOR_VALIDO=0"
 if exist "%MARCADOR%" (
+    powershell -NoProfile -Command "if ((Get-Item '%MARCADOR%').LastWriteTime -gt (Get-Date).AddMinutes(-2)) { exit 0 } else { exit 1 }"
+    if not errorlevel 1 set "MARCADOR_VALIDO=1"
+)
+
+if "%MARCADOR_VALIDO%"=="1" (
     del "%MARCADOR%" >nul 2>&1
     goto :instalar
 )
 
+del "%MARCADOR%" >nul 2>&1
 echo Pedindo permissao de administrador...
 type nul > "%MARCADOR%"
 powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs"

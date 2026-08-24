@@ -5,17 +5,26 @@
 :: Files". Sem isso, essas etapas falham em silencio numa maquina nova.
 ::
 :: De proposito NAO tenta detectar "ja estou rodando como administrador?"
-:: antes de pedir elevacao - varios metodos de deteccao ("net session",
-:: checagem de token) falham de formas diferentes em maquinas diferentes
-:: (servico desativado, politica de grupo, etc.), e isso ja causou um
-:: loop de pedidos de permissao que nunca terminava. Em vez disso, o
-:: parametro "elevado" abaixo garante UMA UNICA tentativa de elevacao,
-:: sempre - a segunda execucao (que chega aqui com esse parametro) roda
-:: o instalador direto, sem checar nada, então nao tem como entrar em loop.
-if "%~1"=="elevado" goto :instalar
+:: antes de pedir elevacao (metodos de deteccao como "net session" ou
+:: checagem de token falham de formas diferentes em maquinas diferentes) -
+:: e tambem NAO usa "-ArgumentList" do Start-Process para marcar a segunda
+:: execucao (passar argumento por "-Verb RunAs" para um .bat especifico
+:: nao e confiavel em todas as versoes/configuracoes do Windows - as duas
+:: abordagens ja causaram loop de permissao que nunca terminava).
+::
+:: Em vez disso, usa um arquivo-marcador temporario: antes de pedir
+:: elevacao, cria o marcador; a segunda execucao (agora elevada) encontra
+:: o marcador, apaga ele, e segue direto para instalar - sem depender de
+:: nenhum argumento de linha de comando chegar correto.
+set "MARCADOR=%TEMP%\gerador-lista-corte-elevando.tmp"
+if exist "%MARCADOR%" (
+    del "%MARCADOR%" >nul 2>&1
+    goto :instalar
+)
 
 echo Pedindo permissao de administrador...
-powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -ArgumentList 'elevado' -Verb RunAs"
+type nul > "%MARCADOR%"
+powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
 exit /b
 
 :instalar

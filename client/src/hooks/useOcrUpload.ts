@@ -134,15 +134,28 @@ export function useOcrUpload(dispatch: Dispatch<CutListAction>): UseOcrUploadRes
           const { text } = await requestOcr(base64);
           const reformatted = reformatTableText(text);
 
-          if (!reformatted) {
+          if (reformatted) {
+            blocks.push(buildMaterialHeader(material) + reformatted);
+          } else if (text.trim()) {
+            // O OCR leu algo, mas não bateu com nenhum formato de tabela
+            // conhecido — em vez de descartar tudo, joga o texto bruto na
+            // mensagem para o usuário revisar/corrigir manualmente (nunca
+            // perder informação em silêncio, mesmo quando não dá para
+            // organizar automaticamente).
             hadError = true;
+            blocks.push(buildMaterialHeader(material) + text.trim());
             dispatch({
               type: 'PHOTO_STATUS_CHANGED',
-              message: `Não consegui reconhecer peças na foto ${index + 1} de ${files.length}.`,
+              message: `Não consegui organizar a tabela da foto ${index + 1} de ${files.length} automaticamente — coloquei o texto bruto na mensagem, revise antes de analisar.`,
               isError: true,
             });
           } else {
-            blocks.push(buildMaterialHeader(material) + reformatted);
+            hadError = true;
+            dispatch({
+              type: 'PHOTO_STATUS_CHANGED',
+              message: `Não consegui reconhecer nenhum texto na foto ${index + 1} de ${files.length}.`,
+              isError: true,
+            });
           }
         } catch (err) {
           hadError = true;

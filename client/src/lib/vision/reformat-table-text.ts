@@ -70,19 +70,46 @@ export function looksLikeCheckboxArtifact(text: string): boolean {
   return CHECKBOX_ARTIFACT_RE.test(text) || SHORT_SYMBOL_ARTIFACT_RE.test(text);
 }
 
+/** Resultado de reformatTableText — ver campos abaixo para o propósito de cada contagem. */
+export interface ReformatResult {
+  /** Peças já no formato quantidade=comprimento/largura, uma por linha. */
+  text: string;
+  /**
+   * Quantas linhas do texto bruto do OCR "pareciam" ser uma peça da tabela
+   * (heurística: pelo menos 2 números na linha — cabeçalho e ruído puro não
+   * têm isso). Comparar com `recognizedLineCount` é o que permite avisar
+   * quando o OCR perdeu uma peça de um jeito imprevisível (ex: um dígito
+   * da quantidade virou uma letra) — um erro que não dá pra prever com uma
+   * regex específica, mas que sempre muda essa contagem.
+   */
+  candidateLineCount: number;
+  /** Quantas dessas linhas realmente viraram uma peça reconhecida. */
+  recognizedLineCount: number;
+}
+
 /**
  * Converte o texto bruto do OCR (uma linha por linha da tabela) para o
  * formato quantidade=comprimento/largura [nome], uma peça por linha.
  * Tenta os dois formatos de tabela suportados por linha — o segundo só
  * quando o primeiro não bate. Linhas que não batem com nenhum dos dois
- * (cabeçalho da tabela, ruído do OCR) são simplesmente ignoradas.
+ * (cabeçalho da tabela, ruído do OCR) são simplesmente ignoradas — mas
+ * contadas em `candidateLineCount` quando parecem ter sido uma tentativa
+ * de peça, para permitir avisar sobre uma possível perda (ver
+ * ReformatResult).
  */
-export function reformatTableText(rawText: string): string {
+export function reformatTableText(rawText: string): ReformatResult {
   const pieceLines: string[] = [];
+  let candidateLineCount = 0;
 
-  rawText.split('\n').forEach((line) => {
+  rawText.split('\n').forEach((rawLine) => {
+    const line = rawLine.trim();
+    if (!line) return;
+
+    const looksLikeRowAttempt = (line.match(/\d+/g) ?? []).length >= 2;
+
     const match = line.match(TABLE_ROW_RE);
     if (match) {
+      if (looksLikeRowAttempt) candidateLineCount++;
       const comprimento = match[1];
       const largura = match[2];
       const quantidade = match[3];
@@ -97,11 +124,15 @@ export function reformatTableText(rawText: string): string {
 
     const pecasMatch = line.match(PECAS_COLUMN_ROW_RE);
     if (pecasMatch) {
+      if (looksLikeRowAttempt) candidateLineCount++;
       pieceLines.push(pecasMatch[3] + '=' + pecasMatch[1] + '/' + pecasMatch[2]);
+      return;
     }
+
+    if (looksLikeRowAttempt) candidateLineCount++;
   });
 
-  return pieceLines.join('\n');
+  return { text: pieceLines.join('\n'), candidateLineCount, recognizedLineCount: pieceLines.length };
 }
 
 /**

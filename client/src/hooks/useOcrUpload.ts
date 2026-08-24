@@ -132,10 +132,24 @@ export function useOcrUpload(dispatch: Dispatch<CutListAction>): UseOcrUploadRes
         try {
           const base64 = await readFileAsBase64(file);
           const { text } = await requestOcr(base64);
-          const reformatted = reformatTableText(text);
+          const { text: reformatted, candidateLineCount, recognizedLineCount } = reformatTableText(text);
 
           if (reformatted) {
             blocks.push(buildMaterialHeader(material) + reformatted);
+            if (recognizedLineCount < candidateLineCount) {
+              // O OCR errou de um jeito imprevisível numa ou mais linhas
+              // (ex: um dígito da quantidade virou uma letra) — não dá
+              // para recuperar a peça perdida com uma regra específica,
+              // mas dá para avisar que a contagem não bateu, para o
+              // usuário conferir contra a foto original.
+              hadError = true;
+              const faltando = candidateLineCount - recognizedLineCount;
+              dispatch({
+                type: 'PHOTO_STATUS_CHANGED',
+                message: `Atenção: reconheci ${recognizedLineCount} de ${candidateLineCount} linhas que pareciam ter uma peça na foto ${index + 1} de ${files.length} (${faltando} pode ter ficado de fora) — confira com a foto original antes de analisar.`,
+                isError: true,
+              });
+            }
           } else if (text.trim()) {
             // O OCR leu algo, mas não bateu com nenhum formato de tabela
             // conhecido — em vez de descartar tudo, joga o texto bruto na

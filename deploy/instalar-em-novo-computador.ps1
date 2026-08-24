@@ -49,6 +49,30 @@ function Stop-OnFailure {
     exit 1
 }
 
+function Test-OcrSpaceKey {
+    # Confere se a chave funciona de verdade, chamando a API com uma
+    # imagem minima (1x1 pixel) embutida no proprio script.
+    # Retorna: $true (chave valida), $false (chave invalida confirmada),
+    # $null (nao deu pra confirmar - ex: sem internet no momento).
+    param([string]$Key)
+    $tinyPng = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='
+    try {
+        $response = Invoke-RestMethod -Uri 'https://api.ocr.space/parse/image' -Method Post -Body @{
+            apikey = $Key
+            base64Image = "data:image/png;base64,$tinyPng"
+            language = 'por'
+        } -TimeoutSec 20 -ErrorAction Stop
+        if ($response.error) { return $false }
+        return $true
+    } catch {
+        $details = $_.ErrorDetails.Message
+        if ($details -and $details -match 'API key not valid') {
+            return $false
+        }
+        return $null
+    }
+}
+
 Write-Host '== Gerador de Lista de Corte - instalador ==' -ForegroundColor Cyan
 Write-Host ''
 
@@ -145,17 +169,37 @@ if ($envContent -match '(?m)^OCR_SPACE_API_KEY=\s*$') {
     Write-Host 'O sistema ja funciona normalmente so com o Tesseract local sem isso.'
     Write-Host 'Se voce ja tem uma chave gratuita (cadastro em https://ocr.space/OCRAPI/freekey), cole abaixo.'
     Write-Host 'Sem chave em maos agora? So apertar Enter pula essa parte - da pra configurar depois editando server\.env.'
-    try {
-        $ocrKey = Read-Host 'Chave da API OCR.space'
-    } catch {
-        $ocrKey = $null
-    }
-    if ($ocrKey) {
+
+    $keyConfigured = $false
+    while (-not $keyConfigured) {
+        try {
+            $ocrKey = Read-Host 'Chave da API OCR.space'
+        } catch {
+            $ocrKey = $null
+        }
+
+        if (-not $ocrKey) {
+            Write-Host 'Pulado - so o Tesseract local sera usado por enquanto.'
+            $keyConfigured = $true
+            continue
+        }
+
+        Write-Host 'Conferindo a chave...'
+        $keyIsValid = Test-OcrSpaceKey -Key $ocrKey
+
+        if ($keyIsValid -eq $false) {
+            Write-Host 'Essa chave nao e valida. Confira se copiou certinho e tente de novo (ou aperte Enter para pular).' -ForegroundColor Yellow
+            continue
+        }
+
         $envContent = $envContent -replace '(?m)^OCR_SPACE_API_KEY=\s*$', "OCR_SPACE_API_KEY=$ocrKey"
         Set-Content -Path $envPath -Value $envContent -NoNewline
-        Write-Host 'Chave configurada.' -ForegroundColor Green
-    } else {
-        Write-Host 'Pulado - so o Tesseract local sera usado por enquanto.'
+        if ($keyIsValid -eq $true) {
+            Write-Host 'Chave valida - configurada!' -ForegroundColor Green
+        } else {
+            Write-Host 'Nao consegui confirmar a chave agora (sem internet?) - salvei mesmo assim.' -ForegroundColor Yellow
+        }
+        $keyConfigured = $true
     }
 }
 

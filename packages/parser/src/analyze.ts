@@ -12,6 +12,7 @@ import {
   QUANTITY_RE,
   THICKNESS_ONLY_RE,
   PECAS_HEADER_RE,
+  GENERIC_THICKNESS_HEADER_RE,
   DISCARD_LABELS,
   SEPARATOR_LINE_RE,
   LOOKS_LIKE_PIECE_RE,
@@ -299,6 +300,16 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     const pecasHeaderMatch = line.match(PECAS_HEADER_RE);
     if (pecasHeaderMatch) {
       setNewMaterial(pecasHeaderMatch[2]!.trim(), null, toNumber(pecasHeaderMatch[1]!));
+      return;
+    }
+
+    // Cabeçalho ainda mais genérico, sem palavra-marcador nenhuma (ex:
+    // "cinza jazz 18 mm" — só a cor do MDF e a espessura). Testado por
+    // último entre os cabeçalhos porque não tem nenhuma palavra-chave para
+    // se ancorar, só o "Nmm" no final da linha.
+    const genericHeaderMatch = line.match(GENERIC_THICKNESS_HEADER_RE);
+    if (genericHeaderMatch) {
+      setNewMaterial(genericHeaderMatch[1]!.trim(), null, toNumber(genericHeaderMatch[2]!));
       return;
     }
 

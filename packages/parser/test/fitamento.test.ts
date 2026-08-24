@@ -36,6 +36,46 @@ describe('parseFitamentoPhrase', () => {
   it('returns null for an empty string', () => {
     expect(parseFitamentoPhrase('')).toBeNull();
   });
+
+  describe('abreviação curta ("1 menor", "2 maior", "sem"), sem a palavra "lado(s)"', () => {
+    it('reconhece "sem" sozinho como none-explicit', () => {
+      expect(parseFitamentoPhrase('sem')).toBe('none-explicit');
+    });
+
+    it('tolera pontuação/espaço sobrando em volta de "sem" (ex: resto de uma linha de peça)', () => {
+      expect(parseFitamentoPhrase('. sem ')).toBe('none-explicit');
+    });
+
+    it.each(['1 menor', '1 pequena'])('reconhece "%s" como menor-um', (phrase) => {
+      expect(parseFitamentoPhrase(phrase)).toBe('menor-um');
+    });
+
+    it.each(['1 maior', '1 grande'])('reconhece "%s" como maior-um', (phrase) => {
+      expect(parseFitamentoPhrase(phrase)).toBe('maior-um');
+    });
+
+    it.each(['2 menor', 'dois menor', '2 menores'])('reconhece "%s" como menor-dois', (phrase) => {
+      expect(parseFitamentoPhrase(phrase)).toBe('menor-dois');
+    });
+
+    it.each(['2 maior', 'dois maior', '2 maiores'])('reconhece "%s" como maior-dois', (phrase) => {
+      expect(parseFitamentoPhrase(phrase)).toBe('maior-dois');
+    });
+
+    it('tolera o "." sobrando de "73x1,20. 2 menor" (a fita fica só com o resto da frase)', () => {
+      expect(parseFitamentoPhrase('. 2 menor')).toBe('menor-dois');
+    });
+
+    it('não confunde "sem X" (com outra palavra depois) com o "sem" sozinho', () => {
+      // Evita sequestrar uma linha como "Sem puxador" (comentário qualquer,
+      // não uma instrução de fitamento) — só o "sem" isolado conta.
+      expect(parseFitamentoPhrase('sem puxador')).toBeNull();
+    });
+
+    it('não confunde um número maior (ex: "12") com o "1" isolado', () => {
+      expect(parseFitamentoPhrase('12 menor')).toBeNull();
+    });
+  });
 });
 
 describe('resolveFitaFromType', () => {

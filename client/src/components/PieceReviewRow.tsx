@@ -19,8 +19,15 @@ export function PieceReviewRow({
   const notes: string[] = [];
   if (piece.note) notes.push(piece.note);
   if (piece.wasInverted) notes.push('comprimento/largura invertidos (fitamento ajustado)');
+  if (piece.suspiciouslySmall) notes.push('medida muito pequena — confira se não estava em metros');
 
-  const rowClassName = piece.wasInverted ? 'inverted' : piece.isOverride ? 'override' : '';
+  const rowClassName = piece.suspiciouslySmall
+    ? 'suspicious'
+    : piece.wasInverted
+      ? 'inverted'
+      : piece.isOverride
+        ? 'override'
+        : '';
 
   return (
     <tr className={rowClassName} data-id={piece.id}>

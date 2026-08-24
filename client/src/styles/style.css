@@ -321,6 +321,12 @@ tr.inverted {
   background: var(--inverted-bg);
 }
 
+/* Linha com uma medida (compr. ou larg.) implausivelmente pequena depois
+   da conversão — provável mistura de unidades na mensagem original. */
+tr.suspicious {
+  background: var(--danger-bg);
+}
+
 td input[type=text] {
   width: 100%;
   min-width: 60px;
@@ -412,6 +418,11 @@ td.check-cell input {
 .swatch-inverted {
   background: var(--inverted-bg);
   border: 1px solid var(--inverted-border);
+}
+
+.swatch-suspicious {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger);
 }
 
 /* Mesmo destaque usado nas linhas da tabela, para referenciar em texto corrido. */
@@ -684,6 +695,10 @@ td.check-cell input {
 
   tr.inverted {
     background: var(--inverted-bg);
+  }
+
+  tr.suspicious {
+    background: var(--danger-bg);
   }
 
   td {

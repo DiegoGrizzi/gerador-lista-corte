@@ -78,6 +78,10 @@ export function PieceReviewTable({
           <span className="swatch swatch-inverted" />
           comprimento/largura invertidos (seguindo o sentido do veio)
         </span>
+        <span>
+          <span className="swatch swatch-suspicious" />
+          medida muito pequena — confira se não estava em metros
+        </span>
       </div>
 
       <DiscardedList discardedItems={discardedItems} discardErrors={discardErrors} onRetry={onDiscardRetry} />

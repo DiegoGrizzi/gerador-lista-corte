@@ -91,10 +91,18 @@ export interface RawPiece {
  * `fitaType`, `customFita` e `thicknessMm` continuam presentes no objeto
  * (o parser legado nunca os remove, apenas os mutou nesse ponto) — daí
  * Piece estender RawPiece em vez de substituir seus campos.
+ *
+ * `suspiciouslySmall` também só existe depois de convertPieceToMm: sinaliza
+ * quando compr ou larg (já em mm) ficou abaixo do plausível para uma peça
+ * de corte real (ver MIN_PLAUSIBLE_PIECE_MM em finalize.ts) — comum quando
+ * uma mensagem mistura unidades (a maioria em cm, uma medida específica em
+ * metros) e o fator de conversão escolhido não serve para todas ao mesmo
+ * tempo. Não corrige nada sozinho, só marca a peça para revisão manual.
  */
 export interface Piece extends RawPiece {
   fita: FitaState;
   wasInverted?: boolean;
+  suspiciouslySmall?: boolean;
 }
 
 /** Um item que não pôde virar peça e foi para a lista de conferência. */

@@ -37,6 +37,18 @@ export function finalizePiece(piece: RawPiece): Piece {
 }
 
 /**
+ * Abaixo desse valor (em mm), uma medida de comprimento ou largura é
+ * fisicamente implausível para uma peça de corte real — sinal forte de
+ * mistura de unidades dentro da mesma mensagem (ex: a maioria das medidas
+ * em cm, mas uma ou outra escrita em metros, como "1.90" em vez de "190").
+ * Como o sistema só pergunta uma unidade para a mensagem inteira, não dá
+ * para converter automaticamente sem arriscar adivinhar errado — a peça só
+ * é marcada (ver Piece.suspiciouslySmall) para o usuário revisar e corrigir
+ * manualmente, nunca corrigida sozinha.
+ */
+export const MIN_PLAUSIBLE_PIECE_MM = 100;
+
+/**
  * Converte uma peça já finalizada para milímetros (multiplicando pelo
  * fator escolhido pelo usuário: 1 se já estava em mm, 10 para cm→mm,
  * 1000 para m→mm) e só então aplica a regra do sentido do veio — que
@@ -48,4 +60,5 @@ export function convertPieceToMm(piece: Piece, factor: number): void {
   piece.compr = Math.round(piece.compr * factor);
   piece.larg = Math.round(piece.larg * factor);
   applyGrainOrientationRule(piece);
+  piece.suspiciouslySmall = piece.compr < MIN_PLAUSIBLE_PIECE_MM || piece.larg < MIN_PLAUSIBLE_PIECE_MM;
 }

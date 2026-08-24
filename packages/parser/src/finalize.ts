@@ -46,7 +46,7 @@ export function finalizePiece(piece: RawPiece): Piece {
  * é marcada (ver Piece.suspiciouslySmall) para o usuário revisar e corrigir
  * manualmente, nunca corrigida sozinha.
  */
-export const MIN_PLAUSIBLE_PIECE_MM = 100;
+export const MIN_PLAUSIBLE_PIECE_MM = 30;
 
 /**
  * Converte uma peça já finalizada para milímetros (multiplicando pelo

@@ -22,8 +22,8 @@ function makePiece(overrides: Partial<Piece>): Piece {
 }
 
 describe('convertPieceToMm — aviso de medida implausível', () => {
-  it('é uma constante fixa de 100mm', () => {
-    expect(MIN_PLAUSIBLE_PIECE_MM).toBe(100);
+  it('é uma constante fixa de 30mm', () => {
+    expect(MIN_PLAUSIBLE_PIECE_MM).toBe(30);
   });
 
   it('não marca uma peça com medidas plausíveis depois da conversão', () => {
@@ -34,7 +34,16 @@ describe('convertPieceToMm — aviso de medida implausível', () => {
     expect(piece.suspiciouslySmall).toBe(false);
   });
 
-  it('marca quando compr fica abaixo de 100mm depois da conversão (caso real testado: "1.90" tratado como cm)', () => {
+  it('não marca uma peça pequena mas ainda plausível (ex: um retalho/fita de acabamento)', () => {
+    // Limite baixo (30mm) de proposito para não incomodar em peças
+    // pequenas legitimas - só pega casos bem extremos de mistura de unidade.
+    const piece = makePiece({ compr: 500, larg: 4 });
+    convertPieceToMm(piece, 10); // 4cm -> 40mm, acima do limite
+    expect(piece.larg).toBe(40);
+    expect(piece.suspiciouslySmall).toBe(false);
+  });
+
+  it('marca quando compr fica abaixo de 30mm depois da conversão (caso real testado: "1.90" tratado como cm)', () => {
     // Mensagem real do usuário: a maioria das peças em cm, mas algumas
     // medidas especificamente escritas em metros (ex: "1.90" = 1,90m).
     // Ao escolher "cm" para a mensagem inteira, 1.90 vira 19mm - bem
@@ -47,17 +56,17 @@ describe('convertPieceToMm — aviso de medida implausível', () => {
   });
 
   it('marca quando só a largura fica pequena, mesmo com o comprimento plausível', () => {
-    const piece = makePiece({ compr: 500, larg: 5 });
-    convertPieceToMm(piece, 10);
-    expect(piece.larg).toBe(50);
+    const piece = makePiece({ compr: 500, larg: 2 });
+    convertPieceToMm(piece, 10); // 2cm -> 20mm, abaixo do limite
+    expect(piece.larg).toBe(20);
     expect(piece.suspiciouslySmall).toBe(true);
   });
 
-  it('não marca quando a medida está exatamente no limite (100mm)', () => {
-    const piece = makePiece({ compr: 10, larg: 10 });
-    convertPieceToMm(piece, 10); // exatamente 100mm nos dois lados
-    expect(piece.compr).toBe(100);
-    expect(piece.larg).toBe(100);
+  it('não marca quando a medida está exatamente no limite (30mm)', () => {
+    const piece = makePiece({ compr: 3, larg: 3 });
+    convertPieceToMm(piece, 10); // exatamente 30mm nos dois lados
+    expect(piece.compr).toBe(30);
+    expect(piece.larg).toBe(30);
     expect(piece.suspiciouslySmall).toBe(false);
   });
 

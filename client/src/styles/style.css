@@ -19,6 +19,8 @@
   --inverted-dark: #4E76AC;
   --danger: #B23A2E;
   --danger-bg: #FBEAE7;
+  --suspicious-bg: #FFF3C4;
+  --suspicious-border: #C9962C;
   --success: #2E7D4F;
   --success-bg: #E7F4EC;
   --radius: 8px;
@@ -324,7 +326,7 @@ tr.inverted {
 /* Linha com uma medida (compr. ou larg.) implausivelmente pequena depois
    da conversão — provável mistura de unidades na mensagem original. */
 tr.suspicious {
-  background: var(--danger-bg);
+  background: var(--suspicious-bg);
 }
 
 td input[type=text] {
@@ -421,8 +423,8 @@ td.check-cell input {
 }
 
 .swatch-suspicious {
-  background: var(--danger-bg);
-  border: 1px solid var(--danger);
+  background: var(--suspicious-bg);
+  border: 1px solid var(--suspicious-border);
 }
 
 /* Mesmo destaque usado nas linhas da tabela, para referenciar em texto corrido. */
@@ -698,7 +700,7 @@ td.check-cell input {
   }
 
   tr.suspicious {
-    background: var(--danger-bg);
+    background: var(--suspicious-bg);
   }
 
   td {

@@ -1,22 +1,24 @@
 @echo off
-:: Pede permissao de administrador automaticamente se ainda nao tiver -
-:: necessaria para instalar o Node.js/Tesseract (softwares para todos os
-:: usuarios) e para copiar o pacote de idioma Portugues do Tesseract
-:: dentro de "Program Files". Sem isso, essas etapas falham em silencio
-:: numa maquina nova (fica so com um aviso, mas sem o pacote de portugues).
+:: Pede permissao de administrador automaticamente - necessaria para
+:: instalar o Node.js/Tesseract (softwares para todos os usuarios) e para
+:: copiar o pacote de idioma Portugues do Tesseract dentro de "Program
+:: Files". Sem isso, essas etapas falham em silencio numa maquina nova.
 ::
-:: Usa PowerShell para checar isso (WindowsPrincipal.IsInRole) em vez do
-:: truque classico "net session" - "net session" depende do servico
-:: "Servidor" (LanmanServer) estar ativo, e falha SEMPRE em maquinas onde
-:: esse servico esta desativado, mesmo ja rodando elevado. Isso causava
-:: um loop infinito pedindo permissao de novo a cada tentativa.
-powershell -NoProfile -Command "if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { exit 1 }" >nul 2>&1
-if %errorLevel% neq 0 (
-    echo Pedindo permissao de administrador...
-    powershell -NoProfile -Command "try { Start-Process -FilePath '%~f0' -Verb RunAs -ErrorAction Stop } catch { Write-Host 'Permissao de administrador negada. Rode o instalador.bat de novo e clique em Sim na janela do Windows.'; Start-Sleep -Seconds 5 }"
-    exit /b
-)
+:: De proposito NAO tenta detectar "ja estou rodando como administrador?"
+:: antes de pedir elevacao - varios metodos de deteccao ("net session",
+:: checagem de token) falham de formas diferentes em maquinas diferentes
+:: (servico desativado, politica de grupo, etc.), e isso ja causou um
+:: loop de pedidos de permissao que nunca terminava. Em vez disso, o
+:: parametro "elevado" abaixo garante UMA UNICA tentativa de elevacao,
+:: sempre - a segunda execucao (que chega aqui com esse parametro) roda
+:: o instalador direto, sem checar nada, então nao tem como entrar em loop.
+if "%~1"=="elevado" goto :instalar
 
+echo Pedindo permissao de administrador...
+powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -ArgumentList 'elevado' -Verb RunAs"
+exit /b
+
+:instalar
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0instalar-em-novo-computador.ps1"
 echo.
 pause

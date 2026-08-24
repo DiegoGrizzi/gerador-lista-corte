@@ -163,6 +163,29 @@ if ($isGitRepo) {
     }
 }
 
+# 3.4. Auto-atualizar os proprios arquivos do instalador -------------------
+# O .bat/.ps1 que voce baixou e roda direto (ex: da area de trabalho) sao
+# copias separadas do projeto - eles nao se atualizam sozinhos so por
+# existir. Depois de baixar/atualizar o projeto acima, copia a versao mais
+# recente desses dois arquivos de volta para onde voce esta rodando o
+# instalador - assim, da proxima vez, mesmo sem baixar de novo, voce ja
+# roda a versao mais nova (só a PRIMEIRA vez em cada computador exige
+# baixar manualmente).
+try {
+    $selfDir = $PSScriptRoot
+    $sourceBat = Join-Path $InstallDir 'deploy\instalador.bat'
+    $sourcePs1 = Join-Path $InstallDir 'deploy\instalar-em-novo-computador.ps1'
+    $targetBat = Join-Path $selfDir 'instalador.bat'
+    $targetPs1 = Join-Path $selfDir 'instalar-em-novo-computador.ps1'
+
+    if ((Resolve-Path $sourcePs1 -ErrorAction SilentlyContinue).Path -ne (Resolve-Path $targetPs1 -ErrorAction SilentlyContinue).Path) {
+        Copy-Item -Path $sourceBat -Destination $targetBat -Force -ErrorAction Stop
+        Copy-Item -Path $sourcePs1 -Destination $targetPs1 -Force -ErrorAction Stop
+    }
+} catch {
+    Write-Host "AVISO: nao consegui auto-atualizar o instalador.bat/.ps1 ($($_.Exception.Message)) - sem problema, so vai precisar baixar manualmente da proxima vez que houver uma correcao neles." -ForegroundColor Yellow
+}
+
 # 3.5. Chave da API OCR.space (opcional, fallback de leitura de foto) -----
 # So perguntada quando ainda nao esta configurada - roda de novo no futuro
 # nao pede de novo se voce ja respondeu (ou pulou) antes. A chave fica

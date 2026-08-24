@@ -148,6 +148,8 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
         previewVisible: false,
         resultVisible: false,
         activeModal: 'none',
+        photoStatus: '',
+        photoStatusIsError: false,
       };
 
     case 'MM_ANSWERED': {

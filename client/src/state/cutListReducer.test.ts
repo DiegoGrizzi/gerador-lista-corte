@@ -134,6 +134,8 @@ describe('CLEAR_INPUT', () => {
       materialAsked: true,
       previewVisible: true,
       resultVisible: true,
+      photoStatus: 'Atenção: reconheci 14 de 15 linhas...',
+      photoStatusIsError: true,
     };
 
     const next = cutListReducer(state, { type: 'CLEAR_INPUT' });
@@ -145,6 +147,10 @@ describe('CLEAR_INPUT', () => {
     expect(next.resultVisible).toBe(false);
     expect(next.materialAsked).toBe(false);
     expect(next.idCounter).toBe(7);
+    // Bug real reportado pelo usuário: a mensagem de status da foto (ex:
+    // aviso de OCR incompleto) ficava presa na tela mesmo depois de "Limpar".
+    expect(next.photoStatus).toBe('');
+    expect(next.photoStatusIsError).toBe(false);
   });
 });
 

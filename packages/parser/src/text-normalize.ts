@@ -27,6 +27,27 @@ export function normalizeTypos(line: string): string {
 }
 
 /**
+ * Expande uma lista de peças escrita numa única linha, separada por ponto,
+ * no formato "quantidade + pc + comprimento*largura" (ex:
+ * "1pc96*65. 1pc192*65. 4pc69.5*65"), transformando cada peça numa linha
+ * própria — permite que o resto do analisador processe cada uma
+ * normalmente, como se tivesse vindo em linhas separadas desde o início.
+ *
+ * O ponto só é tratado como separador de peça quando vem seguido (depois
+ * de espaço) de um "número+pc" — ou seja, só nos pontos que realmente
+ * separam uma peça da próxima. Um ponto decimal dentro de uma medida (ex:
+ * "69.5", "1.90") nunca é seguido de espaço + "número+pc", então nunca é
+ * confundido com esse separador e permanece intacto na mesma linha.
+ */
+export function expandPcSeparatedPieces(text: string): string {
+  // Sem \b depois de "pc" de propósito: "pc" vem sempre colado direto no
+  // número seguinte ("1pc96"), sem espaço — "c" e "9" são os dois
+  // caracteres de palavra, então não há fronteira de palavra ali (\b não
+  // bateria nunca, e a expansão inteira silenciosamente não faria nada).
+  return text.replace(/\.\s+(?=\d+\s*pc)/gi, '\n');
+}
+
+/**
  * Remove palavras de preenchimento ("de", "pro") e pontuação solta de um
  * trecho de texto, para decidir se o que resta é um valor real de Função.
  * Retorna string vazia se não sobrar nada útil.

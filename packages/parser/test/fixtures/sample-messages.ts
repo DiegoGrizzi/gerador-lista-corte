@@ -48,6 +48,19 @@ export const DIMENSION_FIRST_LIST = [
   '765x585: 2 pecas',
 ].join('\n');
 
+/**
+ * Lista real de um usuário, tudo numa única linha (sem quebras), no
+ * formato "quantidade+pc+comprimento*largura" separado por ponto (ex:
+ * "1pc96*65. 1pc192*65"). Inclui o cabeçalho de material ("MDF naval de
+ * 18") na mesma linha, junto com as peças, e uma peça malformada de
+ * propósito ("8pc*13*43" — falta o comprimento) para confirmar que ela
+ * vai para a conferência em vez de quebrar o resto da lista.
+ */
+export const PC_ASTERISK_LIST =
+  'MDF naval de 18.  1pc96*65. 1pc192*65. 4pc69.5*65. 1pc92*07. 1pc1.90*07. 3pc1.00*66.03. 2pc92*57. ' +
+  '4pc92.07*57. 1pc1.77*57. 3pc75*57. 1pc1.73.03*07. 1pc50*75. 2pc90*72.03. 2pc85.5*50. 2pc57*75. ' +
+  '1pc59.03*07. 3pc52*24. 8pc50*18. 8pc*13*43. 2pc87*12. 2pc83*12. 2pc42.07*89. 4pc83*11.03. 1pc53*57';
+
 /** Mensagem completa e realista, cobrindo cabeçalho, ambiente, função e peças. */
 export const REALISTIC_MESSAGE = [
   'MDF branco de 15mm fitado 4 lados',

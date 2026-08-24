@@ -18,7 +18,7 @@ import {
   MULTIPLE_PIECES_RE,
 } from './regex-patterns.js';
 import { toNumber } from './numbers.js';
-import { stripWhatsAppFormatting, normalizeTypos } from './text-normalize.js';
+import { stripWhatsAppFormatting, normalizeTypos, expandPcSeparatedPieces } from './text-normalize.js';
 import { parseFitamentoPhrase } from './fitamento.js';
 import { classifyHeaderLine, extractHeaderInfo } from './header.js';
 import {
@@ -27,6 +27,7 @@ import {
   buildPieceFromMatch,
   splitIntoPieceSegments,
   tryMatchDimensionFirstLine,
+  tryMatchPcAsteriskLine,
   buildPieceFromDimensionFirstMatch,
 } from './piece-matcher.js';
 import type { PieceMatch, DimensionFirstMatch } from './piece-matcher.js';
@@ -119,7 +120,12 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     if (built.thicknessPending) pendingThickness.push(built.piece);
   }
 
-  /** Constrói e registra uma peça a partir de um resultado de tryMatchDimensionFirstLine já validado. */
+  /**
+   * Constrói e registra uma peça a partir de um resultado já validado de
+   * tryMatchDimensionFirstLine OU tryMatchPcAsteriskLine — os dois formatos
+   * têm o mesmo formato de resultado (qty/compr/larg, sem fita/espessura/
+   * material inline), então compartilham esta mesma função.
+   */
   function addDimensionFirstPiece(match: DimensionFirstMatch, ctx: ParseContext): void {
     const piece = buildPieceFromDimensionFirstMatch(match, ctx);
     piece.id = nextId();
@@ -160,13 +166,22 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     });
   }
 
-  text.split('\n').forEach((rawLine) => {
+  // Expande uma lista "1pc96*65. 1pc192*65. ..." (tudo numa única linha,
+  // separada por ponto) em uma linha por peça, antes de mais nada — o resto
+  // da função processa cada peça normalmente a partir daqui.
+  const expandedText = expandPcSeparatedPieces(text);
+
+  expandedText.split('\n').forEach((rawLine) => {
     let line = stripWhatsAppFormatting(rawLine.trim());
     if (!line) return;
 
-    // Formato "comprimento x largura: quantidade" (ver DIMENSION_FIRST_RE) —
-    // checado antes do formato principal porque é uma linha inteira ancorada
-    // (^...$) que nunca deveria ser reinterpretada pelas regras abaixo.
+    // Formato "comprimento x largura: quantidade" (ver DIMENSION_FIRST_RE) e
+    // "quantidade+pc+comprimento*largura" (ver PC_ASTERISK_RE) — checados
+    // antes do formato principal porque são linhas inteiras ancoradas
+    // (^...$) que nunca deveriam ser reinterpretadas pelas regras abaixo.
+    // Em particular, QUANTITY_RE trataria o "pc" de "1pc96*65" como um
+    // marcador de quantidade válido (está na mesma lista de "pç"/"pc"
+    // usada no formato principal) e cortaria a linha no lugar errado.
     const dimensionFirstMatch = tryMatchDimensionFirstLine(line);
     if (dimensionFirstMatch) {
       if (!isValidPiece(dimensionFirstMatch.compr, dimensionFirstMatch.larg, dimensionFirstMatch.qty)) {
@@ -174,6 +189,16 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
         return;
       }
       addDimensionFirstPiece(dimensionFirstMatch, snapshotContext());
+      return;
+    }
+
+    const pcAsteriskMatch = tryMatchPcAsteriskLine(line);
+    if (pcAsteriskMatch) {
+      if (!isValidPiece(pcAsteriskMatch.compr, pcAsteriskMatch.larg, pcAsteriskMatch.qty)) {
+        pushDiscarded(line);
+        return;
+      }
+      addDimensionFirstPiece(pcAsteriskMatch, snapshotContext());
       return;
     }
 

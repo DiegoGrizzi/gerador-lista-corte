@@ -11,7 +11,7 @@ Funciona bem em qualquer tamanho de tela — no celular, a tabela de peças vira
 ### Instalar numa loja/computador novo
 
 Cada computador roda sua própria instalação (não fica compartilhado pela
-rede). Copie `deploy/instalar-em-novo-computador.bat` e
+rede). Copie `deploy/instalador.bat` e
 `deploy/instalar-em-novo-computador.ps1` para a máquina e dê duplo clique
 no `.bat` — o instalador cuida de tudo sozinho (Node.js, Tesseract OCR com
 pacote de português, baixar o projeto, compilar, e deixar rodando
@@ -27,8 +27,6 @@ trabalho) ou acessar `http://localhost:5175` no navegador.
 ### Desenvolvimento
 
 Requer [Node.js](https://nodejs.org/) 20+ instalado.
-
-### Desenvolvimento
 
 ```bash
 npm install
@@ -112,7 +110,7 @@ gerador-lista-corte/
 ├── server/              → @corte-cloud/server: API Express (POST /api/ocr — Tesseract local + fallback OCR.space); em produção também serve a interface compilada (client/dist)
 ├── client/              → @corte-cloud/client: interface (React + Vite), consome @corte-cloud/parser e a API do server
 └── deploy/              → instalação e início automático em produção (ver deploy/LEIA-ME.md)
-    ├── instalar-em-novo-computador.bat  → instalador de ponta a ponta pra uma máquina nova
+    ├── instalador.bat  → instalador de ponta a ponta pra uma máquina nova
     ├── instalar-em-novo-computador.ps1
     └── iniciar-servidor-oculto.vbs
 ```

@@ -8,6 +8,7 @@ import {
   MULTI_PIECE_ALL_VALID,
   MULTI_PIECE_NOT_ALL_VALID,
   DIMENSION_FIRST_LIST,
+  PC_ASTERISK_LIST,
   REALISTIC_MESSAGE,
 } from './fixtures/sample-messages.js';
 
@@ -118,6 +119,30 @@ describe('analyzeText — "comprimento x largura: quantidade" format (real user 
     for (const piece of result.pieces) {
       expect(piece.funcao).toBe('');
     }
+  });
+});
+
+describe('analyzeText — "quantidade+pc+comprimento*largura" format, tudo numa linha (real user list)', () => {
+  it('expande a lista inteira e propaga o material/espessura do cabeçalho na mesma linha', () => {
+    const result = analyzeText(PC_ASTERISK_LIST, makeNextId());
+
+    // 24 peças na lista, 1 malformada ("8pc*13*43", sem comprimento) -> 23 reconhecidas.
+    expect(result.pieces).toHaveLength(23);
+    expect(result.materialMentioned).toBe(true);
+    for (const piece of result.pieces) {
+      expect(piece.material).toBe('MDF naval 18mm');
+    }
+
+    expect(result.pieces[0]).toMatchObject({ qtd: 1, compr: 96, larg: 65 });
+    expect(result.pieces[1]).toMatchObject({ qtd: 1, compr: 192, larg: 65 });
+    expect(result.pieces[2]).toMatchObject({ qtd: 4, compr: 69.5, larg: 65 });
+    // Última peça da lista, depois da malformada — confirma que o resto
+    // continua sendo processado normalmente após o item descartado.
+    expect(result.pieces[22]).toMatchObject({ qtd: 1, compr: 53, larg: 57 });
+
+    // A peça sem o comprimento vai para a conferência, não quebra o resto.
+    expect(result.discarded).toHaveLength(1);
+    expect(result.discarded[0]!.text).toContain('13*43');
   });
 });
 

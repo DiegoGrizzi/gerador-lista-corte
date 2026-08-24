@@ -14,6 +14,7 @@ import {
   tryMatchPieceLine,
   buildPieceFromMatch,
   tryMatchDimensionFirstLine,
+  tryMatchPcAsteriskLine,
   buildPieceFromDimensionFirstMatch,
 } from './piece-matcher.js';
 import { finalizePiece } from './finalize.js';
@@ -35,6 +36,14 @@ export function quickParseLine(line: string, ctx: ParseContext, nextId: NextIdFn
   if (dimensionFirstMatch) {
     if (!isValidPiece(dimensionFirstMatch.compr, dimensionFirstMatch.larg, dimensionFirstMatch.qty)) return null;
     const piece = buildPieceFromDimensionFirstMatch(dimensionFirstMatch, ctx);
+    piece.id = nextId();
+    return finalizePiece(piece);
+  }
+
+  const pcAsteriskMatch = tryMatchPcAsteriskLine(cleanedLine);
+  if (pcAsteriskMatch) {
+    if (!isValidPiece(pcAsteriskMatch.compr, pcAsteriskMatch.larg, pcAsteriskMatch.qty)) return null;
+    const piece = buildPieceFromDimensionFirstMatch(pcAsteriskMatch, ctx);
     piece.id = nextId();
     return finalizePiece(piece);
   }

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { tryMatchPieceLine, splitIntoPieceSegments, tryMatchDimensionFirstLine } from '../src/piece-matcher.js';
+import {
+  tryMatchPieceLine,
+  splitIntoPieceSegments,
+  tryMatchDimensionFirstLine,
+  tryMatchPcAsteriskLine,
+} from '../src/piece-matcher.js';
 
 describe('tryMatchPieceLine — quantity markers', () => {
   it.each([
@@ -111,6 +116,37 @@ describe('tryMatchDimensionFirstLine — "comprimento x largura: quantidade" for
 
   it('does not match a line without the colon separator', () => {
     expect(tryMatchDimensionFirstLine('760x395 2 peças')).toBeNull();
+  });
+});
+
+describe('tryMatchPcAsteriskLine — "quantidade+pc+comprimento*largura" format', () => {
+  it.each([
+    ['1pc96*65', 1, 96, 65],
+    ['4pc69.5*65', 4, 69.5, 65],
+    ['8pc50*18', 8, 50, 18],
+  ])('parses "%s"', (line, qty, compr, larg) => {
+    const match = tryMatchPcAsteriskLine(line);
+    expect(match).not.toBeNull();
+    expect(match!.qty).toBe(qty);
+    expect(match!.compr).toBe(compr);
+    expect(match!.larg).toBe(larg);
+  });
+
+  it('is case-insensitive on "pc" and tolerant to spaces around "pc"/"*"', () => {
+    const match = tryMatchPcAsteriskLine('2 PC 87 * 12');
+    expect(match).not.toBeNull();
+    expect(match).toEqual({ qty: 2, compr: 87, larg: 12 });
+  });
+
+  it('does not match a segment missing the comprimento (caso real com erro de digitação)', () => {
+    // "8pc*13*43" - o usuário esqueceu o primeiro número; vai para a
+    // conferência em vez de adivinhar qual dos dois números restantes é
+    // comprimento ou largura.
+    expect(tryMatchPcAsteriskLine('8pc*13*43')).toBeNull();
+  });
+
+  it('does not match the standard "quantidade=comprimento/largura" format', () => {
+    expect(tryMatchPcAsteriskLine('2=47/47')).toBeNull();
   });
 });
 

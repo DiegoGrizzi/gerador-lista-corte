@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stripWhatsAppFormatting, normalizeTypos, stripFillers } from '../src/text-normalize.js';
+import { stripWhatsAppFormatting, normalizeTypos, stripFillers, expandPcSeparatedPieces } from '../src/text-normalize.js';
 
 describe('stripWhatsAppFormatting', () => {
   it('strips bold markup wrapping the whole line', () => {
@@ -70,5 +70,28 @@ describe('stripFillers', () => {
 
   it('returns empty string when only filler words remain', () => {
     expect(stripFillers('de')).toBe('');
+  });
+});
+
+describe('expandPcSeparatedPieces', () => {
+  it('splits "N pc compr*larg" pieces separated by ". " into one line each (caso real testado)', () => {
+    const raw = '1pc96*65. 1pc192*65. 4pc69.5*65';
+    expect(expandPcSeparatedPieces(raw)).toBe('1pc96*65\n1pc192*65\n4pc69.5*65');
+  });
+
+  it('splits a material header (sem "pc") do resto da lista', () => {
+    const raw = 'MDF naval de 18.  1pc96*65. 1pc192*65';
+    expect(expandPcSeparatedPieces(raw)).toBe('MDF naval de 18\n1pc96*65\n1pc192*65');
+  });
+
+  it('não separa um ponto decimal dentro de uma medida (não vem seguido de espaço)', () => {
+    expect(expandPcSeparatedPieces('4pc69.5*65')).toBe('4pc69.5*65');
+    // Mesmo um número com mais de um ponto (provável erro de digitação do
+    // usuário) não deve ser cortado — só pontos seguidos de espaço+"Npc" são.
+    expect(expandPcSeparatedPieces('1pc1.73.03*07')).toBe('1pc1.73.03*07');
+  });
+
+  it('não altera um texto sem nenhuma peça no formato "pc"', () => {
+    expect(expandPcSeparatedPieces('2=47/47')).toBe('2=47/47');
   });
 });

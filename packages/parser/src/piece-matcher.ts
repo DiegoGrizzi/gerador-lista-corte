@@ -12,6 +12,7 @@ import {
   DIMENSIONS_RE,
   DIMENSIONS_NO_SLASH_RE,
   DIMENSION_FIRST_RE,
+  PC_ASTERISK_RE,
   THICKNESS_SUFFIX_RE,
   PIECE_SEPARATOR_RE,
 } from './regex-patterns.js';
@@ -123,10 +124,31 @@ export function tryMatchDimensionFirstLine(line: string): DimensionFirstMatch | 
 }
 
 /**
- * Monta a peça a partir de um resultado de tryMatchDimensionFirstLine.
- * Diferente de buildPieceFromMatch, não há prefixo/sufixo de linha pra
- * extrair função/fita/espessura/material — esse formato só carrega
- * dimensão e quantidade, então tudo o mais vem do contexto corrente.
+ * Tenta reconhecer o formato "quantidade+pc+comprimento*largura" (ver
+ * PC_ASTERISK_RE) — cada peça já deve estar isolada na própria linha
+ * (ver expandPcSeparatedPieces em text-normalize.ts, que separa uma lista
+ * inteira escrita numa única linha antes desta função rodar). Devolve o
+ * mesmo formato de DimensionFirstMatch: assim como aquele formato, esta
+ * peça também não carrega fita/espessura/material inline, então reaproveita
+ * o mesmo builder (buildPieceFromDimensionFirstMatch).
+ */
+export function tryMatchPcAsteriskLine(line: string): DimensionFirstMatch | null {
+  const match = PC_ASTERISK_RE.exec(line);
+  if (!match) return null;
+
+  return {
+    qty: parseInt(match[1]!, 10),
+    compr: toNumber(match[2]!),
+    larg: toNumber(match[3]!),
+  };
+}
+
+/**
+ * Monta a peça a partir de um resultado de tryMatchDimensionFirstLine (ou
+ * tryMatchPcAsteriskLine, que devolve o mesmo formato). Diferente de
+ * buildPieceFromMatch, não há prefixo/sufixo de linha pra extrair função/
+ * fita/espessura/material — esses formatos só carregam dimensão e
+ * quantidade, então tudo o mais vem do contexto corrente.
  */
 export function buildPieceFromDimensionFirstMatch(match: DimensionFirstMatch, ctx: ParseContext): RawPiece {
   return {

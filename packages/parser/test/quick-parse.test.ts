@@ -58,4 +58,14 @@ describe('quickParseLine', () => {
     expect(piece!.funcao).toBe(''); // não sobra ": 2 peças" no campo função.
     expect(piece!.material).toBe('MDF branco 15mm');
   });
+
+  it('recognizes the "quantidade+pc+comprimento*largura" format, inheriting from context', () => {
+    const piece = quickParseLine('2pc87*12', ctx, makeNextId());
+
+    expect(piece).not.toBeNull();
+    expect(piece!.qtd).toBe(2);
+    expect(piece!.compr).toBe(87);
+    expect(piece!.larg).toBe(12);
+    expect(piece!.material).toBe('MDF branco 15mm');
+  });
 });

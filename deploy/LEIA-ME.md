@@ -11,7 +11,7 @@ mas o processo é todo automático. Copie os dois arquivos abaixo para a
 máquina nova (pendrive, e-mail, pasta compartilhada — não precisa do
 projeto inteiro, só esses dois arquivos) e dê duplo clique no `.bat`:
 
-- `deploy/instalar-em-novo-computador.bat`
+- `deploy/instalador.bat`
 - `deploy/instalar-em-novo-computador.ps1`
 
 O instalador sozinho:
@@ -56,7 +56,7 @@ processo pra instalar pela primeira vez ou pra atualizar depois.
 
 ## Depois de atualizar o código
 
-Rode o `instalar-em-novo-computador.bat` de novo (mesma máquina, mesmo
+Rode o `instalador.bat` de novo (mesma máquina, mesmo
 arquivo) — ele baixa a versão mais recente, recompila e reinicia o
 servidor sozinho. Se preferir fazer manualmente: feche o processo Node
 antigo (Gerenciador de Tarefas → "Node.js JavaScript Runtime"), rode

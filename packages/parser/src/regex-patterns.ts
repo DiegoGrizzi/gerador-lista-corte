@@ -60,6 +60,18 @@ export const DIMENSION_FIRST_RE = new RegExp(
   'i',
 );
 
+/**
+ * Terceiro formato alternativo: uma lista inteira de peças na mesma linha,
+ * separada por ponto, cada peça no formato "quantidade+pc+comprimento*
+ * largura" (ex: "1pc96*65. 1pc192*65. 4pc69.5*65"). Usada em conjunto com
+ * `expandPcSeparatedPieces` (ver text-normalize.ts), que já separou cada
+ * peça na própria linha antes desta regex rodar — aqui só falta reconhecer
+ * uma peça isolada. Mesma limitação do formato "comprimento x largura:
+ * quantidade": sem fita/espessura/material inline, sempre herda do
+ * contexto corrente.
+ */
+export const PC_ASTERISK_RE = /^(\d+)\s*pc\s*([\d.,']+)\s*\*\s*([\d.,']+)$/i;
+
 /** Linha só com a espessura padrão do bloco: "De 15", "Tudo de 15mm", "Todas de 6 mm". */
 export const THICKNESS_ONLY_RE = /^(?:tudo|todos|todas)?\s*de\s+(\d+)\s*(?:mm|m)?\.?$/i;
 

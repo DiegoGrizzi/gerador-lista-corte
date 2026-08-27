@@ -53,13 +53,19 @@ export const DIMENSION_FIRST_LIST = [
  * formato "quantidade+pc+comprimento*largura" separado por ponto (ex:
  * "1pc96*65. 1pc192*65"). Inclui o cabeçalho de material ("MDF naval de
  * 18") na mesma linha, junto com as peças, e uma peça malformada de
- * propósito ("8pc*13*43" — falta o comprimento) para confirmar que ela
- * vai para a conferência em vez de quebrar o resto da lista.
+ * propósito ("8pc+13+43" — separador errado entre as medidas) para
+ * confirmar que ela vai para a conferência em vez de quebrar o resto da
+ * lista. Usa "+" (não "*") de propósito: como "*" também virou um
+ * separador geral de dimensões (ver DIMENSIONS_RE), "8pc*13*43" passaria
+ * a ler como uma peça válida 8x13x43 — "+" continua sem sentido nenhum
+ * (não é separador de dimensão nem decimal), então ainda testa o caso de
+ * malformação pretendido aqui (LOOKS_LIKE_PIECE_RE ainda reconhece "+"
+ * como "parece peça, mas não bateu" e manda pra conferência).
  */
 export const PC_ASTERISK_LIST =
   'MDF naval de 18.  1pc96*65. 1pc192*65. 4pc69.5*65. 1pc92*07. 1pc1.90*07. 3pc1.00*66.03. 2pc92*57. ' +
   '4pc92.07*57. 1pc1.77*57. 3pc75*57. 1pc1.73.03*07. 1pc50*75. 2pc90*72.03. 2pc85.5*50. 2pc57*75. ' +
-  '1pc59.03*07. 3pc52*24. 8pc50*18. 8pc*13*43. 2pc87*12. 2pc83*12. 2pc42.07*89. 4pc83*11.03. 1pc53*57';
+  '1pc59.03*07. 3pc52*24. 8pc50*18. 8pc+13+43. 2pc87*12. 2pc83*12. 2pc42.07*89. 4pc83*11.03. 1pc53*57';
 
 /** Mensagem completa e realista, cobrindo cabeçalho, ambiente, função e peças. */
 export const REALISTIC_MESSAGE = [
@@ -115,4 +121,84 @@ export const CINZA_JAZZ_SHORTHAND_FITA = [
   '1- 73x90 2 menor',
   '6- 72,5x42,8 4 lados',
   '4- 46,3x72,5',
+].join('\n');
+
+/**
+ * Lista real de um usuário no formato "quantidade*compr*larg" (separador
+ * "*" em vez de "x"), com três estilos de cabeçalho de material diferentes
+ * na MESMA mensagem: "Branco 18 comum" (cor + espessura sem "mm", com
+ * palavra de acabamento no final), "MDF branco 15mm comum" (tem "MDF", mas
+ * a espessura vem colada sem "de" na frente) e "Freijó Trend" + "18mm" em
+ * duas linhas separadas (nome numa linha, espessura solta na linha
+ * seguinte). Inclui também um "2"850*515" — troca de propósito de "*" por
+ * `"` numa das linhas (erro de digitação real) — e a seção "Ferragens" no
+ * final, que não é peça nenhuma.
+ */
+export const ASTERISK_MULTI_HEADER_MESSAGE = [
+  'Segue material ',
+  'Branco 18 comum ',
+  '',
+  '3*624*480 ',
+  '1*624*100',
+  '2*624*460',
+  '2*850*530',
+  '2"850*515',
+  '1*410*530',
+  '1*410*512',
+  '1*665*1035',
+  '4*655*178',
+  '',
+  'MDF branco 15mm comum ',
+  '',
+  '6*710*530',
+  '2*710*850',
+  '1*710*410',
+  '8*584*100',
+  '8*450*130',
+  '4*450*584',
+  '1*624*1010',
+  '',
+  'Freijó Trend ',
+  '',
+  '18mm ',
+  '',
+  '2*2500*550',
+  '2*1000*550',
+  '2*100*850',
+  '1*100*410',
+  '5*700*437',
+  '2*710*530',
+  '',
+  'Ferragens ',
+  '',
+  '1 fita freijó Trend 64',
+  '13 dobradiças retas com amortecedor ',
+  '2 pacote l fixação ',
+  '4corridicas 45 total',
+].join('\n');
+
+/**
+ * Lista real de um usuário com a quantidade escrita por extenso ("uma",
+ * "duas", "cinco", "quatro" — em vez de "1", "2", "5", "4"), uma saudação
+ * ("boa tarde") colada na primeira linha, junto com a peça, e a espessura
+ * do bloco declarada por extenso DEPOIS das peças ("esses são de 15 ml" —
+ * "ml" no lugar de "mm"), com uma peça no final ("fundo") que sobrescreve
+ * essa espessura com a própria ("de 6ml").
+ */
+export const SPELLED_OUT_QUANTITY_MESSAGE = [
+  'boa tarde duas lateral de 2050x550',
+  'uma de 196.5x550 lateral',
+  'uma de 1150 x550 lateral',
+  'uma de 1980x550 porta',
+  'duas de 1980x58.5 portas',
+  'duas de 1700x500 base',
+  'uma de 1500x500 base',
+  'cinco de 530x500',
+  'cinco 57.5x500',
+  'duas de 70x1700',
+  'duas de 420x1 ',
+  'quatro de 450x13',
+  'quatro de 42.2x13',
+  'esses são de 15 ml',
+  'uma de 1730x2000 fundo de 6ml',
 ].join('\n');

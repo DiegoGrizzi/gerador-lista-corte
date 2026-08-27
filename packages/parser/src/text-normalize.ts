@@ -48,6 +48,67 @@ export function expandPcSeparatedPieces(text: string): string {
 }
 
 /**
+ * Saudação solta no começo da linha ("Boa tarde duas laterais de
+ * 2050x550") — comum quando a mensagem inteira do WhatsApp começa com uma
+ * saudação na mesma linha da primeira peça, em vez de numa linha própria.
+ * Sem remover isso, a quantidade por extenso (ver normalizeLeadingNumberWord)
+ * nunca fica no início da linha, e a peça inteira não é reconhecida.
+ */
+const GREETING_PREFIX_RE = /^(?:boa\s+tarde|boa\s+noite|bom\s+dia|ol[aá]|oi)[,.]?\s+/i;
+
+export function stripGreetingPrefix(line: string): string {
+  return line.replace(GREETING_PREFIX_RE, '');
+}
+
+/**
+ * Quantidade por extenso, em português, no início da linha ("uma", "duas",
+ * "cinco"...) — comum em mensagens digitadas/faladas em vez de copiadas de
+ * uma lista. Cobre 1 a 20 (além disso, quem escreve por extenso quase
+ * sempre já troca pra algarismo). "um"/"uma" e "dois"/"duas" têm as duas
+ * formas de gênero; os demais não variam em português.
+ *
+ * Só troca a PRIMEIRA palavra da linha pelo algarismo equivalente — o
+ * resto da linha (incluindo "de", medidas, função...) continua intacto e
+ * já é tratado normalmente pelo resto do motor de análise depois disso.
+ */
+const NUMBER_WORDS: Record<string, number> = {
+  um: 1,
+  uma: 1,
+  dois: 2,
+  duas: 2,
+  três: 3,
+  tres: 3,
+  quatro: 4,
+  cinco: 5,
+  seis: 6,
+  sete: 7,
+  oito: 8,
+  nove: 9,
+  dez: 10,
+  onze: 11,
+  doze: 12,
+  treze: 13,
+  quatorze: 14,
+  catorze: 14,
+  quinze: 15,
+  dezesseis: 16,
+  dezessete: 17,
+  dezoito: 18,
+  dezenove: 19,
+  vinte: 20,
+};
+
+const LEADING_NUMBER_WORD_RE = new RegExp('^(' + Object.keys(NUMBER_WORDS).join('|') + ')\\b', 'i');
+
+export function normalizeLeadingNumberWord(line: string): string {
+  const match = line.match(LEADING_NUMBER_WORD_RE);
+  if (!match) return line;
+  const value = NUMBER_WORDS[match[1]!.toLowerCase()];
+  if (value == null) return line;
+  return value + line.slice(match[0].length);
+}
+
+/**
  * Remove palavras de preenchimento ("de", "pro") e pontuação solta de um
  * trecho de texto, para decidir se o que resta é um valor real de Função.
  * Retorna string vazia se não sobrar nada útil.

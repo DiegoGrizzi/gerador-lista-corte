@@ -13,6 +13,8 @@ import {
   THICKNESS_ONLY_RE,
   PECAS_HEADER_RE,
   GENERIC_THICKNESS_HEADER_RE,
+  BARE_THICKNESS_HEADER_RE,
+  NAME_ONLY_LINE_RE,
   DISCARD_LABELS,
   SEPARATOR_LINE_RE,
   LOOKS_LIKE_PIECE_RE,
@@ -20,7 +22,13 @@ import {
   MULTIPLE_PIECES_RE,
 } from './regex-patterns.js';
 import { toNumber } from './numbers.js';
-import { stripWhatsAppFormatting, normalizeTypos, expandPcSeparatedPieces } from './text-normalize.js';
+import {
+  stripWhatsAppFormatting,
+  stripGreetingPrefix,
+  normalizeLeadingNumberWord,
+  normalizeTypos,
+  expandPcSeparatedPieces,
+} from './text-normalize.js';
 import { parseFitamentoPhrase } from './fitamento.js';
 import { extractTrailingFitaCodes, applyFitaCodesToPiece } from './fita-codes.js';
 import { classifyHeaderLine, extractHeaderInfo } from './header.js';
@@ -63,6 +71,15 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
   let currentFuncao = '';
   let materialMentioned = false;
 
+  /**
+   * Candidato a nome de material declarado numa linha própria, sem
+   * nenhum número junto (ex: "Freijó Trend"), aguardando a espessura que
+   * vem numa linha SEGUINTE também sozinha (ex: "18mm") — ver o
+   * tratamento de THICKNESS_ONLY_RE mais abaixo. Fica `null` na maior
+   * parte do tempo; só é preenchido entre essas duas linhas.
+   */
+  let pendingMaterialName: string | null = null;
+
   // Peças/itens de conferência que ainda esperam por material, fita ou
   // espessura declarados mais abaixo na mensagem.
   let pendingMaterial: PendingEntry[] = [];
@@ -94,6 +111,7 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
   /** Atualiza o contexto corrente ao encontrar um novo cabeçalho de material,
    * propagando o valor retroativamente para tudo que estava pendente. */
   function setNewMaterial(materialText: string, fitType: FitamentoType | null, thicknessVal: number | null): void {
+    pendingMaterialName = null;
     pendingMaterial.forEach((entry) => {
       entry.material = materialText;
     });
@@ -111,6 +129,7 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
 
   /** Constrói e registra uma peça a partir de um resultado de tryMatchPieceLine já validado. */
   function addSinglePiece(match: PieceMatch, ctx: ParseContext): void {
+    pendingMaterialName = null;
     const built = buildPieceFromMatch(match.qty, match.prefix, match.dimensionMatch, match.suffix, ctx);
     built.piece.id = nextId();
     pieces.push(built.piece);
@@ -130,6 +149,7 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
    * material inline), então compartilham esta mesma função.
    */
   function addDimensionFirstPiece(match: DimensionFirstMatch, ctx: ParseContext): void {
+    pendingMaterialName = null;
     const piece = buildPieceFromDimensionFirstMatch(match, ctx);
     piece.id = nextId();
     pieces.push(piece);
@@ -178,6 +198,13 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     let line = stripWhatsAppFormatting(rawLine.trim());
     if (!line) return;
 
+    // Saudação solta ("Boa tarde duas laterais...") e quantidade por
+    // extenso ("uma", "duas", "cinco"...) — ver text-normalize.ts. Sempre
+    // no início do processamento da linha: sem isso, a quantidade por
+    // extenso nunca fica no começo da linha (onde QUANTITY_RE espera um
+    // dígito) e a peça inteira não é reconhecida.
+    line = normalizeLeadingNumberWord(stripGreetingPrefix(line));
+
     // Códigos de fita colados ao final da linha (ex: "... 1M 1m", "... 3L")
     // — ver fita-codes.ts. Só tenta em linhas que começam com dígito (a
     // quantidade), o mesmo universo de linhas que os formatos de peça
@@ -195,6 +222,30 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
       // comprimento — sem remover esse "X" solto, ele sobraria como prefixo
       // da linha e viraria (erroneamente) a Função da peça.
       line = line.replace(/^(\d+)\s+[xX]\s+/, '$1 ');
+    }
+
+    // Linha inteira só de espessura (ex: "De 15mm", "18mm" sozinha) —
+    // checada ANTES da tentativa de quantidade/peça de propósito: uma
+    // linha como "18mm" começa com dígito, então QUANTITY_RE a
+    // interpretaria como "quantidade 18" + sufixo "mm" sem medida
+    // nenhuma — cairia no fallback de cabeçalho abaixo já com o "18"
+    // perdido (só sobraria "mm" solto, sem número, pra THICKNESS_ONLY_RE
+    // reconhecer). Como THICKNESS_ONLY_RE exige a linha INTEIRA (^...$)
+    // e uma peça de verdade sempre tem duas medidas, não corre risco de
+    // engolir por engano uma peça real aqui.
+    const earlyThicknessMatch = line.match(THICKNESS_ONLY_RE);
+    if (earlyThicknessMatch) {
+      const thicknessVal = toNumber((earlyThicknessMatch[1] || earlyThicknessMatch[2])!);
+      if (pendingMaterialName) {
+        setNewMaterial(pendingMaterialName, null, thicknessVal);
+        return;
+      }
+      currentThickness = thicknessVal;
+      pendingThickness.forEach((entry) => {
+        if (entry.thicknessMm == null) entry.thicknessMm = currentThickness;
+      });
+      pendingThickness = [];
+      return;
     }
 
     // Formato "comprimento x largura: quantidade" (ver DIMENSION_FIRST_RE) e
@@ -269,7 +320,17 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
 
     const thicknessMatch = line.match(THICKNESS_ONLY_RE);
     if (thicknessMatch) {
-      currentThickness = toNumber(thicknessMatch[1]!);
+      const thicknessVal = toNumber((thicknessMatch[1] || thicknessMatch[2])!);
+      if (pendingMaterialName) {
+        // A linha anterior era só um nome, sem número nenhum (ex: "Freijó
+        // Trend") — junto com essa espessura solta, forma um cabeçalho de
+        // material em DUAS linhas (ver captura de pendingMaterialName mais
+        // abaixo). Conta como uma declaração de material nova de verdade,
+        // não só um ajuste retroativo de espessura.
+        setNewMaterial(pendingMaterialName, null, thicknessVal);
+        return;
+      }
+      currentThickness = thicknessVal;
       pendingThickness.forEach((entry) => {
         if (entry.thicknessMm == null) entry.thicknessMm = currentThickness;
       });
@@ -330,13 +391,34 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
 
     const headerCategory = classifyHeaderLine(line);
     if (headerCategory === 'complemento') {
+      pendingMaterialName = null;
       currentComplemento = line;
       currentFuncao = '';
     } else if (headerCategory === 'funcao') {
+      pendingMaterialName = null;
       currentFuncao = line;
+    } else {
+      // 'unknown': não é ambiente/função conhecidos — tenta como último
+      // recurso um cabeçalho de material sem nenhuma palavra-chave nem
+      // unidade (ex: "Branco 18 comum"). Só chega aqui depois que
+      // classifyHeaderLine já teve a chance de reconhecer um ambiente
+      // terminado em número (ex: "Quarto 2") como Complemento, então o
+      // risco de confundir os dois é baixo.
+      const bareHeaderMatch = line.match(BARE_THICKNESS_HEADER_RE);
+      if (bareHeaderMatch) {
+        setNewMaterial(bareHeaderMatch[1]!.trim(), null, toNumber(bareHeaderMatch[2]!));
+      } else if (NAME_ONLY_LINE_RE.test(line)) {
+        // Nome de material sozinho, sem espessura junto (ex: "Freijó
+        // Trend") — guarda como candidato até a próxima linha, que pode
+        // ser só a espessura (ex: "18mm"), ver THICKNESS_ONLY_RE acima.
+        // Só letras/espaços (nada de dígito) e uma linha curta, pra não
+        // engolir por engano uma frase qualquer não reconhecida.
+        pendingMaterialName = line.trim();
+      } else {
+        pendingMaterialName = null;
+      }
+      // Senão, linha não reconhecida, ignorada em silêncio.
     }
-    // headerCategory === 'unknown': linha não reconhecida, ignorada em
-    // silêncio (não é peça, não é ambiente/função conhecidos).
   });
 
   pendingFitamento.forEach((entry) => {

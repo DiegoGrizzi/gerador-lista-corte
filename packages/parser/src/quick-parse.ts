@@ -8,7 +8,12 @@
 
 import { SUSPICIOUS_ADJACENT_RE, MULTIPLE_PIECES_RE } from './regex-patterns.js';
 import { toNumber } from './numbers.js';
-import { stripWhatsAppFormatting, normalizeTypos } from './text-normalize.js';
+import {
+  stripWhatsAppFormatting,
+  stripGreetingPrefix,
+  normalizeLeadingNumberWord,
+  normalizeTypos,
+} from './text-normalize.js';
 import {
   isValidPiece,
   tryMatchPieceLine,
@@ -32,6 +37,10 @@ import type { NextIdFn, ParseContext, Piece } from './types.js';
 export function quickParseLine(line: string, ctx: ParseContext, nextId: NextIdFn): Piece | null {
   let cleanedLine = normalizeTypos(stripWhatsAppFormatting(line.trim()));
   if (!cleanedLine) return null;
+
+  // Ver comentário equivalente em analyze.ts: saudação solta e quantidade
+  // por extenso ("uma", "duas", "cinco"...).
+  cleanedLine = normalizeLeadingNumberWord(stripGreetingPrefix(cleanedLine));
 
   // Ver comentário equivalente em analyze.ts: códigos de fita colados ao
   // final da linha (ex: "... 1M 1m", "... 3L"), só em linhas que começam

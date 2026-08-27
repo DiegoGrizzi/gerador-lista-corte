@@ -52,15 +52,25 @@ export async function applyUpdate(): Promise<UpdateApplyResult> {
  * segundos fora do ar entre o processo antigo sair e o novo subir).
  * 60 tentativas de 1s (~1 minuto) — folga generosa pra máquinas mais
  * lentas ou com antivírus escaneando os arquivos recém-compilados.
+ *
+ * Cada tentativa usa um "timeout" próprio (attemptTimeoutMs): sem isso, uma
+ * porta que ainda não está escutando pode deixar o fetch pendurado por bem
+ * mais tempo que 1s antes de falhar (o navegador não tem um limite curto
+ * por padrão) — na prática isso fez a espera total passar de minutos em vez
+ * dos ~60s esperados, mesmo com o servidor já tendo voltado ao ar.
  */
-export async function pingUntilBackOnline(maxAttempts = 60, intervalMs = 1000): Promise<boolean> {
+export async function pingUntilBackOnline(
+  maxAttempts = 60,
+  intervalMs = 1000,
+  attemptTimeoutMs = 2000,
+): Promise<boolean> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
     try {
-      const response = await fetch('/', { cache: 'no-store' });
+      const response = await fetch('/', { cache: 'no-store', signal: AbortSignal.timeout(attemptTimeoutMs) });
       if (response.ok) return true;
     } catch {
-      // Servidor ainda reiniciando — continua tentando.
+      // Servidor ainda reiniciando (ou tentativa estourou o tempo) - continua tentando.
     }
   }
   return false;

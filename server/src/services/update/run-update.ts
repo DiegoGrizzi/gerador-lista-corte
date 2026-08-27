@@ -144,9 +144,42 @@ export async function runUpdateSteps(projectRoot: string): Promise<UpdateStepRes
  * processos disputavam o arquivo de log por uns milissegundos de
  * sobreposição, o que já travou o processo novo inteiro num caso real
  * anterior).
+ *
+ * O nome da tarefa é ÚNICO a cada chamada (com um sufixo de timestamp), em
+ * vez de reaproveitar sempre o mesmo nome com "/create ... /f" para
+ * sobrescrever - um caso real mostrou "/create" (e até "/delete") numa
+ * tarefa já existente falhando com "Acesso negado", mesmo criar uma tarefa
+ * nova com outro nome funcionando sem problema no mesmo instante. Ou seja,
+ * sobrescrever/apagar uma tarefa já registrada pode esbarrar num problema
+ * de permissão que criar uma tarefa nova não tem - então o jeito mais
+ * confiável é nunca precisar sobrescrever nada. Isso deixa tarefas "de uso
+ * único" (já disparadas, que não vão rodar de novo sozinhas) acumulando no
+ * Agendador ao longo do tempo, mas são inofensivas.
+ */
+const SCHTASKS_TIMEOUT_MS = 5000;
+
+/**
+ * Roda um comando schtasks.exe com um limite de tempo próprio - sem isso,
+ * se o processo schtasks.exe for encerrado por fora de um jeito que não
+ * dispara nem "close" nem "error" (ex: um antivírus suspendendo/matando o
+ * processo de um jeito atípico), a Promise ficaria pendurada para sempre,
+ * e restartServer(), que depende dela, nunca chegaria a chamar
+ * process.exit() - o servidor antigo ficaria travado num limbo, sem nunca
+ * liberar a porta pra próxima tentativa (manual ou automática).
  */
 function runSchtasks(args: string[]): Promise<StepResult> {
   return new Promise((resolve) => {
+    let settled = false;
+    const settle = (result: StepResult): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      resolve(result);
+    };
+    const timeout = setTimeout(() => {
+      settle({ code: -1, output: `schtasks ${args.join(' ')} não respondeu em ${SCHTASKS_TIMEOUT_MS}ms.` });
+    }, SCHTASKS_TIMEOUT_MS);
+
     const child = spawn('schtasks.exe', args, { windowsHide: true });
     let output = '';
     child.stdout.on('data', (chunk: Buffer) => {
@@ -155,8 +188,8 @@ function runSchtasks(args: string[]): Promise<StepResult> {
     child.stderr.on('data', (chunk: Buffer) => {
       output += chunk.toString();
     });
-    child.on('close', (code) => resolve({ code, output }));
-    child.on('error', (err) => resolve({ code: -1, output: err.message }));
+    child.on('close', (code) => settle({ code, output }));
+    child.on('error', (err) => settle({ code: -1, output: err.message }));
   });
 }
 
@@ -167,16 +200,34 @@ export async function restartServer(projectRoot: string): Promise<void> {
   // "iniciar-servidor-oculto.ps1 iniciado" (gravada pelo próprio .ps1) diz
   // se a falha foi antes ou depois do PowerShell escondido ser alcançado.
   console.log('Atualização concluída - agendando religamento via Agendador de Tarefas...');
+
+  // Bloqueio de segurança à parte dos timeouts individuais de runSchtasks:
+  // não importa o que aconteça, este processo NUNCA deve ficar pendurado
+  // pra sempre no meio da sequência abaixo - garante que o processo morre
+  // (liberando a porta) mesmo num cenário totalmente inesperado.
+  const forceExitTimer = setTimeout(() => {
+    console.error('Religamento não terminou a tempo - saindo mesmo assim.');
+    process.exit(1);
+  }, 15_000);
+
   const launcherPath = path.join(projectRoot, 'deploy', 'iniciar-servidor-oculto.ps1');
-  const taskName = 'GeradorListaCorteReligamento';
+  // Nome único por chamada - ver comentário acima sobre por que nunca
+  // reaproveitar/sobrescrever o mesmo nome de tarefa.
+  const taskName = `GeradorListaCorteReligamento-${Date.now()}`;
   const trValue = `powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -File "${launcherPath}"`;
   // /st (horário) é obrigatório com /sc once, mas o valor não importa de
   // verdade - "/run" logo em seguida dispara a tarefa na hora, independente
   // do horário agendado. Espera os dois passos terminarem (e não só serem
   // disparados) antes de deixar este processo morrer, já que a criação e o
   // disparo em si dependem desse processo continuar vivo até o
-  // schtasks.exe terminar de conversar com o serviço do Agendador.
-  await runSchtasks(['/create', '/tn', taskName, '/tr', trValue, '/sc', 'once', '/st', '23:59', '/f']);
-  await runSchtasks(['/run', '/tn', taskName]);
+  // schtasks.exe terminar de conversar com o serviço do Agendador. Sem
+  // "/f": não deveria existir uma tarefa com esse nome (é único), então
+  // forçar sobrescrita não é necessário.
+  const create = await runSchtasks(['/create', '/tn', taskName, '/tr', trValue, '/sc', 'once', '/st', '23:59']);
+  console.log(`schtasks /create -> código ${create.code}: ${create.output.trim()}`);
+  const run = await runSchtasks(['/run', '/tn', taskName]);
+  console.log(`schtasks /run -> código ${run.code}: ${run.output.trim()}`);
+
+  clearTimeout(forceExitTimer);
   process.exit(0);
 }

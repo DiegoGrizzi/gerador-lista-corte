@@ -1,0 +1,5 @@
+# Arquivos .bat PRECISAM de fim de linha CRLF — o interpretador de batch do
+# cmd.exe se confunde com LF sozinho (já causou um bug real: linhas REM
+# sendo lidas como comando). Força isso independente da configuração de
+# core.autocrlf de quem clonar o repositório (a máquina de cada loja).
+*.bat text eol=crlf

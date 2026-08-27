@@ -2,9 +2,8 @@
  * run-update.ts
  * ---------------------------------------------------------------------------
  * Executa a sequência de atualização (git pull, [npm install], npm run
- * build) e, se tudo der certo, relança o servidor (mesmo comando de
- * deploy/iniciar-servidor-oculto.vbs, mas rodado direto via cmd.exe — ver
- * comentário em restartServer sobre por que não reaproveita o .vbs aqui).
+ * build) e, se tudo der certo, relança o servidor via
+ * deploy/iniciar-servidor-oculto.ps1 (ver comentário em restartServer).
  * ---------------------------------------------------------------------------
  */
 import { spawn } from 'node:child_process';
@@ -92,21 +91,22 @@ export async function runUpdateSteps(projectRoot: string): Promise<UpdateStepRes
 }
 
 /**
- * Relança o servidor (mesmo comando que deploy/iniciar-servidor-oculto.vbs
- * usa: "node dist\index.js" a partir de server/, com a saída redirecionada
- * pra deploy/server.log) e encerra o processo atual. SÓ deve ser chamado
- * depois de a requisição HTTP que pediu a atualização já ter sido
- * respondida — o processo termina de propósito, então nada mais roda
- * depois disso.
+ * Relança o servidor via deploy/iniciar-servidor-oculto.ps1 (o mesmo
+ * lançador usado pelo atalho de inicialização do Windows e pelo
+ * duplo-clique manual em iniciar-servidor-oculto.bat — uma única fonte de
+ * verdade pra "como iniciar o servidor escondido") e encerra o processo
+ * atual. SÓ deve ser chamado depois de a requisição HTTP que pediu a
+ * atualização já ter sido respondida — o processo termina de propósito,
+ * então nada mais roda depois disso.
  *
- * DE PROPÓSITO não usa o .vbs/wscript.exe aqui (só o atalho de
- * inicialização do Windows usa) — um usuário relatou "Falha na execução do
- * Windows Script Host (recursos de memória insuficientes)" bem na hora de
- * atualizar, provavelmente porque a máquina ainda estava com pouca memória
- * livre logo depois do build (git pull + npm install + npm run build de 3
- * workspaces). Rodando "node" direto via cmd.exe (sem depender do Windows
- * Script Host, que tem historinha de ficar instável sob pressão de
- * recursos), essa camada a mais de falha desaparece.
+ * DE PROPÓSITO chama powershell.exe, nunca wscript.exe/Windows Script
+ * Host — um usuário relatou (duas vezes) "Falha na execução do Windows
+ * Script Host (recursos de memória insuficientes)" bem na hora de
+ * reiniciar depois de atualizar, provavelmente porque a máquina ainda
+ * estava com pouca memória livre logo depois do build (git pull + npm
+ * install + npm run build de 3 workspaces) — e o WSH tem histórico de
+ * ficar instável sob essa pressão. PowerShell é um subsistema totalmente
+ * separado do WSH, não herda esse problema.
  *
  * O relançamento é agendado num processo TOTALMENTE independente deste
  * (um "cmd /c" solto, com espera embutida, que sobrevive mesmo depois
@@ -121,13 +121,12 @@ export async function runUpdateSteps(projectRoot: string): Promise<UpdateStepRes
  * acontece mais.
  */
 export function restartServer(projectRoot: string): void {
-  const serverDir = path.join(projectRoot, 'server');
-  const logPath = path.join(projectRoot, 'deploy', 'server.log');
+  const launcherPath = path.join(projectRoot, 'deploy', 'iniciar-servidor-oculto.ps1');
   // "ping -n 3 127.0.0.1" é o jeito clássico de esperar ~2s num .bat/cmd
   // sem depender de console interativo (diferente de "timeout", que falha
   // com stdin não-interativo — exatamente o caso aqui, já que stdio é
   // 'ignore').
-  const relaunchCommand = `ping -n 3 127.0.0.1 >nul & cd /d "${serverDir}" & node dist\\index.js >> "${logPath}" 2>&1`;
+  const relaunchCommand = `ping -n 3 127.0.0.1 >nul & powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -File "${launcherPath}"`;
   const relauncher = spawn('cmd.exe', ['/c', relaunchCommand], {
     detached: true,
     stdio: 'ignore',

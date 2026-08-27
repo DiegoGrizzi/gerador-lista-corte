@@ -61,7 +61,6 @@ export function createUpdateRouter(deps: UpdateRouteDeps = defaultDeps): Router 
           updateAvailable: currentSha !== latest.sha,
           currentSha,
           latestSha: latest.sha,
-          latestSummary: latest.summary,
         });
       } catch (error) {
         // Sem internet, GitHub fora do ar, instalação sem git — nunca é um

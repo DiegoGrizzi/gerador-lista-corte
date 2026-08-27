@@ -10,7 +10,6 @@ export interface UpdateCheckResult {
   updateAvailable: boolean;
   currentSha?: string;
   latestSha?: string;
-  latestSummary?: string;
   error?: string;
 }
 

@@ -125,11 +125,6 @@ h1 {
   color: var(--text);
 }
 
-.update-banner-summary {
-  color: var(--text-secondary);
-  font-weight: 400;
-}
-
 /* Spinner do modal bloqueante de atualização (UpdateProgressModal). */
 .update-spinner {
   width: 28px;

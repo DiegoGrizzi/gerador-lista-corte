@@ -46,7 +46,11 @@ body {
   color: var(--text);
   font-family: var(--sans);
   line-height: 1.5;
-  padding: 32px 16px 80px;
+  /* O respiro do rodapé era grande o bastante (80px) pra, sozinho, deixar
+     a página com o estado inicial (sem peças, mensagem vazia) mais alta
+     que a tela em resoluções comuns de notebook — ativando a barra de
+     rolagem vertical sem ter nada de fato pra rolar. */
+  padding: 32px 16px 40px;
 }
 
 .wrap {
@@ -651,7 +655,7 @@ td.check-cell input {
    ============================================================================= */
 @media (max-width: 900px) {
   body {
-    padding: 24px 14px 60px;
+    padding: 24px 14px 32px;
   }
 
   .card {
@@ -668,7 +672,7 @@ td.check-cell input {
    ============================================================================= */
 @media (max-width: 700px) {
   body {
-    padding: 20px 10px 60px;
+    padding: 20px 10px 28px;
   }
 
   .card {

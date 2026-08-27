@@ -647,6 +647,10 @@ td.check-cell input {
   margin: 0;
 }
 
+.version-tag {
+  font-family: var(--mono);
+}
+
 /* =============================================================================
    Responsivo — tablet (ajustes leves de espaçamento)
    ============================================================================= */

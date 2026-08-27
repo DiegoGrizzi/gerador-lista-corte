@@ -33,6 +33,7 @@ import { UpdateProgressModal } from './components/modals/UpdateProgressModal.js'
 import { useOcrUpload } from './hooks/useOcrUpload.js';
 import { useClipboardCopy } from './hooks/useClipboardCopy.js';
 import { useAutoUpdate } from './hooks/useAutoUpdate.js';
+import { useCurrentVersion } from './hooks/useCurrentVersion.js';
 import { UpdateBanner } from './components/UpdateBanner.js';
 
 export function App(): JSX.Element {
@@ -40,6 +41,7 @@ export function App(): JSX.Element {
   const ocr = useOcrUpload(dispatch);
   const { copied, copy } = useClipboardCopy();
   const autoUpdate = useAutoUpdate();
+  const currentVersion = useCurrentVersion();
   const resultCardRef = useRef<HTMLDivElement>(null);
 
   const handleAnalyze = useCallback(() => {
@@ -202,7 +204,10 @@ export function App(): JSX.Element {
       ) : null}
 
       <footer className="app-footer">
-        <p>Desenvolvido por Diego Grizzi</p>
+        <p>
+          Desenvolvido por Diego Grizzi
+          {currentVersion ? <span className="version-tag"> · v{currentVersion}</span> : null}
+        </p>
       </footer>
     </div>
   );

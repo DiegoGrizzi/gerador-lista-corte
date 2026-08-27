@@ -7,11 +7,12 @@
  * build e reinicia sozinho (ver POST /api/update/apply em
  * server/src/routes/update.ts).
  *
- * De propósito NUNCA recarrega a página sozinho: o usuário pode estar no
- * meio de uma lista ainda não copiada para o CorteCloud, e um reload
- * automático perderia esse trabalho (o estado só vive em memória). Depois
- * que o servidor volta a responder, fica em "ready" até o próprio usuário
- * clicar em recarregar.
+ * Enquanto atualiza ("updating"/"restarting"), a interface trava num modal
+ * bloqueante (ver UpdateProgressModal) — a orientação é só clicar em
+ * "Atualizar agora" fora do meio de uma lista, então não há necessidade de
+ * proteger um trabalho em andamento: assim que o servidor volta a
+ * responder, a página recarrega sozinha. Só uma falha (status "error")
+ * mantém o modal aberto até o usuário fechar ou tentar de novo.
  * ---------------------------------------------------------------------------
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -19,13 +20,14 @@ import { applyUpdate, checkForUpdate, pingUntilBackOnline } from '../lib/api/upd
 
 const CHECK_INTERVAL_MS = 10 * 60 * 1000; // 10 minutos
 
-export type AutoUpdateStatus = 'idle' | 'available' | 'updating' | 'restarting' | 'ready' | 'error';
+export type AutoUpdateStatus = 'idle' | 'available' | 'updating' | 'restarting' | 'error';
 
 export interface UseAutoUpdateResult {
   status: AutoUpdateStatus;
   latestSummary: string;
   errorMessage: string;
   applyNow: () => void;
+  dismissError: () => void;
 }
 
 export function useAutoUpdate(): UseAutoUpdateResult {
@@ -66,7 +68,10 @@ export function useAutoUpdate(): UseAutoUpdateResult {
       setStatus('restarting');
       const backOnline = await pingUntilBackOnline();
       if (backOnline) {
-        setStatus('ready');
+        // Atualizado com sucesso e a orientação é só clicar em "Atualizar
+        // agora" fora do meio de uma lista — recarrega direto, sem exigir
+        // mais um clique.
+        window.location.reload();
       } else {
         setStatus('error');
         setErrorMessage(
@@ -76,5 +81,10 @@ export function useAutoUpdate(): UseAutoUpdateResult {
     })();
   }, []);
 
-  return { status, latestSummary, errorMessage, applyNow };
+  const dismissError = useCallback(() => {
+    setStatus('idle');
+    setErrorMessage('');
+  }, []);
+
+  return { status, latestSummary, errorMessage, applyNow, dismissError };
 }

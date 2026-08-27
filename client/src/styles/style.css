@@ -130,8 +130,21 @@ h1 {
   font-weight: 400;
 }
 
-.update-banner-error {
-  color: var(--danger);
+/* Spinner do modal bloqueante de atualização (UpdateProgressModal). */
+.update-spinner {
+  width: 28px;
+  height: 28px;
+  margin: 6px auto 0;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: update-spin 0.8s linear infinite;
+}
+
+@keyframes update-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* =============================================================================

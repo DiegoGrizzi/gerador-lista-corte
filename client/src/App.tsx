@@ -29,6 +29,7 @@ import { ThreeLadosModal } from './components/modals/ThreeLadosModal.js';
 import { MaterialModal } from './components/modals/MaterialModal.js';
 import { PhotoMaterialModal } from './components/modals/PhotoMaterialModal.js';
 import { ErrorModal } from './components/modals/ErrorModal.js';
+import { UpdateProgressModal } from './components/modals/UpdateProgressModal.js';
 import { useOcrUpload } from './hooks/useOcrUpload.js';
 import { useClipboardCopy } from './hooks/useClipboardCopy.js';
 import { useAutoUpdate } from './hooks/useAutoUpdate.js';
@@ -129,12 +130,7 @@ export function App(): JSX.Element {
 
   return (
     <div className="wrap">
-      <UpdateBanner
-        status={autoUpdate.status}
-        latestSummary={autoUpdate.latestSummary}
-        errorMessage={autoUpdate.errorMessage}
-        onApply={autoUpdate.applyNow}
-      />
+      <UpdateBanner status={autoUpdate.status} latestSummary={autoUpdate.latestSummary} onApply={autoUpdate.applyNow} />
 
       <Header />
 
@@ -185,6 +181,14 @@ export function App(): JSX.Element {
         isOpen={state.activeModal === 'error'}
         message={state.errorMessage}
         onClose={() => dispatch({ type: 'ERROR_MODAL_CLOSED' })}
+      />
+      <UpdateProgressModal
+        isOpen={autoUpdate.status === 'updating' || autoUpdate.status === 'restarting' || autoUpdate.status === 'error'}
+        isError={autoUpdate.status === 'error'}
+        updating={autoUpdate.status === 'updating'}
+        errorMessage={autoUpdate.errorMessage}
+        onRetry={autoUpdate.applyNow}
+        onClose={autoUpdate.dismissError}
       />
 
       {state.resultVisible ? (

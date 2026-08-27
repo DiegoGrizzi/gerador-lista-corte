@@ -10,7 +10,7 @@ function makeDeps(overrides: Partial<UpdateRouteDeps> = {}): UpdateRouteDeps {
   return {
     resolveProjectRoot: vi.fn().mockReturnValue(FAKE_PROJECT_ROOT),
     getLocalSha: vi.fn().mockResolvedValue('aaaa'),
-    getLatestCommitInfo: vi.fn().mockResolvedValue({ sha: 'aaaa', summary: 'sem mudanças' }),
+    getLatestCommitInfo: vi.fn().mockResolvedValue({ sha: 'aaaa' }),
     hasUncommittedChanges: vi.fn().mockResolvedValue(false),
     runUpdateSteps: vi.fn().mockResolvedValue({ ok: true }),
     restartServer: vi.fn(),
@@ -26,13 +26,13 @@ describe('GET /api/update/check', () => {
     const response = await request(app).get('/api/update/check');
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ updateAvailable: false, currentSha: 'aaaa', latestSha: 'aaaa', latestSummary: 'sem mudanças' });
+    expect(response.body).toEqual({ updateAvailable: false, currentSha: 'aaaa', latestSha: 'aaaa' });
   });
 
   it('devolve updateAvailable: true quando o SHA remoto é diferente do local', async () => {
     const deps = makeDeps({
       getLocalSha: vi.fn().mockResolvedValue('aaaa'),
-      getLatestCommitInfo: vi.fn().mockResolvedValue({ sha: 'bbbb', summary: 'corrige um bug' }),
+      getLatestCommitInfo: vi.fn().mockResolvedValue({ sha: 'bbbb' }),
     });
     const app = createApp(undefined, deps);
 
@@ -43,7 +43,6 @@ describe('GET /api/update/check', () => {
       updateAvailable: true,
       currentSha: 'aaaa',
       latestSha: 'bbbb',
-      latestSummary: 'corrige um bug',
     });
   });
 

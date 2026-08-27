@@ -24,7 +24,6 @@ export type AutoUpdateStatus = 'idle' | 'available' | 'updating' | 'restarting' 
 
 export interface UseAutoUpdateResult {
   status: AutoUpdateStatus;
-  latestSummary: string;
   errorMessage: string;
   applyNow: () => void;
   dismissError: () => void;
@@ -32,7 +31,6 @@ export interface UseAutoUpdateResult {
 
 export function useAutoUpdate(): UseAutoUpdateResult {
   const [status, setStatus] = useState<AutoUpdateStatus>('idle');
-  const [latestSummary, setLatestSummary] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   // Só transiciona pra "available" a partir de "idle" — evita que uma
   // checagem periódica concorrente reabra o aviso enquanto já está
@@ -43,7 +41,6 @@ export function useAutoUpdate(): UseAutoUpdateResult {
   const runCheck = useCallback(async () => {
     const result = await checkForUpdate();
     if (result.updateAvailable && statusRef.current === 'idle') {
-      setLatestSummary(result.latestSummary || '');
       setStatus('available');
     }
   }, []);
@@ -86,5 +83,5 @@ export function useAutoUpdate(): UseAutoUpdateResult {
     setErrorMessage('');
   }, []);
 
-  return { status, latestSummary, errorMessage, applyNow, dismissError };
+  return { status, errorMessage, applyNow, dismissError };
 }

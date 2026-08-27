@@ -14,8 +14,6 @@ const REPO_BRANCH = 'main';
 
 export interface LatestCommitInfo {
   sha: string;
-  /** Primeira linha da mensagem do commit, cortada em 140 caracteres. */
-  summary: string;
 }
 
 interface CaptureResult {
@@ -69,10 +67,9 @@ export async function getLatestCommitInfo(): Promise<LatestCommitInfo> {
   if (!response.ok) {
     throw new Error(`GitHub respondeu com erro (código ${response.status}) ao consultar a última versão.`);
   }
-  const data = (await response.json()) as { sha?: string; commit?: { message?: string } };
+  const data = (await response.json()) as { sha?: string };
   if (!data.sha) {
     throw new Error('Resposta inesperada do GitHub ao consultar a última versão.');
   }
-  const firstLine = (data.commit?.message || '').split('\n')[0] || '';
-  return { sha: data.sha, summary: firstLine.slice(0, 140) };
+  return { sha: data.sha };
 }

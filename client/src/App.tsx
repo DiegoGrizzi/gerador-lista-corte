@@ -132,7 +132,7 @@ export function App(): JSX.Element {
 
   return (
     <div className="wrap">
-      <UpdateBanner status={autoUpdate.status} latestSummary={autoUpdate.latestSummary} onApply={autoUpdate.applyNow} />
+      <UpdateBanner status={autoUpdate.status} onApply={autoUpdate.applyNow} />
 
       <Header />
 

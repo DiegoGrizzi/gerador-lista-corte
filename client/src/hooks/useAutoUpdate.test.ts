@@ -29,18 +29,16 @@ describe('useAutoUpdate', () => {
     expect(result.current.status).toBe('idle');
   });
 
-  it('vira "available" com o resumo do commit quando há atualização', async () => {
+  it('vira "available" quando há atualização', async () => {
     vi.mocked(updateApi.checkForUpdate).mockResolvedValue({
       updateAvailable: true,
       currentSha: 'aaaa',
       latestSha: 'bbbb',
-      latestSummary: 'corrige um bug',
     });
 
     const { result } = renderHook(() => useAutoUpdate());
 
     await waitFor(() => expect(result.current.status).toBe('available'));
-    expect(result.current.latestSummary).toBe('corrige um bug');
   });
 
   it('applyNow: sucesso -> "updating" -> recarrega a página quando o servidor volta a responder', async () => {

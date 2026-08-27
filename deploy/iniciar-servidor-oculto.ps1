@@ -33,6 +33,12 @@ $projectRoot = Split-Path $scriptDir -Parent
 $serverDir = Join-Path $projectRoot 'server'
 $logPath = Join-Path $scriptDir 'server.log'
 
+# Marca no log que este script chegou a rodar, ANTES de subir o node - se um
+# dia o servidor não voltar depois de uma atualização e essa linha não
+# aparecer no log, é sinal de que algo (ex: antivírus) matou o PowerShell
+# antes mesmo dele chegar até aqui, em vez do node ter falhado ao iniciar.
+Add-Content -Path $logPath -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] iniciar-servidor-oculto.ps1 iniciado"
+
 Set-Location $serverDir
 # O redirecionamento roda via cmd.exe de propósito, em vez de usar o
 # "*>> $logPath" nativo do PowerShell: no PowerShell 5.1 (o que vem no

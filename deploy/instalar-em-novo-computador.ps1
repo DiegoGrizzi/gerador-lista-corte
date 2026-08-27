@@ -50,7 +50,7 @@ function Stop-OnFailure {
 }
 
 function Stop-RunningServer {
-    # O launcher silencioso (iniciar-servidor-oculto.vbs) sempre inicia o
+    # O launcher silencioso (iniciar-servidor-oculto.ps1) sempre inicia o
     # servidor com este comando exato ("node dist\index.js") - da pra achar
     # o processo por isso, sem precisar saber o caminho de instalacao (o
     # node nao expoe a pasta de trabalho do processo de outro jeito facil
@@ -295,14 +295,17 @@ if ($npmBuildExitCode -ne 0) {
 }
 
 # 5. Atalho de inicio automatico -------------------------------------------
-$vbsPath = Join-Path $InstallDir 'deploy\iniciar-servidor-oculto.vbs'
+# Aponta direto pro powershell.exe (nao pro Windows Script Host) - ver o
+# comentario no topo de iniciar-servidor-oculto.ps1 sobre o porque.
+$launcherPs1 = Join-Path $InstallDir 'deploy\iniciar-servidor-oculto.ps1'
+$powershellExe = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
 $startupDir = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup"
 $startupShortcut = Join-Path $startupDir 'Gerador de Lista de Corte.lnk'
 
 $shell = New-Object -ComObject WScript.Shell
 $sc = $shell.CreateShortcut($startupShortcut)
-$sc.TargetPath = "$env:WINDIR\System32\wscript.exe"
-$sc.Arguments = "`"$vbsPath`""
+$sc.TargetPath = $powershellExe
+$sc.Arguments = "-WindowStyle Hidden -ExecutionPolicy Bypass -File `"$launcherPs1`""
 $sc.WorkingDirectory = Join-Path $InstallDir 'deploy'
 $sc.Description = 'Inicia o Gerador de Lista de Corte em segundo plano'
 $sc.Save()
@@ -321,7 +324,7 @@ Set-Content -Path $urlShortcut -Value $urlContent -Encoding ASCII
 # tempo, a nova sem conseguir ocupar a porta.
 Stop-RunningServer
 Write-Host 'Iniciando o servidor...'
-Start-Process 'wscript.exe' -ArgumentList "`"$vbsPath`""
+Start-Process -FilePath $powershellExe -ArgumentList @('-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', "`"$launcherPs1`"") -WindowStyle Hidden
 Start-Sleep -Seconds 3
 
 Write-Host ''

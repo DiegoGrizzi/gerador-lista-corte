@@ -112,7 +112,8 @@ gerador-lista-corte/
 └── deploy/              → instalação e início automático em produção (ver deploy/LEIA-ME.md)
     ├── instalador.bat  → instalador de ponta a ponta pra uma máquina nova
     ├── instalar-em-novo-computador.ps1
-    └── iniciar-servidor-oculto.vbs
+    ├── iniciar-servidor-oculto.ps1   → sobe o servidor escondido (sem janela); usado pelo atalho de inicialização e pela auto-atualização
+    └── iniciar-servidor-oculto.bat   → duplo clique pra (re)iniciar manualmente — só chama o .ps1 acima
 ```
 
 `packages/parser` não depende do navegador nem do Node especificamente — só recebe texto e devolve dados (`analyzeText(...)`, `quickParseLine(...)`, `convertPieceToMm(...)`). Isso facilita testar a lógica de interpretação isoladamente, e é o pacote com a suite de testes mais extensa do projeto (regras de fitamento, sentido do veio, conversão de números, etc.).

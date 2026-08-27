@@ -38,11 +38,14 @@ processo pra instalar pela primeira vez ou pra atualizar depois.
    npm install
    npm run build
    ```
-2. Crie um atalho para `deploy/iniciar-servidor-oculto.vbs` dentro da pasta
-   de Inicialização do Windows (`shell:startup` na barra de endereços do
-   Explorer, ou `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup`).
+2. Crie um atalho dentro da pasta de Inicialização do Windows
+   (`shell:startup` na barra de endereços do Explorer, ou
+   `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup`) apontando
+   para `powershell.exe`, com os argumentos
+   `-WindowStyle Hidden -ExecutionPolicy Bypass -File "<caminho completo>\deploy\iniciar-servidor-oculto.ps1"`.
    Isso faz o servidor subir sozinho, oculto (sem janela), toda vez que
-   você fizer login no Windows.
+   você fizer login no Windows (é exatamente o atalho que o instalador cria
+   sozinho — normalmente não precisa fazer isso na mão).
 3. Crie um atalho na área de trabalho (ou fixe na barra de tarefas) para
    `http://localhost:5175` — é o link que abre o sistema no navegador.
 
@@ -58,9 +61,11 @@ processo pra instalar pela primeira vez ou pra atualizar depois.
 
 Rode o `instalador.bat` de novo (mesma máquina, mesmo
 arquivo) — ele baixa a versão mais recente, recompila e reinicia o
-servidor sozinho. Se preferir fazer manualmente: feche o processo Node
+servidor sozinho. Ou clique em "Atualizar agora" no balão que aparece no
+próprio sistema quando há uma versão nova (mesmo processo, sem precisar
+abrir o instalador). Se preferir fazer manualmente: feche o processo Node
 antigo (Gerenciador de Tarefas → "Node.js JavaScript Runtime"), rode
-`npm run build` e dê duplo clique em `deploy/iniciar-servidor-oculto.vbs`
+`npm run build` e dê duplo clique em `deploy/iniciar-servidor-oculto.bat`
 de novo.
 
 ## Onde ver os logs

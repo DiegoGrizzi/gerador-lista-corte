@@ -50,8 +50,10 @@ export async function applyUpdate(): Promise<UpdateApplyResult> {
  * Faz ping em "/" repetidamente até o servidor responder de novo — usado
  * depois de applyUpdate, que reinicia o processo do servidor (fica alguns
  * segundos fora do ar entre o processo antigo sair e o novo subir).
+ * 60 tentativas de 1s (~1 minuto) — folga generosa pra máquinas mais
+ * lentas ou com antivírus escaneando os arquivos recém-compilados.
  */
-export async function pingUntilBackOnline(maxAttempts = 40, intervalMs = 1000): Promise<boolean> {
+export async function pingUntilBackOnline(maxAttempts = 60, intervalMs = 1000): Promise<boolean> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
     try {

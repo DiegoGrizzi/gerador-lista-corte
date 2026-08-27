@@ -42,6 +42,7 @@ export interface AppConfig {
   ocrSpace: OcrSpaceConfig;
   ocrFallback: OcrFallbackConfig;
   bodyLimit: string;
+  autoUpdateEnabled: boolean;
 }
 
 function readNumber(value: string | undefined, fallback: number): number {
@@ -65,6 +66,9 @@ export const config: AppConfig = {
     minUsefulChars: readNumber(process.env['OCR_MIN_USEFUL_CHARS'], 15),
   },
   bodyLimit: process.env['OCR_BODY_LIMIT'] || '15mb',
+  // Só desativa se explicitamente "false"/"0" — vale por padrão, mesmo sem
+  // a variável definida no .env (instalações já existentes).
+  autoUpdateEnabled: !['false', '0'].includes((process.env['AUTO_UPDATE_ENABLED'] || '').toLowerCase()),
 };
 
 if (!config.ocrSpace.apiKey) {

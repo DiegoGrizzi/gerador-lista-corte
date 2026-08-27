@@ -31,11 +31,14 @@ import { PhotoMaterialModal } from './components/modals/PhotoMaterialModal.js';
 import { ErrorModal } from './components/modals/ErrorModal.js';
 import { useOcrUpload } from './hooks/useOcrUpload.js';
 import { useClipboardCopy } from './hooks/useClipboardCopy.js';
+import { useAutoUpdate } from './hooks/useAutoUpdate.js';
+import { UpdateBanner } from './components/UpdateBanner.js';
 
 export function App(): JSX.Element {
   const { state, dispatch } = useCutList();
   const ocr = useOcrUpload(dispatch);
   const { copied, copy } = useClipboardCopy();
+  const autoUpdate = useAutoUpdate();
   const resultCardRef = useRef<HTMLDivElement>(null);
 
   const handleAnalyze = useCallback(() => {
@@ -126,6 +129,13 @@ export function App(): JSX.Element {
 
   return (
     <div className="wrap">
+      <UpdateBanner
+        status={autoUpdate.status}
+        latestSummary={autoUpdate.latestSummary}
+        errorMessage={autoUpdate.errorMessage}
+        onApply={autoUpdate.applyNow}
+      />
+
       <Header />
 
       <PasteOrPhotoCard

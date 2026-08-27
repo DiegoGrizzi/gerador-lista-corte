@@ -1,11 +1,19 @@
 /**
  * useAutoUpdate.ts
  * ---------------------------------------------------------------------------
- * Verifica periodicamente se há uma versão mais nova publicada no GitHub e
- * expõe um botão para aplicar a atualização sem precisar rodar o instalador
- * manualmente — o próprio servidor roda git pull + npm install + npm run
+ * Verifica se há uma versão mais nova publicada no GitHub e expõe um botão
+ * para aplicar a atualização sem precisar rodar o instalador manualmente —
+ * o próprio servidor roda git pull + npm install (se precisar) + npm run
  * build e reinicia sozinho (ver POST /api/update/apply em
  * server/src/routes/update.ts).
+ *
+ * A checagem roda sozinha, sem o usuário precisar apertar F5 — ele não tem
+ * como saber que isso ajudaria: ao montar, a cada CHECK_INTERVAL_MS
+ * (enquanto a aba fica aberta e visível o tempo todo) e, mais importante na
+ * prática, toda vez que a aba VOLTA a ficar visível (troca de aba, janela
+ * minimizada, tela que apagou) — o momento mais comum em que alguém volta
+ * pra usar o sistema depois de um tempo parado, exatamente quando vale a
+ * pena conferir de novo.
  *
  * Enquanto atualiza ("updating"/"restarting"), a interface trava num modal
  * bloqueante (ver UpdateProgressModal) — a orientação é só clicar em
@@ -18,7 +26,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { applyUpdate, checkForUpdate, pingUntilBackOnline } from '../lib/api/update.js';
 
-const CHECK_INTERVAL_MS = 10 * 60 * 1000; // 10 minutos
+const CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutos
+// Evita que uma sequência rápida de trocas de aba (várias vezes em poucos
+// segundos) dispare uma checagem a cada troca — no mínimo esse intervalo
+// entre duas checagens via "aba voltou a ficar visível".
+const MIN_MS_BETWEEN_VISIBILITY_CHECKS = 30 * 1000;
 
 export type AutoUpdateStatus = 'idle' | 'available' | 'updating' | 'restarting' | 'error';
 
@@ -38,7 +50,10 @@ export function useAutoUpdate(): UseAutoUpdateResult {
   const statusRef = useRef<AutoUpdateStatus>('idle');
   statusRef.current = status;
 
+  const lastCheckAtRef = useRef(0);
+
   const runCheck = useCallback(async () => {
+    lastCheckAtRef.current = Date.now();
     const result = await checkForUpdate();
     if (result.updateAvailable && statusRef.current === 'idle') {
       setStatus('available');
@@ -48,7 +63,18 @@ export function useAutoUpdate(): UseAutoUpdateResult {
   useEffect(() => {
     void runCheck();
     const interval = setInterval(() => void runCheck(), CHECK_INTERVAL_MS);
-    return () => clearInterval(interval);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - lastCheckAtRef.current < MIN_MS_BETWEEN_VISIBILITY_CHECKS) return;
+      void runCheck();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [runCheck]);
 
   const applyNow = useCallback(() => {

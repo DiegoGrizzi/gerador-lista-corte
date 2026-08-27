@@ -2,10 +2,9 @@
  * run-update.ts
  * ---------------------------------------------------------------------------
  * Executa a sequência de atualização (git pull, [npm install], npm run
- * build) e, se tudo der certo, relança o servidor via o mesmo script usado
- * pelo atalho de inicialização automática
- * (deploy/iniciar-servidor-oculto.vbs) — sem duplicar essa lógica, e sem
- * precisar mexer no .vbs.
+ * build) e, se tudo der certo, relança o servidor (mesmo comando de
+ * deploy/iniciar-servidor-oculto.vbs, mas rodado direto via cmd.exe — ver
+ * comentário em restartServer sobre por que não reaproveita o .vbs aqui).
  * ---------------------------------------------------------------------------
  */
 import { spawn } from 'node:child_process';
@@ -93,10 +92,21 @@ export async function runUpdateSteps(projectRoot: string): Promise<UpdateStepRes
 }
 
 /**
- * Relança o servidor via o mesmo .vbs do atalho de inicialização e encerra
- * o processo atual. SÓ deve ser chamado depois de a requisição HTTP que
- * pediu a atualização já ter sido respondida — o processo termina de
- * propósito, então nada mais roda depois disso.
+ * Relança o servidor (mesmo comando que deploy/iniciar-servidor-oculto.vbs
+ * usa: "node dist\index.js" a partir de server/, com a saída redirecionada
+ * pra deploy/server.log) e encerra o processo atual. SÓ deve ser chamado
+ * depois de a requisição HTTP que pediu a atualização já ter sido
+ * respondida — o processo termina de propósito, então nada mais roda
+ * depois disso.
+ *
+ * DE PROPÓSITO não usa o .vbs/wscript.exe aqui (só o atalho de
+ * inicialização do Windows usa) — um usuário relatou "Falha na execução do
+ * Windows Script Host (recursos de memória insuficientes)" bem na hora de
+ * atualizar, provavelmente porque a máquina ainda estava com pouca memória
+ * livre logo depois do build (git pull + npm install + npm run build de 3
+ * workspaces). Rodando "node" direto via cmd.exe (sem depender do Windows
+ * Script Host, que tem historinha de ficar instável sob pressão de
+ * recursos), essa camada a mais de falha desaparece.
  *
  * O relançamento é agendado num processo TOTALMENTE independente deste
  * (um "cmd /c" solto, com espera embutida, que sobrevive mesmo depois
@@ -105,18 +115,20 @@ export async function runUpdateSteps(projectRoot: string): Promise<UpdateStepRes
  * deploy/server.log e ocupar a porta ENQUANTO o processo antigo ainda
  * estava terminando (poucos milissegundos de sobreposição), e no Windows
  * isso podia travar o processo novo inteiro numa disputa pelo arquivo de
- * log (relatado por um usuário: "o servidor não voltou a responder" depois
- * de atualizar). Dando ~2s de folga total (o antigo já bem morto antes do
- * novo sequer tentar abrir o log ou a porta), essa disputa não acontece
- * mais.
+ * log (relatado por outro usuário: "o servidor não voltou a responder"
+ * depois de atualizar). Dando ~2s de folga total (o antigo já bem morto
+ * antes do novo sequer tentar abrir o log ou a porta), essa disputa não
+ * acontece mais.
  */
 export function restartServer(projectRoot: string): void {
-  const vbsPath = path.join(projectRoot, 'deploy', 'iniciar-servidor-oculto.vbs');
+  const serverDir = path.join(projectRoot, 'server');
+  const logPath = path.join(projectRoot, 'deploy', 'server.log');
   // "ping -n 3 127.0.0.1" é o jeito clássico de esperar ~2s num .bat/cmd
   // sem depender de console interativo (diferente de "timeout", que falha
   // com stdin não-interativo — exatamente o caso aqui, já que stdio é
   // 'ignore').
-  const relauncher = spawn('cmd.exe', ['/c', `ping -n 3 127.0.0.1 >nul & wscript.exe "${vbsPath}"`], {
+  const relaunchCommand = `ping -n 3 127.0.0.1 >nul & cd /d "${serverDir}" & node dist\\index.js >> "${logPath}" 2>&1`;
+  const relauncher = spawn('cmd.exe', ['/c', relaunchCommand], {
     detached: true,
     stdio: 'ignore',
     windowsHide: true,

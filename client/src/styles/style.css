@@ -250,6 +250,11 @@ button.primary:disabled {
   color: var(--surface);
 }
 
+#btn-analyze {
+  background: #1D4ED8;
+  border-color: #1E3A8A;
+}
+
 button.accent-blue {
   background: var(--inverted-border);
   border-color: var(--inverted-dark);

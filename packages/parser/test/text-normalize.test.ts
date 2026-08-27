@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { stripWhatsAppFormatting, normalizeTypos, stripFillers, expandPcSeparatedPieces } from '../src/text-normalize.js';
+import {
+  stripWhatsAppFormatting,
+  normalizeTypos,
+  stripFillers,
+  expandPcSeparatedPieces,
+  stripGreetingPrefix,
+  normalizeLeadingNumberWord,
+} from '../src/text-normalize.js';
 
 describe('stripWhatsAppFormatting', () => {
   it('strips bold markup wrapping the whole line', () => {
@@ -93,5 +100,55 @@ describe('expandPcSeparatedPieces', () => {
 
   it('não altera um texto sem nenhuma peça no formato "pc"', () => {
     expect(expandPcSeparatedPieces('2=47/47')).toBe('2=47/47');
+  });
+});
+
+describe('stripGreetingPrefix', () => {
+  it.each(['boa tarde', 'boa noite', 'bom dia', 'olá', 'ola', 'oi'])(
+    'remove a saudação "%s" do início da linha',
+    (greeting) => {
+      expect(stripGreetingPrefix(`${greeting} duas laterais de 2050x550`)).toBe('duas laterais de 2050x550');
+    },
+  );
+
+  it('tolera vírgula ou ponto depois da saudação', () => {
+    expect(stripGreetingPrefix('Boa tarde, duas laterais de 2050x550')).toBe('duas laterais de 2050x550');
+  });
+
+  it('não mexe numa linha sem saudação', () => {
+    expect(stripGreetingPrefix('duas laterais de 2050x550')).toBe('duas laterais de 2050x550');
+  });
+});
+
+describe('normalizeLeadingNumberWord', () => {
+  it.each([
+    ['um', 1],
+    ['uma', 1],
+    ['dois', 2],
+    ['duas', 2],
+    ['três', 3],
+    ['tres', 3],
+    ['quatro', 4],
+    ['cinco', 5],
+    ['dez', 10],
+    ['vinte', 20],
+  ])('troca "%s" pelo algarismo %i no início da linha', (word, value) => {
+    expect(normalizeLeadingNumberWord(`${word} de 530x500`)).toBe(`${value} de 530x500`);
+  });
+
+  it('não altera o resto da linha, só a primeira palavra', () => {
+    expect(normalizeLeadingNumberWord('duas de 1700x500 base')).toBe('2 de 1700x500 base');
+  });
+
+  it('não troca uma palavra-número que não está no início da linha', () => {
+    expect(normalizeLeadingNumberWord('base duas de 1700x500')).toBe('base duas de 1700x500');
+  });
+
+  it('não altera uma linha que já começa com algarismo', () => {
+    expect(normalizeLeadingNumberWord('2 de 1700x500')).toBe('2 de 1700x500');
+  });
+
+  it('não altera uma linha sem quantidade por extenso nenhuma', () => {
+    expect(normalizeLeadingNumberWord('MDF branco de 15mm')).toBe('MDF branco de 15mm');
   });
 });

@@ -12,6 +12,8 @@ import {
   REALISTIC_MESSAGE,
   NAVAL_BR_FITA_CODES,
   CINZA_JAZZ_SHORTHAND_FITA,
+  ASTERISK_MULTI_HEADER_MESSAGE,
+  SPELLED_OUT_QUANTITY_MESSAGE,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -128,7 +130,7 @@ describe('analyzeText — "quantidade+pc+comprimento*largura" format, tudo numa 
   it('expande a lista inteira e propaga o material/espessura do cabeçalho na mesma linha', () => {
     const result = analyzeText(PC_ASTERISK_LIST, makeNextId());
 
-    // 24 peças na lista, 1 malformada ("8pc*13*43", sem comprimento) -> 23 reconhecidas.
+    // 24 peças na lista, 1 malformada ("8pc+13+43", separador errado) -> 23 reconhecidas.
     expect(result.pieces).toHaveLength(23);
     expect(result.materialMentioned).toBe(true);
     for (const piece of result.pieces) {
@@ -144,7 +146,7 @@ describe('analyzeText — "quantidade+pc+comprimento*largura" format, tudo numa 
 
     // A peça sem o comprimento vai para a conferência, não quebra o resto.
     expect(result.discarded).toHaveLength(1);
-    expect(result.discarded[0]!.text).toContain('13*43');
+    expect(result.discarded[0]!.text).toContain('13+43');
   });
 });
 
@@ -255,5 +257,82 @@ describe('analyzeText — cabeçalho genérico sem "MDF" e fitamento em abrevia�
     const result = analyzeText(CINZA_JAZZ_SHORTHAND_FITA, makeNextId());
     expect(result.pieces[6]!.fita).toEqual({ c1: false, c2: false, l1: false, l2: false }); // 1- 196,3x20
     expect(result.pieces[9]!.fita).toEqual({ c1: false, c2: false, l1: false, l2: false }); // 4- 46,3x72,5
+  });
+});
+
+describe('analyzeText — separador "*" e três estilos de cabeçalho de material na mesma mensagem (real user list)', () => {
+  it('reconhece as 22 peças (nenhuma vai para conferência, só a seção "Ferragens")', () => {
+    const result = analyzeText(ASTERISK_MULTI_HEADER_MESSAGE, makeNextId());
+
+    expect(result.pieces).toHaveLength(22);
+    expect(result.materialMentioned).toBe(true);
+    // As linhas de ferragem (sem duas medidas reconhecíveis) somem em
+    // silêncio hoje — só o rótulo "Ferragens" em si vai pra conferência.
+    expect(result.discarded.map((d) => d.text)).toEqual(['Ferragens']);
+  });
+
+  it('"Branco 18 comum" — cor + espessura sem "mm", com palavra de acabamento no final', () => {
+    const result = analyzeText(ASTERISK_MULTI_HEADER_MESSAGE, makeNextId());
+    for (const piece of result.pieces.slice(0, 9)) {
+      expect(piece).toMatchObject({ material: 'Branco 18mm', funcao: '' });
+    }
+    expect(result.pieces[0]).toMatchObject({ qtd: 3, compr: 624, larg: 480 });
+  });
+
+  it('"2"850*515" — troca de propósito de "*" por aspas simples continua lendo certo', () => {
+    const result = analyzeText(ASTERISK_MULTI_HEADER_MESSAGE, makeNextId());
+    expect(result.pieces[4]).toMatchObject({ qtd: 2, compr: 850, larg: 515 });
+  });
+
+  it('"MDF branco 15mm comum" — espessura colada sem "de" na frente continua sendo lida', () => {
+    const result = analyzeText(ASTERISK_MULTI_HEADER_MESSAGE, makeNextId());
+    for (const piece of result.pieces.slice(9, 16)) {
+      expect(piece).toMatchObject({ material: 'MDF branco comum 15mm', thicknessMm: 15 });
+    }
+  });
+
+  it('"Freijó Trend" + "18mm" em duas linhas separadas vira um cabeçalho só', () => {
+    const result = analyzeText(ASTERISK_MULTI_HEADER_MESSAGE, makeNextId());
+    for (const piece of result.pieces.slice(16, 22)) {
+      expect(piece).toMatchObject({ material: 'Freijó Trend 18mm', thicknessMm: 18 });
+    }
+  });
+});
+
+describe('analyzeText — quantidade por extenso, saudação colada e espessura declarada depois em "ml" (real user list)', () => {
+  it('reconhece as 14 peças, todas sem material (nunca foi declarado nesta mensagem)', () => {
+    const result = analyzeText(SPELLED_OUT_QUANTITY_MESSAGE, makeNextId());
+
+    expect(result.pieces).toHaveLength(14);
+    expect(result.discarded).toHaveLength(0);
+    expect(result.materialMentioned).toBe(false);
+  });
+
+  it('"boa tarde duas lateral de 2050x550" — remove a saudação e lê "duas" como quantidade 2', () => {
+    const result = analyzeText(SPELLED_OUT_QUANTITY_MESSAGE, makeNextId());
+    expect(result.pieces[0]).toMatchObject({ qtd: 2, compr: 2050, larg: 550, funcao: 'lateral' });
+  });
+
+  it.each([
+    [1, { qtd: 1, compr: 196.5, larg: 550, funcao: 'lateral' }], // uma de 196.5x550 lateral
+    [7, { qtd: 5, compr: 530, larg: 500, funcao: '' }], // cinco de 530x500
+    [8, { qtd: 5, compr: 57.5, larg: 500, funcao: '' }], // cinco 57.5x500 (sem "de")
+    [11, { qtd: 4, compr: 450, larg: 13, funcao: '' }], // quatro de 450x13
+  ])('lê a quantidade por extenso corretamente na peça %i', (index, expected) => {
+    const result = analyzeText(SPELLED_OUT_QUANTITY_MESSAGE, makeNextId());
+    expect(result.pieces[index]).toMatchObject(expected);
+  });
+
+  it('"esses são de 15 ml" retroage a espessura 15mm pra todas as 13 peças já lidas', () => {
+    const result = analyzeText(SPELLED_OUT_QUANTITY_MESSAGE, makeNextId());
+    for (const piece of result.pieces.slice(0, 13)) {
+      expect(piece.thicknessMm).toBe(15);
+    }
+  });
+
+  it('"uma de 1730x2000 fundo de 6ml" sobrescreve a espessura do bloco só nessa peça', () => {
+    const result = analyzeText(SPELLED_OUT_QUANTITY_MESSAGE, makeNextId());
+    const last = result.pieces[13]!;
+    expect(last).toMatchObject({ qtd: 1, compr: 1730, larg: 2000, funcao: 'fundo', thicknessMm: 6 });
   });
 });

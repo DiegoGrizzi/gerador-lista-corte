@@ -16,12 +16,19 @@
  */
 export const QUANTITY_MARKER_WORDS = 'pe[çc]as?|pças|pça|pç|pc|unidades|unidade|unid|und|un';
 
-/** Quantidade no início da linha: "2=", "2 pç", "2 pc", "2 un", "2 -", ou apenas "2 ". */
-export const QUANTITY_RE = new RegExp('^(\\d+)\\s*(' + QUANTITY_MARKER_WORDS + '|=|-)?\\.?\\s*(.+)$', 'i');
+/**
+ * Quantidade no início da linha: "2=", "2 pç", "2 pc", "2 un", "2 -", "2*"
+ * ou apenas "2 ". O "\"" entra na mesma lista por causa de um caso real:
+ * uma linha digitada como "2"850*515" onde o usuário claramente queria
+ * "2*850*515" (mesma posição/função do "*" das linhas vizinhas) — trocou o
+ * símbolo sem querer, provavelmente sem perceber.
+ */
+export const QUANTITY_RE = new RegExp('^(\\d+)\\s*(' + QUANTITY_MARKER_WORDS + '|=|-|\\*|")?\\.?\\s*(.+)$', 'i');
 
 /**
  * Duas medidas (comprimento x largura), aceitando:
- *  - separador "x", "pro" (=por) ou "/"
+ *  - separador "x", "pro" (=por), "/" ou "*" (ex: "3*624*480" — lista onde
+ *    o usuário usa "*" no lugar de "x" em toda a mensagem)
  *  - decimais com ponto, vírgula ou aspa simples (56'5 = 56,5)
  *  - a palavra "fita" colada a um dos números, indicando fita naquele lado
  *  - uma terceira medida opcional (espessura), ex: "820 x 400 x 18"
@@ -33,7 +40,7 @@ export const QUANTITY_RE = new RegExp('^(\\d+)\\s*(' + QUANTITY_MARKER_WORDS + '
  * "fita" faz parte de "fitado", não é a marcação de fita no número.
  */
 export const DIMENSIONS_RE =
-  /(\d+(?:[.,']\d+)?)\s*(fita(?=\s*(?:x|pro)))?\s*(?:x|pro|\/)\s*(\d+(?:[.,']\d+)?)\s*(fita(?![a-zà-öø-ÿ]))?(?:\s*(?:x|pro)?\s*(\d+(?:[.,']\d+)?))?/i;
+  /(\d+(?:[.,']\d+)?)\s*(fita(?=\s*(?:x|pro)))?\s*(?:x|pro|\/|\*)\s*(\d+(?:[.,']\d+)?)\s*(fita(?![a-zà-öø-ÿ]))?(?:\s*(?:x|pro|\*)?\s*(\d+(?:[.,']\d+)?))?/i;
 
 /**
  * Igual a DIMENSIONS_RE, mas sem aceitar "/" como separador.
@@ -42,7 +49,7 @@ export const DIMENSIONS_RE =
  * seria lida como uma peça de 1x4.
  */
 export const DIMENSIONS_NO_SLASH_RE =
-  /(\d+(?:[.,']\d+)?)\s*(fita(?=\s*(?:x|pro)))?\s*(?:x|pro)\s*(\d+(?:[.,']\d+)?)\s*(fita(?![a-zà-öø-ÿ]))?(?:\s*(?:x|pro)?\s*(\d+(?:[.,']\d+)?))?/i;
+  /(\d+(?:[.,']\d+)?)\s*(fita(?=\s*(?:x|pro)))?\s*(?:x|pro|\*)\s*(\d+(?:[.,']\d+)?)\s*(fita(?![a-zà-öø-ÿ]))?(?:\s*(?:x|pro|\*)?\s*(\d+(?:[.,']\d+)?))?/i;
 
 /**
  * Formato alternativo, com as medidas ANTES da quantidade e separadas dela
@@ -72,11 +79,53 @@ export const DIMENSION_FIRST_RE = new RegExp(
  */
 export const PC_ASTERISK_RE = /^(\d+)\s*pc\s*([\d.,']+)\s*\*\s*([\d.,']+)$/i;
 
-/** Linha só com a espessura padrão do bloco: "De 15", "Tudo de 15mm", "Todas de 6 mm". */
-export const THICKNESS_ONLY_RE = /^(?:tudo|todos|todas)?\s*de\s+(\d+)\s*(?:mm|m)?\.?$/i;
+/**
+ * Linha só com a espessura padrão do bloco: "De 15", "Tudo de 15mm", "Todas
+ * de 6 mm", "esses são de 15 ml" (frase falada, declarando retroativamente
+ * a espessura das peças já listadas acima — ver o backfill de
+ * pendingThickness em analyze.ts), ou até só "18mm" sozinha (sem "de" — ver
+ * segunda alternativa abaixo). "ml" entra como grafia alternativa de "mm"
+ * (uso real de um usuário) — o valor numérico não muda, só o texto aceito
+ * antes dele.
+ *
+ * Duas alternativas depois do prefixo opcional: "de N [unidade]" (unidade
+ * opcional, já existia) OU "N unidade" sem "de" (unidade OBRIGATÓRIA aqui)
+ * — sem exigir isso, uma linha com só um número solto (sem "de" nem
+ * unidade) viraria espessura por engano.
+ *
+ * A ordem "mm|ml|m" importa: alternação de regex tenta da esquerda pra
+ * direita e para na primeira que bater — com "m" antes de "ml", a entrada
+ * "ml" bateria só o "m" e sobraria um "l" solto, quebrando o "$" no final.
+ */
+export const THICKNESS_ONLY_RE =
+  /^(?:tudo|todos|todas|esses?\s+s[ãa]o|essas?\s+s[ãa]o|s[ãa]o)?\s*(?:de\s+(\d+)\s*(?:mm|ml|m)?|(\d+)\s*(?:mm|ml))\.?$/i;
 
-/** Espessura mencionada dentro de outra linha: "...de 15mm", "...de 6m". */
-export const THICKNESS_SUFFIX_RE = /de\s+(\d+)\s*(?:mm|m)?\.?/i;
+/** Espessura mencionada dentro de outra linha: "...de 15mm", "...de 6m", "...de 6ml". */
+export const THICKNESS_SUFFIX_RE = /de\s+(\d+)\s*(?:mm|ml|m)?\.?/i;
+
+/**
+ * Cabeçalho de material sem NENHUMA palavra-chave nem unidade na frente —
+ * só o nome/cor seguido de um número solto (a espessura, sem "mm") e uma
+ * palavra de acabamento conhecida no final (ex: "Branco 18 comum", "Freijó
+ * fosco 15 texturizado"). Mais arriscado que GENERIC_THICKNESS_HEADER_RE
+ * (não tem "mm" pra se ancorar, só um número puro) — por isso exige essa
+ * palavra de acabamento no final como sinal de que é mesmo um cabeçalho de
+ * material, e não outra coisa terminando num número (ex: "Quarto 2", que
+ * de qualquer forma já é capturado antes por classifyHeaderLine via
+ * ENVIRONMENT_OR_FURNITURE_KEYWORDS — esta regex só é tentada depois que
+ * classifyHeaderLine devolve 'unknown').
+ */
+export const BARE_THICKNESS_HEADER_RE =
+  /^([a-zà-öø-ÿ][a-zà-öø-ÿ\s]*?)\s+(\d+(?:[.,]\d+)?)\s*(?:comum|liso|lisa|fosco|fosca|brilhante|texturizado|texturizada|acetinado|acetinada)\.?$/i;
+
+/**
+ * Só o nome de um material, numa linha própria, sem nenhum número junto
+ * (ex: "Freijó Trend") — a espessura vem à parte, numa linha SEGUINTE
+ * (ex: "18mm"). Só letras/espaços (nenhum dígito ou pontuação) e curta (até
+ * 30 caracteres) de propósito: evita capturar por engano uma frase qualquer
+ * não reconhecida como se fosse um nome de material.
+ */
+export const NAME_ONLY_LINE_RE = /^[a-zà-öø-ÿ][a-zà-öø-ÿ\s]{1,29}$/i;
 
 /**
  * Cabeçalho de material sem a palavra "MDF": "PEÇAS 15mm NAVAL BR" —

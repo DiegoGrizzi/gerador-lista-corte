@@ -108,39 +108,75 @@ export async function runUpdateSteps(projectRoot: string): Promise<UpdateStepRes
  * ficar instável sob essa pressão. PowerShell é um subsistema totalmente
  * separado do WSH, não herda esse problema.
  *
- * O relançamento é agendado num processo TOTALMENTE independente deste
- * (um "cmd /c" solto, com espera embutida, que sobrevive mesmo depois
- * deste processo sair) em vez de disparado direto e na sequência — sem
- * esse intervalo, o processo novo tentava começar a escrever em
- * deploy/server.log e ocupar a porta ENQUANTO o processo antigo ainda
- * estava terminando (poucos milissegundos de sobreposição), e no Windows
- * isso podia travar o processo novo inteiro numa disputa pelo arquivo de
- * log (relatado por outro usuário: "o servidor não voltou a responder"
- * depois de atualizar). Dando ~2s de folga total (o antigo já bem morto
- * antes do novo sequer tentar abrir o log ou a porta), essa disputa não
- * acontece mais.
+ * DE PROPÓSITO usa o Agendador de Tarefas do Windows (schtasks.exe), em vez
+ * de só chamar spawn(..., {detached: true}) direto - um caso real mostrou o
+ * religamento sumindo no meio do caminho, sem erro nenhum no log (nem a
+ * marca "iniciar-servidor-oculto.ps1 iniciado" chegava a aparecer), logo
+ * depois do processo atual sair. A suspeita: no Windows, "detached: true"
+ * só cria um novo GRUPO de processo, mas não tira o processo filho de um
+ * possível "job object" do processo pai - e é comum ferramentas de
+ * antivírus/EDR (o Bitdefender desta loja já registrou, mais de uma vez,
+ * esse powershell.exe como comportamento suspeito) colocarem processos
+ * sinalizados dentro de um job object com "encerrar filhos ao fechar",
+ * justamente para poder matar toda a árvore de processos se precisar. Uma
+ * tarefa do Agendador roda por fora dessa árvore inteira desde o início: a
+ * ação (subir o powershell.exe) é executada pelo próprio serviço do
+ * Agendador de Tarefas (svchost.exe), sem nenhum vínculo de processo
+ * pai/filho com o node.exe que pediu a criação da tarefa - então não corre
+ * esse risco, mesmo que o schtasks.exe usado só para REGISTRAR a tarefa
+ * seja atingido.
+ *
+ * schtasks.exe é chamado diretamente (sem passar por "cmd.exe /c"), com os
+ * argumentos em array em vez de uma linha de comando montada à mão: uma
+ * primeira tentativa usando "cmd.exe /c" com tudo numa string só (incluindo
+ * o "/tr" com aspas aninhadas para o caminho do .ps1) foi testada de
+ * verdade e FALHOU - o Node precisa fazer sua própria camada de
+ * escapamento de aspas para montar o argumento do cmd.exe, e o parser do
+ * próprio cmd.exe não entende esse escapamento (ele não trata `\"` como
+ * aspas literais, só alterna dentro/fora de aspas a cada `"`), embaralhando
+ * o comando de um jeito que quebrava o "schtasks /create" silenciosamente.
+ * Chamando schtasks.exe direto, essa camada de tradução a mais desaparece.
+ *
+ * O religamento continua não sendo disparado direto e na sequência: a
+ * própria deploy/iniciar-servidor-oculto.ps1 espera ~2s antes de subir o
+ * node, dando tempo do processo antigo morrer de vez e liberar a porta e o
+ * arquivo de log antes do novo tentar usá-los (sem essa folga, os dois
+ * processos disputavam o arquivo de log por uns milissegundos de
+ * sobreposição, o que já travou o processo novo inteiro num caso real
+ * anterior).
  */
-export function restartServer(projectRoot: string): void {
+function runSchtasks(args: string[]): Promise<StepResult> {
+  return new Promise((resolve) => {
+    const child = spawn('schtasks.exe', args, { windowsHide: true });
+    let output = '';
+    child.stdout.on('data', (chunk: Buffer) => {
+      output += chunk.toString();
+    });
+    child.stderr.on('data', (chunk: Buffer) => {
+      output += chunk.toString();
+    });
+    child.on('close', (code) => resolve({ code, output }));
+    child.on('error', (err) => resolve({ code: -1, output: err.message }));
+  });
+}
+
+export async function restartServer(projectRoot: string): Promise<void> {
   // Registrado pelo processo ATUAL (antes de morrer) para ficar no log uma
   // marca de que o religamento foi agendado - se um dia o servidor não
   // voltar depois de atualizar, comparar esta linha com a de
   // "iniciar-servidor-oculto.ps1 iniciado" (gravada pelo próprio .ps1) diz
   // se a falha foi antes ou depois do PowerShell escondido ser alcançado.
-  console.log('Atualização concluída - agendando religamento em ~2s...');
+  console.log('Atualização concluída - agendando religamento via Agendador de Tarefas...');
   const launcherPath = path.join(projectRoot, 'deploy', 'iniciar-servidor-oculto.ps1');
-  // "ping -n 3 127.0.0.1" é o jeito clássico de esperar ~2s num .bat/cmd
-  // sem depender de console interativo (diferente de "timeout", que falha
-  // com stdin não-interativo — exatamente o caso aqui, já que stdio é
-  // 'ignore').
-  const relaunchCommand = `ping -n 3 127.0.0.1 >nul & powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -File "${launcherPath}"`;
-  const relauncher = spawn('cmd.exe', ['/c', relaunchCommand], {
-    detached: true,
-    stdio: 'ignore',
-    windowsHide: true,
-  });
-  relauncher.unref();
-  // Só esse tanto de espera aqui: dar tempo da resposta HTTP terminar de
-  // sair antes do processo morrer — o agendamento do relançamento já é
-  // independente disso (ver comentário acima).
-  setTimeout(() => process.exit(0), 300);
+  const taskName = 'GeradorListaCorteReligamento';
+  const trValue = `powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -File "${launcherPath}"`;
+  // /st (horário) é obrigatório com /sc once, mas o valor não importa de
+  // verdade - "/run" logo em seguida dispara a tarefa na hora, independente
+  // do horário agendado. Espera os dois passos terminarem (e não só serem
+  // disparados) antes de deixar este processo morrer, já que a criação e o
+  // disparo em si dependem desse processo continuar vivo até o
+  // schtasks.exe terminar de conversar com o serviço do Agendador.
+  await runSchtasks(['/create', '/tn', taskName, '/tr', trValue, '/sc', 'once', '/st', '23:59', '/f']);
+  await runSchtasks(['/run', '/tn', taskName]);
+  process.exit(0);
 }

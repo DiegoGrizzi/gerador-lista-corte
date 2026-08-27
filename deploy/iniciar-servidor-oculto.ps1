@@ -35,9 +35,17 @@ $logPath = Join-Path $scriptDir 'server.log'
 
 # Marca no log que este script chegou a rodar, ANTES de subir o node - se um
 # dia o servidor não voltar depois de uma atualização e essa linha não
-# aparecer no log, é sinal de que algo (ex: antivírus) matou o PowerShell
+# aparecer no log, é sinal de que algo (ex: antivírus) matou o processo
 # antes mesmo dele chegar até aqui, em vez do node ter falhado ao iniciar.
 Add-Content -Path $logPath -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] iniciar-servidor-oculto.ps1 iniciado"
+
+# Espera o processo antigo do servidor morrer de vez e liberar a porta e o
+# arquivo de log antes de tentar usá-los (ver comentário sobre isso em
+# restartServer, em server/src/services/update/run-update.ts) - só se aplica
+# na prática ao caminho de auto-atualização; no início pelo Windows ou no
+# duplo clique manual não tem processo antigo nenhum, então essa espera só
+# atrasa em ~2s à toa, sem problema.
+Start-Sleep -Seconds 2
 
 Set-Location $serverDir
 # O redirecionamento roda via cmd.exe de propósito, em vez de usar o

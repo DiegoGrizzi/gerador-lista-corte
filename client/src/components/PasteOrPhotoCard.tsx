@@ -55,7 +55,7 @@ export function PasteOrPhotoCard({
         </button>
         <span className="divider-v" />
         <button className="ghost" id="btn-send-photo" onClick={() => fileInputRef.current?.click()}>
-          Enviar foto
+          <strong>Enviar foto</strong>
         </button>
         <input
           key={photoInputKey}

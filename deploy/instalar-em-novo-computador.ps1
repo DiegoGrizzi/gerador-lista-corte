@@ -289,9 +289,34 @@ if ($npmInstallExitCode -ne 0) {
 Write-Host 'Compilando...'
 npm run build
 $npmBuildExitCode = $LASTEXITCODE
+
+if ($npmBuildExitCode -ne 0) {
+    # Caso real: numa maquina nova, "npm run build" falhou com "Cannot find
+    # module @rollup/rollup-win32-x64-msvc ... not a valid Win32
+    # application" - um bug conhecido do proprio npm com dependencias
+    # opcionais (https://github.com/npm/cli/issues/4828), que instala o
+    # binario nativo errado/corrompido em certas maquinas. A propria
+    # mensagem de erro do Rollup sugere a correcao: apagar node_modules e
+    # package-lock.json e instalar de novo do zero. Tenta essa recuperacao
+    # UMA vez sozinho antes de desistir, pra nao deixar quem esta instalando
+    # numa maquina nova travado nisso sem saber o que fazer.
+    Write-Host ''
+    Write-Host 'A compilacao falhou - tentando recuperar automaticamente (reinstalando dependencias do zero)...' -ForegroundColor Yellow
+    Remove-Item -Path 'node_modules' -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path 'package-lock.json' -Force -ErrorAction SilentlyContinue
+
+    npm install
+    $npmInstallExitCode = $LASTEXITCODE
+    if ($npmInstallExitCode -eq 0) {
+        Write-Host 'Compilando de novo...'
+        npm run build
+        $npmBuildExitCode = $LASTEXITCODE
+    }
+}
+
 Pop-Location
 if ($npmBuildExitCode -ne 0) {
-    Stop-OnFailure 'npm run build falhou - veja a mensagem acima.'
+    Stop-OnFailure 'npm run build falhou (mesmo depois de tentar reinstalar as dependencias do zero) - veja a mensagem acima.'
 }
 
 # 5. Atalho de inicio automatico -------------------------------------------

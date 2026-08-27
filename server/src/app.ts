@@ -42,7 +42,27 @@ export function createApp(
   // interface — um único processo, uma única porta, sem depender do Vite
   // dev server. É o modo usado em produção (ver npm run serve na raiz).
   if (existsSync(CLIENT_DIST_DIR)) {
-    app.use(express.static(CLIENT_DIST_DIR));
+    app.use(
+      express.static(CLIENT_DIST_DIR, {
+        setHeaders: (res, filePath) => {
+          if (filePath.endsWith('.html')) {
+            // index.html não tem hash de conteúdo no nome, então PRECISA ser
+            // revalidado a cada carregamento - sem isso, um navegador pode
+            // continuar servindo do cache uma versão antiga mesmo depois de
+            // uma auto-atualização (useAutoUpdate.applyNow só dá um
+            // window.location.reload() normal, que respeita cache), fazendo
+            // a página parecer "não atualizada" mesmo com o build novo já
+            // no disco - foi um caso real.
+            res.setHeader('Cache-Control', 'no-cache');
+          } else {
+            // Os demais arquivos (JS/CSS/etc.) têm hash do conteúdo no nome
+            // (Vite) - se o conteúdo muda, o nome muda junto, então cachear
+            // "para sempre" é seguro e só ajuda a performance no dia a dia.
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          }
+        },
+      }),
+    );
   }
 
   app.use(errorHandler);

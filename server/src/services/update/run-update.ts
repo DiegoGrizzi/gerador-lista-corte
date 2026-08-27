@@ -121,6 +121,12 @@ export async function runUpdateSteps(projectRoot: string): Promise<UpdateStepRes
  * acontece mais.
  */
 export function restartServer(projectRoot: string): void {
+  // Registrado pelo processo ATUAL (antes de morrer) para ficar no log uma
+  // marca de que o religamento foi agendado - se um dia o servidor não
+  // voltar depois de atualizar, comparar esta linha com a de
+  // "iniciar-servidor-oculto.ps1 iniciado" (gravada pelo próprio .ps1) diz
+  // se a falha foi antes ou depois do PowerShell escondido ser alcançado.
+  console.log('Atualização concluída - agendando religamento em ~2s...');
   const launcherPath = path.join(projectRoot, 'deploy', 'iniciar-servidor-oculto.ps1');
   // "ping -n 3 127.0.0.1" é o jeito clássico de esperar ~2s num .bat/cmd
   // sem depender de console interativo (diferente de "timeout", que falha

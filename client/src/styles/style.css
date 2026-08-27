@@ -272,10 +272,6 @@ button.ghost:hover {
   background: var(--bg);
 }
 
-#btn-send-photo {
-  color: var(--accent-dark);
-}
-
 button.danger-ghost {
   border-color: transparent;
   background: transparent;

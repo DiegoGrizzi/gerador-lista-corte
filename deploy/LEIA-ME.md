@@ -16,12 +16,13 @@ projeto inteiro, só esses dois arquivos) e dê duplo clique no `.bat`:
 
 O instalador sozinho:
 1. Instala o Node.js, se não tiver
-2. Instala o Tesseract OCR com o pacote de idioma Português, se não tiver
-3. Baixa o projeto (repositório é público — não pede login) em `%USERPROFILE%\gerador-lista-corte`
-4. Pergunta a chave da API OCR.space (opcional — só na primeira vez, ou enquanto não for respondida; pode apertar Enter para pular)
-5. Instala as dependências e compila
-6. Cria o atalho de início automático e o atalho na área de trabalho
-7. Já deixa o servidor rodando
+2. Instala o Git, se não tiver (necessário para o site mostrar a versão instalada e se autoatualizar depois — sem ele, a instalação ainda funciona, mas essas duas coisas ficam indisponíveis)
+3. Confere o Tesseract OCR — se não tiver, abre a página de download para instalação manual (a instalação automática dele se mostrou pouco confiável; o sistema funciona normalmente sem ele, só a leitura local de foto fica indisponível até instalar)
+4. Baixa o projeto (repositório é público — não pede login) em `%USERPROFILE%\gerador-lista-corte`
+5. Pergunta a chave da API OCR.space (opcional — só na primeira vez, ou enquanto não for respondida; pode apertar Enter para pular)
+6. Instala as dependências e compila
+7. Cria o atalho de início automático e o atalho na área de trabalho
+8. Já deixa o servidor rodando
 
 A chave do OCR.space digitada fica só no `server\.env` **daquela máquina** —
 nunca é enviada para o GitHub nem gravada no instalador. Cada computador

@@ -105,16 +105,37 @@ if (-not (Test-CommandExists 'node')) {
     Write-Host 'Node.js ja instalado.'
 }
 
+# 1.5. Git ----------------------------------------------------------------
+# Necessario para o site conseguir mostrar a versao instalada e se
+# autoatualizar depois (ver server/src/services/update/version.ts) - sem
+# git, a instalacao cai no plano B (baixar .zip do projeto), que funciona
+# na hora mas nao vira um repositorio git de verdade, deixando essas duas
+# coisas quebradas dali pra frente (caso real: maquina nova sem git,
+# rodapé do site sem nenhuma versao aparecendo).
+if (-not (Test-CommandExists 'git')) {
+    Write-Host 'Instalando Git...'
+    winget install --id Git.Git -e --silent --accept-source-agreements --accept-package-agreements
+    Update-SessionPath
+    if (-not (Test-CommandExists 'git')) {
+        Write-Host 'AVISO: nao consegui instalar o Git automaticamente.' -ForegroundColor Yellow
+        Write-Host 'A instalacao vai continuar mesmo assim (baixando um .zip do projeto), mas a versao instalada nao vai aparecer no rodape do site, e a atualizacao automatica pelo balao nao vai funcionar. Instale o Git manualmente em https://git-scm.com/download/win e rode este instalador de novo para corrigir isso.' -ForegroundColor Yellow
+    }
+} else {
+    Write-Host 'Git ja instalado.'
+}
+
 # 2. Tesseract OCR + pacote de portugues ---------------------------------
+# A instalacao automatica via winget do Tesseract se mostrou pouco confiavel
+# na pratica (relatado pelo usuario) - em vez de insistir nela, so abre a
+# pagina de download oficial pro usuario baixar e instalar manualmente. O
+# sistema funciona normalmente sem isso (so a leitura local de foto fica
+# indisponivel ate instalar).
 $tesseractDir = 'C:\Program Files\Tesseract-OCR'
 $tesseractExe = Join-Path $tesseractDir 'tesseract.exe'
 if (-not (Test-Path $tesseractExe) -and -not (Test-CommandExists 'tesseract')) {
-    Write-Host 'Instalando Tesseract OCR...'
-    winget install --id UB-Mannheim.TesseractOCR -e --silent --accept-source-agreements --accept-package-agreements
-    if (-not (Test-Path $tesseractExe) -and -not (Test-CommandExists 'tesseract')) {
-        Write-Host 'AVISO: nao consegui instalar o Tesseract automaticamente.' -ForegroundColor Yellow
-        Write-Host 'O sistema vai funcionar normalmente para texto colado; a leitura de foto local fica indisponivel ate instalar o Tesseract manualmente (https://github.com/UB-Mannheim/tesseract/wiki).' -ForegroundColor Yellow
-    }
+    Write-Host 'Tesseract OCR nao encontrado - abrindo a pagina de download para instalacao manual...' -ForegroundColor Yellow
+    Write-Host 'O sistema vai funcionar normalmente para texto colado nesse meio tempo; a leitura de foto local fica indisponivel ate o Tesseract ser instalado (marque o pacote de idioma "Portuguese" durante a instalacao).' -ForegroundColor Yellow
+    Start-Process 'https://github.com/UB-Mannheim/tesseract/wiki'
 } else {
     Write-Host 'Tesseract ja instalado.'
 }

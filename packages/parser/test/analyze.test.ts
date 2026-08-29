@@ -14,6 +14,7 @@ import {
   CINZA_JAZZ_SHORTHAND_FITA,
   ASTERISK_MULTI_HEADER_MESSAGE,
   SPELLED_OUT_QUANTITY_MESSAGE,
+  MARKDOWN_TABLE_LIST,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -122,6 +123,23 @@ describe('analyzeText — "comprimento x largura: quantidade" format (real user 
     // Nenhuma peça carrega o texto ": N peças" sobrando no campo função.
     for (const piece of result.pieces) {
       expect(piece.funcao).toBe('');
+    }
+  });
+});
+
+describe('analyzeText — tabela em formato Markdown (real user list)', () => {
+  it('lê Quantidade/Comprimento/Largura pelo cabeçalho e usa a coluna "Peça" como Função', () => {
+    const result = analyzeText(MARKDOWN_TABLE_LIST, makeNextId());
+
+    expect(result.discarded).toHaveLength(0);
+    expect(result.pieces).toHaveLength(21);
+    expect(result.pieces[0]).toMatchObject({ qtd: 4, compr: 1700, larg: 100, funcao: 'Pilares verticais' });
+    expect(result.pieces[1]).toMatchObject({ qtd: 4, compr: 1900, larg: 200, funcao: 'Laterais das camas' });
+    expect(result.pieces.at(-1)).toMatchObject({ qtd: 1, compr: 1900, larg: 850, funcao: 'Fundo/base do bicama' });
+    // Nenhum material foi declarado na mensagem - fica pendente do modal.
+    expect(result.materialMentioned).toBe(false);
+    for (const piece of result.pieces) {
+      expect(piece.material).toBe('');
     }
   });
 });

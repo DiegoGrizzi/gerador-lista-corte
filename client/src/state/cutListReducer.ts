@@ -216,9 +216,6 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
       };
     }
 
-    case 'MATERIAL_SKIPPED':
-      return { ...state, materialAsked: true, activeModal: 'none', previewVisible: true };
-
     case 'DISCARD_RETRY_FAILED':
       return {
         ...state,

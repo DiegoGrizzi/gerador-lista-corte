@@ -106,7 +106,6 @@ export type CutListAction =
   | { type: 'MM_ANSWERED'; factor: number }
   | { type: 'THREE_LADOS_ANSWERED'; choice: 'maior' | 'menor' }
   | { type: 'MATERIAL_CONFIRMED'; material: string }
-  | { type: 'MATERIAL_SKIPPED' }
   | { type: 'DISCARD_RETRY_FAILED'; index: number; message: string }
   | { type: 'DISCARD_RETRY_SUCCEEDED_AS_PENDING'; index: number; rescued: Piece; idCounter: number }
   | { type: 'DISCARD_RETRY_SUCCEEDED'; index: number; rescued: Piece; idCounter: number }

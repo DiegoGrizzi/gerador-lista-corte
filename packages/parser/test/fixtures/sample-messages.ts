@@ -71,6 +71,19 @@ export const MARKDOWN_TABLE_LIST_WITH_FITA_COLUMNS = [
   '|      2 |         860 |     120 | Laterais da escada         |    ✓    |    ✓    |    -    |    -    |',
 ].join('\n');
 
+/**
+ * Quarta lista real do mesmo usuário — dessa vez colada de uma planilha
+ * (Excel/Google Sheets), com células separadas por tabulação em vez de
+ * "|", sem linha separadora, e com uma coluna de Material própria (ex:
+ * "MDF 25mm") além de Função e fita explícita por lado.
+ */
+export const TSV_TABLE_LIST = [
+  'Quantidade\tComprimento\tLargura\tFunção\tFita C1\tFita C2\tFita L1\tFita L2\tMaterial',
+  '2\t1700\t970\tLAT\t✓\t✓\t✓\t✓\tMDF 25mm',
+  '4\t900\t100\tTRAV\t-\t-\t-\t-\tMDF 25mm',
+  '2\t860\t120\tLAT\t✓\t✓\t-\t-\tMDF 25mm',
+].join('\n');
+
 /** Linha de peça com digitação truncada, mas que tem correção válida sugerível. */
 export const TYPO_LINE = '2=50/32..2';
 

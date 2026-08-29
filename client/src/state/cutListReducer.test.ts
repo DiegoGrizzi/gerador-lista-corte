@@ -247,8 +247,8 @@ describe('MM_ANSWERED', () => {
   });
 });
 
-describe('MATERIAL_CONFIRMED / MATERIAL_SKIPPED', () => {
-  it('material vazio (só espaços) equivale a pular: marca materialAsked mas não aplica fallback', () => {
+describe('MATERIAL_CONFIRMED', () => {
+  it('material vazio (só espaços) marca materialAsked mas não aplica fallback', () => {
     const state: CutListState = {
       ...createInitialState(),
       pieces: [makePiece({ material: '' })],
@@ -280,15 +280,6 @@ describe('MATERIAL_CONFIRMED / MATERIAL_SKIPPED', () => {
     expect(next.pieces.find((p) => p.id === 'b')!.material).toBe('MDF branco 15mm');
     // já tinha material -> não mexe
     expect(next.pieces.find((p) => p.id === 'c')!.material).toBe('MDF preto 15mm');
-  });
-
-  it('MATERIAL_SKIPPED marca materialAsked e revela a conferência sem tocar nas peças', () => {
-    const state: CutListState = { ...createInitialState(), pieces: [makePiece({ material: '' })] };
-    const next = cutListReducer(state, { type: 'MATERIAL_SKIPPED' });
-
-    expect(next.materialAsked).toBe(true);
-    expect(next.pieces[0]!.material).toBe('');
-    expect(next.previewVisible).toBe(true);
   });
 });
 

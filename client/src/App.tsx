@@ -171,7 +171,6 @@ export function App(): JSX.Element {
       <MaterialModal
         isOpen={state.activeModal === 'material'}
         onConfirm={(material) => dispatch({ type: 'MATERIAL_CONFIRMED', material })}
-        onSkip={() => dispatch({ type: 'MATERIAL_SKIPPED' })}
       />
       <PhotoMaterialModal
         isOpen={state.activeModal === 'photoMaterial'}

@@ -3,16 +3,20 @@ import { useEffect, useState } from 'react';
 export interface MaterialModalProps {
   isOpen: boolean;
   onConfirm: (material: string) => void;
-  onSkip: () => void;
 }
 
-export function MaterialModal({ isOpen, onConfirm, onSkip }: MaterialModalProps): JSX.Element {
+/** Quantidade mínima de letras/números (o resto — espaços, pontuação — não conta) para liberar a confirmação. */
+const MIN_MATERIAL_CHARS = 4;
+
+export function MaterialModal({ isOpen, onConfirm }: MaterialModalProps): JSX.Element {
   const [material, setMaterial] = useState('');
 
   // Espelha openMaterialModal() do legado, que sempre limpa o input ao abrir.
   useEffect(() => {
     if (isOpen) setMaterial('');
   }, [isOpen]);
+
+  const canConfirm = material.replace(/[^a-zA-Z0-9À-ÿ]/g, '').length >= MIN_MATERIAL_CHARS;
 
   return (
     <div className={'modal-overlay' + (isOpen ? ' open' : '')} id="material-modal-wrap">
@@ -32,11 +36,13 @@ export function MaterialModal({ isOpen, onConfirm, onSkip }: MaterialModalProps)
           onChange={(e) => setMaterial(e.target.value)}
         />
         <div className="choice-row">
-          <button className="primary" id="btn-material-confirm" onClick={() => onConfirm(material)}>
+          <button
+            className="primary"
+            id="btn-material-confirm"
+            disabled={!canConfirm}
+            onClick={() => onConfirm(material)}
+          >
             Confirmar material
-          </button>
-          <button className="ghost" id="btn-material-skip" onClick={onSkip}>
-            Pular por enquanto
           </button>
         </div>
       </div>

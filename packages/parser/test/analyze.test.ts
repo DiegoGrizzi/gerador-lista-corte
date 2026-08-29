@@ -16,6 +16,7 @@ import {
   SPELLED_OUT_QUANTITY_MESSAGE,
   MARKDOWN_TABLE_LIST,
   MARKDOWN_TABLE_LIST_WITH_UNIT_HEADER,
+  MARKDOWN_TABLE_LIST_WITH_FITA_COLUMNS,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -153,6 +154,18 @@ describe('analyzeText — tabela em formato Markdown (real user list)', () => {
       { qtd: 2, compr: 1700, larg: 970, funcao: 'Laterais estruturais' },
       { qtd: 2, compr: 1990, larg: 250, funcao: 'Frente/fundo da cama superior' },
       { qtd: 1, compr: 1990, larg: 900, funcao: 'Base do bicama' },
+    ]);
+  });
+
+  it('lê "Quant." (com ponto) e as colunas Fita C1/C2/L1/L2 (✓/-) como a fita explícita de cada linha', () => {
+    const result = analyzeText(MARKDOWN_TABLE_LIST_WITH_FITA_COLUMNS, makeNextId());
+
+    expect(result.discarded).toHaveLength(0);
+    expect(result.pieces).toHaveLength(3);
+    expect(result.pieces.map((p) => ({ qtd: p.qtd, fita: p.fita }))).toEqual([
+      { qtd: 2, fita: { c1: true, c2: true, l1: true, l2: true } },
+      { qtd: 4, fita: { c1: false, c2: false, l1: false, l2: false } },
+      { qtd: 2, fita: { c1: true, c2: true, l1: false, l2: false } },
     ]);
   });
 });

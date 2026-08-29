@@ -158,20 +158,29 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
    * tryMatchDimensionFirstLine, tryMatchPcAsteriskLine OU de uma linha de
    * tabela Markdown (ver markdown-table.ts) — todos têm o mesmo formato de
    * resultado (qty/compr/larg, sem fita/espessura/material inline), então
-   * compartilham esta mesma função. `funcaoOverride` só vem preenchido
-   * pela tabela Markdown, quando a linha tem uma coluna com o nome da peça
-   * (ex: "Pilares verticais") — sobrescreve a Função do contexto corrente,
-   * já que cada linha da tabela nomeia a própria peça.
+   * compartilham esta mesma função. `funcaoOverride` e `customFitaOverride`
+   * só vêm preenchidos pela tabela Markdown: o primeiro quando a linha tem
+   * uma coluna com o nome da peça (ex: "Pilares verticais"), sobrescrevendo
+   * a Função do contexto corrente (cada linha nomeia a própria peça); o
+   * segundo quando a tabela tem colunas de fita explícita por lado (Fita
+   * C1/C2/L1/L2) — nesse caso a fita da linha é a fonte da verdade,
+   * ignorando qualquer fitamento de bloco em vigor.
    */
-  function addDimensionFirstPiece(match: DimensionFirstMatch, ctx: ParseContext, funcaoOverride?: string | null): void {
+  function addDimensionFirstPiece(
+    match: DimensionFirstMatch,
+    ctx: ParseContext,
+    funcaoOverride?: string | null,
+    customFitaOverride?: RawPiece['customFita'],
+  ): void {
     pendingMaterialName = null;
     const piece = buildPieceFromDimensionFirstMatch(match, ctx);
     if (funcaoOverride) piece.funcao = funcaoOverride;
+    if (customFitaOverride) piece.customFita = customFitaOverride;
     piece.id = nextId();
     pieces.push(piece);
 
     if (!currentMaterial) pendingMaterial.push(piece);
-    if (piece.fitaType == null) pendingFitamento.push(piece);
+    if (piece.fitaType == null && !piece.customFita) pendingFitamento.push(piece);
     if (piece.thicknessMm == null) pendingThickness.push(piece);
   }
 
@@ -246,7 +255,7 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
           pushDiscarded(line);
           return;
         }
-        addDimensionFirstPiece(tableRow, snapshotContext(), tableRow.funcao);
+        addDimensionFirstPiece(tableRow, snapshotContext(), tableRow.funcao, tableRow.customFita);
         return;
       }
       // Linha começa e termina com "|" mas não é uma linha de dados válida

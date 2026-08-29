@@ -58,6 +58,19 @@ export const MARKDOWN_TABLE_LIST_WITH_UNIT_HEADER = [
   '|          1 |             1990 |          900 | Base do bicama                         |',
 ].join('\n');
 
+/**
+ * Terceira tabela real do mesmo usuário — colunas extras "Fita C1/C2/L1/L2"
+ * marcadas com "✓" (fitar) ou "-" (não fitar), que precisam virar a fita
+ * explícita de cada peça (ignorando qualquer fitamento de bloco em vigor).
+ */
+export const MARKDOWN_TABLE_LIST_WITH_FITA_COLUMNS = [
+  '| Quant. | Comprimento | Largura | Peça                       | Fita C1 | Fita C2 | Fita L1 | Fita L2 |',
+  '| -----: | ----------: | ------: | -------------------------- | :-----: | :-----: | :-----: | :-----: |',
+  '|      2 |        1700 |     970 | Laterais estruturais       |    ✓    |    ✓    |    ✓    |    ✓    |',
+  '|      4 |         900 |     100 | Travessas apoio dos estrados |  -    |    -    |    -    |    -    |',
+  '|      2 |         860 |     120 | Laterais da escada         |    ✓    |    ✓    |    -    |    -    |',
+].join('\n');
+
 /** Linha de peça com digitação truncada, mas que tem correção válida sugerível. */
 export const TYPO_LINE = '2=50/32..2';
 

@@ -33,7 +33,8 @@ import { parseFitamentoPhrase } from './fitamento.js';
 import { extractTrailingFitaCodes, applyFitaCodesToPiece } from './fita-codes.js';
 import { classifyHeaderLine, extractHeaderInfo } from './header.js';
 import { isMarkdownTableSeparatorLine, parseMarkdownTableHeader, parseMarkdownTableRow } from './markdown-table.js';
-import type { MarkdownTableColumns } from './markdown-table.js';
+import { parseTsvTableHeader, parseTsvTableRow } from './tsv-table.js';
+import type { TableColumns, TableRow } from './table-columns.js';
 import {
   isValidPiece,
   tryMatchPieceLine,
@@ -89,13 +90,16 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
   let pendingThickness: PendingEntry[] = [];
 
   /**
-   * Mapeamento de colunas de uma tabela Markdown em andamento (ver
-   * markdown-table.ts), lido da linha de cabeçalho — `null` fora de uma
-   * tabela. Precisa ser estado entre linhas: uma linha de dados sozinha
-   * não diz qual coluna é Quantidade/Comprimento/Largura, só o cabeçalho
-   * (lido antes) sabe disso.
+   * Mapeamento de colunas de uma tabela em andamento (Markdown ou TSV, ver
+   * markdown-table.ts/tsv-table.ts), lido da linha de cabeçalho — `null`
+   * fora de uma tabela. Precisa ser estado entre linhas: uma linha de
+   * dados sozinha não diz qual coluna é Quantidade/Comprimento/Largura, só
+   * o cabeçalho (lido antes) sabe disso. `tableDelimiter` guarda qual dos
+   * dois formatos está em andamento, já que cada um divide a linha de dados
+   * de um jeito diferente ("|" vs tabulação).
    */
-  let tableColumns: MarkdownTableColumns | null = null;
+  let tableColumns: TableColumns | null = null;
+  let tableDelimiter: 'markdown' | 'tsv' | null = null;
 
   function snapshotContext(): ParseContext {
     return {
@@ -153,33 +157,35 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     if (built.thicknessPending) pendingThickness.push(built.piece);
   }
 
+  /** Sobrescritas vindas de uma linha de tabela (Markdown ou TSV) — cada campo da própria linha tem prioridade sobre o contexto corrente. */
+  interface DimensionFirstOverrides {
+    funcao?: string | null;
+    material?: string | null;
+    thicknessMm?: number | null;
+    customFita?: RawPiece['customFita'];
+  }
+
   /**
    * Constrói e registra uma peça a partir de um resultado já validado de
    * tryMatchDimensionFirstLine, tryMatchPcAsteriskLine OU de uma linha de
-   * tabela Markdown (ver markdown-table.ts) — todos têm o mesmo formato de
-   * resultado (qty/compr/larg, sem fita/espessura/material inline), então
-   * compartilham esta mesma função. `funcaoOverride` e `customFitaOverride`
-   * só vêm preenchidos pela tabela Markdown: o primeiro quando a linha tem
-   * uma coluna com o nome da peça (ex: "Pilares verticais"), sobrescrevendo
-   * a Função do contexto corrente (cada linha nomeia a própria peça); o
-   * segundo quando a tabela tem colunas de fita explícita por lado (Fita
-   * C1/C2/L1/L2) — nesse caso a fita da linha é a fonte da verdade,
-   * ignorando qualquer fitamento de bloco em vigor.
+   * tabela (Markdown ou TSV, ver markdown-table.ts/tsv-table.ts) — todos
+   * têm o mesmo formato de resultado (qty/compr/larg), então compartilham
+   * esta mesma função. `overrides` só vem preenchido pelas tabelas, quando
+   * a linha tem colunas próprias de nome da peça, material ou fita
+   * explícita — nesses casos a própria linha é a fonte da verdade,
+   * sobrescrevendo o que estiver em vigor no contexto corrente.
    */
-  function addDimensionFirstPiece(
-    match: DimensionFirstMatch,
-    ctx: ParseContext,
-    funcaoOverride?: string | null,
-    customFitaOverride?: RawPiece['customFita'],
-  ): void {
+  function addDimensionFirstPiece(match: DimensionFirstMatch, ctx: ParseContext, overrides?: DimensionFirstOverrides): void {
     pendingMaterialName = null;
     const piece = buildPieceFromDimensionFirstMatch(match, ctx);
-    if (funcaoOverride) piece.funcao = funcaoOverride;
-    if (customFitaOverride) piece.customFita = customFitaOverride;
+    if (overrides?.funcao) piece.funcao = overrides.funcao;
+    if (overrides?.material) piece.material = overrides.material;
+    if (overrides?.thicknessMm != null) piece.thicknessMm = overrides.thicknessMm;
+    if (overrides?.customFita) piece.customFita = overrides.customFita;
     piece.id = nextId();
     pieces.push(piece);
 
-    if (!currentMaterial) pendingMaterial.push(piece);
+    if (!piece.material) pendingMaterial.push(piece);
     if (piece.fitaType == null && !piece.customFita) pendingFitamento.push(piece);
     if (piece.thicknessMm == null) pendingThickness.push(piece);
   }
@@ -230,37 +236,53 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     // dígito) e a peça inteira não é reconhecida.
     line = normalizeLeadingNumberWord(stripGreetingPrefix(line));
 
-    // Tabela em formato Markdown (ver markdown-table.ts) — cabeçalho,
-    // linha separadora ("| ---: | ---: |") e linhas de dados, todas
-    // começando e terminando em "|". Checado antes de tudo o mais: nenhum
-    // outro formato usa "|", então não há risco de conflito, e a máquina
-    // de estado (tableColumns) precisa ver o cabeçalho antes das linhas de
-    // dados que vêm depois dele.
-    if (tableColumns && isMarkdownTableSeparatorLine(line)) {
-      // Só existe entre o cabeçalho e as linhas de dados - nada a fazer
-      // além de pular (tableColumns já foi definido pelo cabeçalho acima).
-      // A checagem de tableColumns aqui evita engolir em silêncio uma
-      // linha qualquer de hifens que não seja de tabela nenhuma.
+    // Tabela em formato Markdown (delimitada por "|", ver
+    // markdown-table.ts) ou colada de planilha (delimitada por tabulação,
+    // ver tsv-table.ts). Checado antes de tudo o mais: nenhum outro
+    // formato usa "|" nem tabulação, então não há risco de conflito, e a
+    // máquina de estado (tableColumns/tableDelimiter) precisa ver o
+    // cabeçalho antes das linhas de dados que vêm depois dele.
+    if (tableColumns && tableDelimiter === 'markdown' && isMarkdownTableSeparatorLine(line)) {
+      // Linha separadora do Markdown ("| ---: | ---: |") - só existe entre
+      // o cabeçalho e as linhas de dados, nada a fazer além de pular. A
+      // checagem de tableColumns aqui evita engolir em silêncio uma linha
+      // qualquer de hifens que não seja de tabela nenhuma.
       return;
     }
-    const tableHeaderMatch = parseMarkdownTableHeader(line);
-    if (tableHeaderMatch) {
-      tableColumns = tableHeaderMatch;
-      return;
+    if (!tableColumns) {
+      const markdownHeaderMatch = parseMarkdownTableHeader(line);
+      if (markdownHeaderMatch) {
+        tableColumns = markdownHeaderMatch;
+        tableDelimiter = 'markdown';
+        return;
+      }
+      const tsvHeaderMatch = parseTsvTableHeader(line);
+      if (tsvHeaderMatch) {
+        tableColumns = tsvHeaderMatch;
+        tableDelimiter = 'tsv';
+        return;
+      }
     }
     if (tableColumns) {
-      const tableRow = parseMarkdownTableRow(line, tableColumns);
+      const tableRow: TableRow | null =
+        tableDelimiter === 'markdown' ? parseMarkdownTableRow(line, tableColumns) : parseTsvTableRow(line, tableColumns);
       if (tableRow) {
         if (!isValidPiece(tableRow.compr, tableRow.larg, tableRow.qty)) {
           pushDiscarded(line);
           return;
         }
-        addDimensionFirstPiece(tableRow, snapshotContext(), tableRow.funcao, tableRow.customFita);
+        addDimensionFirstPiece(tableRow, snapshotContext(), {
+          funcao: tableRow.funcao,
+          material: tableRow.material,
+          thicknessMm: tableRow.thicknessMm,
+          customFita: tableRow.customFita,
+        });
         return;
       }
-      // Linha começa e termina com "|" mas não é uma linha de dados válida
+      // Linha não é mais uma linha de dados válida da tabela em andamento
       // (ou a linha nem é de tabela mais) - a tabela terminou.
       tableColumns = null;
+      tableDelimiter = null;
     }
 
     // Códigos de fita colados ao final da linha (ex: "... 1M 1m", "... 3L")

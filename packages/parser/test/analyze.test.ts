@@ -17,6 +17,7 @@ import {
   MARKDOWN_TABLE_LIST,
   MARKDOWN_TABLE_LIST_WITH_UNIT_HEADER,
   MARKDOWN_TABLE_LIST_WITH_FITA_COLUMNS,
+  TSV_TABLE_LIST,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -167,6 +168,23 @@ describe('analyzeText — tabela em formato Markdown (real user list)', () => {
       { qtd: 4, fita: { c1: false, c2: false, l1: false, l2: false } },
       { qtd: 2, fita: { c1: true, c2: true, l1: false, l2: false } },
     ]);
+  });
+});
+
+describe('analyzeText — tabela colada de planilha (TSV, delimitada por tabulação, real user list)', () => {
+  it('lê Quantidade/Comprimento/Largura/Função/Fita/Material pelo cabeçalho, sem linha separadora', () => {
+    const result = analyzeText(TSV_TABLE_LIST, makeNextId());
+
+    expect(result.discarded).toHaveLength(0);
+    expect(result.pieces).toHaveLength(3);
+    expect(
+      result.pieces.map((p) => ({ qtd: p.qtd, compr: p.compr, larg: p.larg, funcao: p.funcao, material: p.material, fita: p.fita })),
+    ).toEqual([
+      { qtd: 2, compr: 1700, larg: 970, funcao: 'LAT', material: 'MDF 25mm', fita: { c1: true, c2: true, l1: true, l2: true } },
+      { qtd: 4, compr: 900, larg: 100, funcao: 'TRAV', material: 'MDF 25mm', fita: { c1: false, c2: false, l1: false, l2: false } },
+      { qtd: 2, compr: 860, larg: 120, funcao: 'LAT', material: 'MDF 25mm', fita: { c1: true, c2: true, l1: false, l2: false } },
+    ]);
+    expect(result.materialMentioned).toBe(false); // material vem da própria linha, não de um cabeçalho de bloco.
   });
 });
 

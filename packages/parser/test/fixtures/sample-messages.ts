@@ -14,6 +14,37 @@ export const HEADER_THEN_PIECES = [
 /** Material só é declarado depois das peças — exige backfill retroativo. */
 export const MATERIAL_DECLARED_AFTER_PIECES = ['2=47/47', '3=50/60', 'MDF branco de 15mm'].join('\n');
 
+/**
+ * Tabela real de um usuário, em formato Markdown (colunas Quantidade,
+ * Comprimento, Largura, Peça — sem material nenhum declarado, então cada
+ * peça fica sem material até o modal de material ser respondido).
+ */
+export const MARKDOWN_TABLE_LIST = [
+  '| Quantidade | Comprimento | Largura | Peça                             |',
+  '| ---------: | ----------: | ------: | --------------------------------- |',
+  '|          4 |        1700 |     100 | Pilares verticais                |',
+  '|          4 |        1900 |     200 | Laterais das camas                |',
+  '|          4 |        1940 |     200 | Travessas frente/fundo das camas |',
+  '|          4 |         970 |     200 | Cabeceira/peseira — laterais     |',
+  '|          2 |        1900 |     100 | Apoio do estrado — cama superior |',
+  '|          2 |        1900 |     100 | Apoio do estrado — cama inferior |',
+  '|          2 |         900 |     100 | Apoio transversal do estrado     |',
+  '|          2 |         900 |     200 | Travessas das cabeceiras         |',
+  '|          4 |         750 |     100 | Montantes da proteção superior   |',
+  '|          6 |         550 |      70 | Ripas verticais das cabeceiras   |',
+  '|          6 |         550 |      70 | Ripas verticais da proteção      |',
+  '|          2 |         860 |     100 | Laterais da escada               |',
+  '|          6 |         300 |     100 | Degraus da escada                |',
+  '|          2 |        1900 |     100 | Longarinas do estrado inferior   |',
+  '|          2 |         900 |     100 | Travessas do estrado inferior    |',
+  '|          1 |        1900 |     900 | Base da cama inferior            |',
+  '|          1 |        1900 |     900 | Base da cama superior            |',
+  '|          1 |        2040 |     350 | Frente do bicama/gaveta          |',
+  '|          2 |        1900 |     150 | Laterais do bicama               |',
+  '|          2 |         850 |     150 | Frente/fundo do bicama           |',
+  '|          1 |        1900 |     850 | Fundo/base do bicama              |',
+].join('\n');
+
 /** Linha de peça com digitação truncada, mas que tem correção válida sugerível. */
 export const TYPO_LINE = '2=50/32..2';
 

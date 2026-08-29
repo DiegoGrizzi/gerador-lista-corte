@@ -32,6 +32,8 @@ import {
 import { parseFitamentoPhrase } from './fitamento.js';
 import { extractTrailingFitaCodes, applyFitaCodesToPiece } from './fita-codes.js';
 import { classifyHeaderLine, extractHeaderInfo } from './header.js';
+import { isMarkdownTableSeparatorLine, parseMarkdownTableHeader, parseMarkdownTableRow } from './markdown-table.js';
+import type { MarkdownTableColumns } from './markdown-table.js';
 import {
   isValidPiece,
   tryMatchPieceLine,
@@ -85,6 +87,15 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
   let pendingMaterial: PendingEntry[] = [];
   let pendingFitamento: PendingEntry[] = [];
   let pendingThickness: PendingEntry[] = [];
+
+  /**
+   * Mapeamento de colunas de uma tabela Markdown em andamento (ver
+   * markdown-table.ts), lido da linha de cabeçalho — `null` fora de uma
+   * tabela. Precisa ser estado entre linhas: uma linha de dados sozinha
+   * não diz qual coluna é Quantidade/Comprimento/Largura, só o cabeçalho
+   * (lido antes) sabe disso.
+   */
+  let tableColumns: MarkdownTableColumns | null = null;
 
   function snapshotContext(): ParseContext {
     return {
@@ -144,13 +155,18 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
 
   /**
    * Constrói e registra uma peça a partir de um resultado já validado de
-   * tryMatchDimensionFirstLine OU tryMatchPcAsteriskLine — os dois formatos
-   * têm o mesmo formato de resultado (qty/compr/larg, sem fita/espessura/
-   * material inline), então compartilham esta mesma função.
+   * tryMatchDimensionFirstLine, tryMatchPcAsteriskLine OU de uma linha de
+   * tabela Markdown (ver markdown-table.ts) — todos têm o mesmo formato de
+   * resultado (qty/compr/larg, sem fita/espessura/material inline), então
+   * compartilham esta mesma função. `funcaoOverride` só vem preenchido
+   * pela tabela Markdown, quando a linha tem uma coluna com o nome da peça
+   * (ex: "Pilares verticais") — sobrescreve a Função do contexto corrente,
+   * já que cada linha da tabela nomeia a própria peça.
    */
-  function addDimensionFirstPiece(match: DimensionFirstMatch, ctx: ParseContext): void {
+  function addDimensionFirstPiece(match: DimensionFirstMatch, ctx: ParseContext, funcaoOverride?: string | null): void {
     pendingMaterialName = null;
     const piece = buildPieceFromDimensionFirstMatch(match, ctx);
+    if (funcaoOverride) piece.funcao = funcaoOverride;
     piece.id = nextId();
     pieces.push(piece);
 
@@ -204,6 +220,39 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     // extenso nunca fica no começo da linha (onde QUANTITY_RE espera um
     // dígito) e a peça inteira não é reconhecida.
     line = normalizeLeadingNumberWord(stripGreetingPrefix(line));
+
+    // Tabela em formato Markdown (ver markdown-table.ts) — cabeçalho,
+    // linha separadora ("| ---: | ---: |") e linhas de dados, todas
+    // começando e terminando em "|". Checado antes de tudo o mais: nenhum
+    // outro formato usa "|", então não há risco de conflito, e a máquina
+    // de estado (tableColumns) precisa ver o cabeçalho antes das linhas de
+    // dados que vêm depois dele.
+    if (tableColumns && isMarkdownTableSeparatorLine(line)) {
+      // Só existe entre o cabeçalho e as linhas de dados - nada a fazer
+      // além de pular (tableColumns já foi definido pelo cabeçalho acima).
+      // A checagem de tableColumns aqui evita engolir em silêncio uma
+      // linha qualquer de hifens que não seja de tabela nenhuma.
+      return;
+    }
+    const tableHeaderMatch = parseMarkdownTableHeader(line);
+    if (tableHeaderMatch) {
+      tableColumns = tableHeaderMatch;
+      return;
+    }
+    if (tableColumns) {
+      const tableRow = parseMarkdownTableRow(line, tableColumns);
+      if (tableRow) {
+        if (!isValidPiece(tableRow.compr, tableRow.larg, tableRow.qty)) {
+          pushDiscarded(line);
+          return;
+        }
+        addDimensionFirstPiece(tableRow, snapshotContext(), tableRow.funcao);
+        return;
+      }
+      // Linha começa e termina com "|" mas não é uma linha de dados válida
+      // (ou a linha nem é de tabela mais) - a tabela terminou.
+      tableColumns = null;
+    }
 
     // Códigos de fita colados ao final da linha (ex: "... 1M 1m", "... 3L")
     // — ver fita-codes.ts. Só tenta em linhas que começam com dígito (a

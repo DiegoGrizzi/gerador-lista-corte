@@ -15,6 +15,7 @@ import {
   ASTERISK_MULTI_HEADER_MESSAGE,
   SPELLED_OUT_QUANTITY_MESSAGE,
   MARKDOWN_TABLE_LIST,
+  MARKDOWN_TABLE_LIST_WITH_UNIT_HEADER,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -141,6 +142,18 @@ describe('analyzeText — tabela em formato Markdown (real user list)', () => {
     for (const piece of result.pieces) {
       expect(piece.material).toBe('');
     }
+  });
+
+  it('reconhece o cabeçalho mesmo com unidade entre parênteses ("Comprimento (mm)")', () => {
+    const result = analyzeText(MARKDOWN_TABLE_LIST_WITH_UNIT_HEADER, makeNextId());
+
+    expect(result.discarded).toHaveLength(0);
+    expect(result.pieces).toHaveLength(3);
+    expect(result.pieces.map((p) => ({ qtd: p.qtd, compr: p.compr, larg: p.larg, funcao: p.funcao }))).toEqual([
+      { qtd: 2, compr: 1700, larg: 970, funcao: 'Laterais estruturais' },
+      { qtd: 2, compr: 1990, larg: 250, funcao: 'Frente/fundo da cama superior' },
+      { qtd: 1, compr: 1990, larg: 900, funcao: 'Base do bicama' },
+    ]);
   });
 });
 

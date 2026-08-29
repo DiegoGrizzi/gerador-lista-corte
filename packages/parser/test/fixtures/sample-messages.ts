@@ -45,6 +45,19 @@ export const MARKDOWN_TABLE_LIST = [
   '|          1 |        1900 |     850 | Fundo/base do bicama              |',
 ].join('\n');
 
+/**
+ * Segunda tabela real do mesmo usuário — cabeçalho com unidade entre
+ * parênteses ("Comprimento (mm)", "Largura (mm)"), que precisa continuar
+ * batendo com os nomes de coluna conhecidos mesmo com esse texto extra.
+ */
+export const MARKDOWN_TABLE_LIST_WITH_UNIT_HEADER = [
+  '| Quantidade | Comprimento (mm) | Largura (mm) | Peça                                   |',
+  '| ---------: | ---------------: | -----------: | -------------------------------------- |',
+  '|          2 |             1700 |          970 | Laterais estruturais                   |',
+  '|          2 |             1990 |          250 | Frente/fundo da cama superior          |',
+  '|          1 |             1990 |          900 | Base do bicama                         |',
+].join('\n');
+
 /** Linha de peça com digitação truncada, mas que tem correção válida sugerível. */
 export const TYPO_LINE = '2=50/32..2';
 

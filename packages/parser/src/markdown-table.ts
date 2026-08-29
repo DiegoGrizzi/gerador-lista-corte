@@ -72,7 +72,14 @@ export function parseMarkdownTableHeader(line: string): MarkdownTableColumns | n
   const cells = splitTableCells(line);
   if (!cells || cells.length < 3) return null;
 
-  const normalized = cells.map((cell) => cell.toLowerCase());
+  // Remove anotação de unidade entre parênteses (ex: "Comprimento (mm)" ->
+  // "comprimento") antes de comparar com os nomes conhecidos de coluna.
+  const normalized = cells.map((cell) =>
+    cell
+      .toLowerCase()
+      .replace(/\(.*?\)/g, '')
+      .trim(),
+  );
   const qtyIdx = normalized.findIndex((cell) => QTY_HEADER_ALIASES.includes(cell));
   const comprIdx = normalized.findIndex((cell) => COMPR_HEADER_ALIASES.includes(cell));
   const largIdx = normalized.findIndex((cell) => LARG_HEADER_ALIASES.includes(cell));

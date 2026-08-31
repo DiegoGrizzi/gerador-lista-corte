@@ -225,6 +225,18 @@ export async function restartServer(projectRoot: string): Promise<void> {
   }, 15_000);
 
   const launcherPath = path.join(projectRoot, 'deploy', 'iniciar-servidor-oculto.ps1');
+  // Lança via deploy/rodar-oculto.vbs em vez de powershell.exe direto - nem
+  // "-WindowStyle Hidden" nem <Hidden>true</Hidden> nesta própria tarefa
+  // (que já tentávamos antes) garantem de verdade nenhuma janela piscando
+  // quando o Agendador lança um processo de CONSOLE dentro da sessão do
+  // usuário logado - confirmado de verdade (usuário relatou o cmd
+  // piscando a cada religamento). wscript.exe roda como aplicativo de
+  // interface gráfica, sem console nenhum em nenhum contexto, e lança o
+  // PowerShell de verdade já escondido desde a criação (ver
+  // deploy/rodar-oculto.vbs para os detalhes e por que isso não reintroduz
+  // o problema de memória do WSH que fez este projeto abandoná-lo da
+  // primeira vez).
+  const trampolimPath = path.join(projectRoot, 'deploy', 'rodar-oculto.vbs');
   // Nome único por chamada - ver comentário acima sobre por que nunca
   // reaproveitar/sobrescrever o mesmo nome de tarefa.
   const taskName = `GeradorListaCorteReligamento-${Date.now()}`;
@@ -258,8 +270,8 @@ export async function restartServer(projectRoot: string): Promise<void> {
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>powershell.exe</Command>
-      <Arguments>-WindowStyle Hidden -ExecutionPolicy Bypass -File "${launcherPath}"</Arguments>
+      <Command>wscript.exe</Command>
+      <Arguments>//B "${trampolimPath}" "${launcherPath}"</Arguments>
     </Exec>
   </Actions>
 </Task>

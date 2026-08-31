@@ -39,6 +39,22 @@ $logPath = Join-Path $scriptDir 'server.log'
 # antes mesmo dele chegar até aqui, em vez do node ter falhado ao iniciar.
 Add-Content -Path $logPath -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] iniciar-servidor-oculto.ps1 iniciado"
 
+# Garante que a tarefa recorrente de vigia está registrada (ver
+# deploy/vigia-servidor.ps1) - checado em TODA inicialização (não só na
+# instalação), pra que instalações já existentes ganhem essa proteção
+# sozinhas, na próxima vez que o servidor subir, sem precisar rodar o
+# instalador de novo. Só tenta CRIAR se ainda não existe: sobrescrever uma
+# tarefa já criada esbarrou num "Acesso negado" real (ver comentário sobre
+# isso em run-update.ts), então o mais seguro é nunca tentar de novo depois
+# da primeira vez.
+$vigiaTaskName = 'GeradorListaCorteVigia'
+schtasks /query /tn $vigiaTaskName 2>$null | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    $vigiaScriptPath = Join-Path $scriptDir 'vigia-servidor.ps1'
+    $vigiaTr = "powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -File \`"$vigiaScriptPath\`""
+    schtasks /create /tn $vigiaTaskName /tr $vigiaTr /sc minute /mo 2 /f 2>$null | Out-Null
+}
+
 # Espera o processo antigo do servidor morrer de vez e liberar a porta e o
 # arquivo de log antes de tentar usá-los (ver comentário sobre isso em
 # restartServer, em server/src/services/update/run-update.ts) - só se aplica

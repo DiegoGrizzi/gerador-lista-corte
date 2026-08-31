@@ -8,6 +8,7 @@ import express, { type Express } from 'express';
 import { config } from './config/index.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { createOcrRouter, type OcrRouteDeps } from './routes/ocr.js';
+import { createPdfRouter, type PdfRouteDeps } from './routes/pdf.js';
 import { createUpdateRouter, type UpdateRouteDeps } from './routes/update.js';
 import { createVersionRouter, type VersionRouteDeps } from './routes/version.js';
 
@@ -28,6 +29,7 @@ export function createApp(
   ocrRouteDeps?: OcrRouteDeps,
   updateRouteDeps?: UpdateRouteDeps,
   versionRouteDeps?: VersionRouteDeps,
+  pdfRouteDeps?: PdfRouteDeps,
 ): Express {
   const app = express();
 
@@ -35,6 +37,7 @@ export function createApp(
   app.use(cors({ origin: config.clientOrigin }));
 
   app.use('/api', createOcrRouter(ocrRouteDeps));
+  app.use('/api', createPdfRouter(pdfRouteDeps));
   app.use('/api/update', createUpdateRouter(updateRouteDeps));
   app.use('/api/version', createVersionRouter(versionRouteDeps));
 

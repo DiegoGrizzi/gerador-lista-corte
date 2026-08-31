@@ -43,6 +43,15 @@ export function PasteOrPhotoCard({
           placeholder={PLACEHOLDER}
           value={rawText}
           onChange={(e) => onRawTextChange(e.target.value)}
+          onKeyDown={(e) => {
+            // Enter analisa direto (como um campo de chat) - Shift+Enter
+            // continua quebrando linha normalmente, pra colar/editar
+            // mensagens com várias linhas sem disparar a análise à toa.
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              onAnalyze();
+            }
+          }}
         />
       </div>
 

@@ -24,7 +24,20 @@ export function MmUnitModal({ isOpen, onAnswered }: MmUnitModalProps): JSX.Eleme
   }, [isOpen]);
 
   return (
-    <div className={'modal-overlay' + (isOpen ? ' open' : '')} id="mm-modal-wrap">
+    <div
+      className={'modal-overlay' + (isOpen ? ' open' : '')}
+      id="mm-modal-wrap"
+      onKeyDown={(e) => {
+        // Enter confirma a etapa atual - "Sim, já em mm" (passo 1) ou
+        // "Converter para mm" (passo 2, se o usuário já escolheu "Não").
+        if (e.key !== 'Enter') return;
+        if (showUnitStep) {
+          onAnswered(unit);
+        } else {
+          onAnswered(1);
+        }
+      }}
+    >
       <div className="modal">
         <p className="title">As medidas já estão em milímetros (mm)?</p>
         <p className="sub">Confira antes de revisar as peças — evita peças cortadas na medida errada.</p>

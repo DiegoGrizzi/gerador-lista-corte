@@ -7,6 +7,8 @@
  * ---------------------------------------------------------------------------
  */
 import { spawn } from 'node:child_process';
+import { promises as fs } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 export type UpdateStepName = 'git pull' | 'npm install' | 'npm run build';
@@ -155,6 +157,18 @@ export async function runUpdateSteps(projectRoot: string): Promise<UpdateStepRes
  * confiável é nunca precisar sobrescrever nada. Isso deixa tarefas "de uso
  * único" (já disparadas, que não vão rodar de novo sozinhas) acumulando no
  * Agendador ao longo do tempo, mas são inofensivas.
+ *
+ * A tarefa é registrada via um arquivo XML (não "/tr" + "/sc once" direto na
+ * linha de comando) especificamente para poder marcar <Hidden>true</Hidden>
+ * nela - caso real reportado: com "/tr" simples (sem essa propriedade), uma
+ * janela do PowerShell/cmd chegava a piscar na tela a cada religamento
+ * (varios num mesmo dia com muitas atualizacoes seguidas). O mesmo
+ * problema, com a mesma causa e a mesma correcao, ja tinha sido encontrado
+ * e corrigido para a tarefa recorrente do vigia (ver
+ * deploy/iniciar-servidor-oculto.ps1) - "-WindowStyle Hidden" no argumento
+ * do PowerShell sozinho nao e suficiente numa tarefa do Agendador, so a
+ * propriedade <Hidden> da propria tarefa garante isso de verdade, e ela so
+ * pode ser definida via XML.
  */
 const SCHTASKS_TIMEOUT_MS = 5000;
 
@@ -214,17 +228,57 @@ export async function restartServer(projectRoot: string): Promise<void> {
   // Nome único por chamada - ver comentário acima sobre por que nunca
   // reaproveitar/sobrescrever o mesmo nome de tarefa.
   const taskName = `GeradorListaCorteReligamento-${Date.now()}`;
-  const trValue = `powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -File "${launcherPath}"`;
-  // /st (horário) é obrigatório com /sc once, mas o valor não importa de
-  // verdade - "/run" logo em seguida dispara a tarefa na hora, independente
-  // do horário agendado. Espera os dois passos terminarem (e não só serem
-  // disparados) antes de deixar este processo morrer, já que a criação e o
-  // disparo em si dependem desse processo continuar vivo até o
-  // schtasks.exe terminar de conversar com o serviço do Agendador. Sem
-  // "/f": não deveria existir uma tarefa com esse nome (é único), então
-  // forçar sobrescrita não é necessário.
-  const create = await runSchtasks(['/create', '/tn', taskName, '/tr', trValue, '/sc', 'once', '/st', '23:59']);
+  // StartBoundary é obrigatório, mas o valor não importa de verdade - "/run"
+  // logo em seguida dispara a tarefa na hora, independente do horário
+  // agendado (mesma lógica de quando isso era feito com "/sc once /st
+  // 23:59"). Um valor fixo no passado (mesmo usado na tarefa do vigia) evita
+  // precisar calcular a hora atual só para preencher um campo que nunca é
+  // realmente usado.
+  const utf16Bom = String.fromCharCode(0xfeff);
+  const taskXmlPath = path.join(os.tmpdir(), `${taskName}.xml`);
+  const taskXml = `<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <Triggers>
+    <TimeTrigger>
+      <StartBoundary>2026-01-01T00:00:00</StartBoundary>
+    </TimeTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <Hidden>true</Hidden>
+    <ExecutionTimeLimit>PT1M</ExecutionTimeLimit>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>powershell.exe</Command>
+      <Arguments>-WindowStyle Hidden -ExecutionPolicy Bypass -File "${launcherPath}"</Arguments>
+    </Exec>
+  </Actions>
+</Task>
+`;
+  // BOM manual: fs.writeFile com encoding 'utf16le' não grava um sozinho, e
+  // sem ele o arquivo fica ambíguo sobre little/big-endian - o mesmo
+  // resultado de "Set-Content -Encoding Unicode" do PowerShell (usado pela
+  // tarefa do vigia, que já funciona), não um "utf16le" cru.
+  await fs.writeFile(taskXmlPath, utf16Bom + taskXml, 'utf16le');
+
+  // Espera os dois passos terminarem (e não só serem disparados) antes de
+  // deixar este processo morrer, já que a criação e o disparo em si
+  // dependem desse processo continuar vivo até o schtasks.exe terminar de
+  // conversar com o serviço do Agendador. "/f": não deveria existir uma
+  // tarefa com esse nome (é único), mas força sobrescrita mesmo assim -
+  // /xml exige a flag quando combinado com /tn, mesmo sem conflito real.
+  const create = await runSchtasks(['/create', '/tn', taskName, '/xml', taskXmlPath, '/f']);
   console.log(`schtasks /create -> código ${create.code}: ${create.output.trim()}`);
+  await fs.unlink(taskXmlPath).catch(() => {});
   const run = await runSchtasks(['/run', '/tn', taskName]);
   console.log(`schtasks /run -> código ${run.code}: ${run.output.trim()}`);
 

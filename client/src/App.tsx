@@ -31,6 +31,7 @@ import { PhotoMaterialModal } from './components/modals/PhotoMaterialModal.js';
 import { ErrorModal } from './components/modals/ErrorModal.js';
 import { UpdateProgressModal } from './components/modals/UpdateProgressModal.js';
 import { useOcrUpload } from './hooks/useOcrUpload.js';
+import { usePdfUpload } from './hooks/usePdfUpload.js';
 import { useClipboardCopy } from './hooks/useClipboardCopy.js';
 import { useAutoUpdate } from './hooks/useAutoUpdate.js';
 import { useCurrentVersion } from './hooks/useCurrentVersion.js';
@@ -39,6 +40,7 @@ import { UpdateBanner } from './components/UpdateBanner.js';
 export function App(): JSX.Element {
   const { state, dispatch } = useCutList();
   const ocr = useOcrUpload(dispatch);
+  const pdf = usePdfUpload(dispatch);
   const { copied, copy } = useClipboardCopy();
   const autoUpdate = useAutoUpdate();
   const currentVersion = useCurrentVersion();
@@ -145,6 +147,8 @@ export function App(): JSX.Element {
         photoStatusIsError={state.photoStatusIsError}
         photoInputKey={ocr.inputKey}
         onFilesSelected={ocr.handleFilesSelected}
+        pdfInputKey={pdf.inputKey}
+        onPdfFilesSelected={pdf.handleFilesSelected}
       />
 
       {state.previewVisible ? (

@@ -9,6 +9,8 @@ export interface PasteOrPhotoCardProps {
   photoStatusIsError: boolean;
   photoInputKey: number;
   onFilesSelected: (fileList: FileList | null) => void;
+  pdfInputKey: number;
+  onPdfFilesSelected: (fileList: FileList | null) => void;
 }
 
 const PLACEHOLDER = `MDF (titânio de 15mm fitado um lado maior)
@@ -25,8 +27,11 @@ export function PasteOrPhotoCard({
   photoStatusIsError,
   photoInputKey,
   onFilesSelected,
+  pdfInputKey,
+  onPdfFilesSelected,
 }: PasteOrPhotoCardProps): JSX.Element {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="card">
@@ -58,7 +63,7 @@ export function PasteOrPhotoCard({
           Enviar foto
         </button>
         <input
-          key={photoInputKey}
+          key={`photo-${photoInputKey}`}
           ref={fileInputRef}
           type="file"
           id="photo-input"
@@ -66,6 +71,19 @@ export function PasteOrPhotoCard({
           multiple
           className="visually-hidden"
           onChange={(e) => onFilesSelected(e.target.files)}
+        />
+        <button className="ghost" id="btn-send-pdf" onClick={() => pdfInputRef.current?.click()}>
+          Enviar PDF
+        </button>
+        <input
+          key={`pdf-${pdfInputKey}`}
+          ref={pdfInputRef}
+          type="file"
+          id="pdf-input"
+          accept="application/pdf"
+          multiple
+          className="visually-hidden"
+          onChange={(e) => onPdfFilesSelected(e.target.files)}
         />
         <span className={'photo-status' + (photoStatusIsError ? ' error' : '')}>{photoStatus}</span>
       </div>

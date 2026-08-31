@@ -1,34 +1,51 @@
 /**
  * table-columns.ts
  * ---------------------------------------------------------------------------
- * Lógica compartilhada entre os dois formatos de tabela reconhecidos numa
- * mensagem colada — Markdown (delimitada por "|", ver markdown-table.ts) e
- * TSV (colada de uma planilha, delimitada por tabulação, ver tsv-table.ts):
- * reconhecimento do nome de cada coluna no cabeçalho e leitura de uma linha
- * de dados já com as colunas mapeadas.
+ * Lógica compartilhada entre os formatos de tabela reconhecidos numa
+ * mensagem colada — Markdown (delimitada por "|", ver markdown-table.ts),
+ * TSV (colada de uma planilha ou reconstruída a partir de um PDF, ver
+ * tsv-table.ts): reconhecimento do nome de cada coluna no cabeçalho e
+ * leitura de uma linha de dados já com as colunas mapeadas.
  * ---------------------------------------------------------------------------
  */
 import { toNumber } from './numbers.js';
 import { extractHeaderInfo } from './header.js';
 import type { FitaState } from './types.js';
 
-const QTY_HEADER_ALIASES = ['quantidade', 'qtd', 'qtde', 'quant'];
-const COMPR_HEADER_ALIASES = ['comprimento', 'compr', 'comp'];
+const QTY_HEADER_ALIASES = ['quantidade', 'qtd', 'qtde', 'quant', 'qt'];
+const COMPR_HEADER_ALIASES = ['comprimento', 'compr', 'comp', 'altura'];
 const LARG_HEADER_ALIASES = ['largura', 'larg'];
-const FUNCAO_HEADER_ALIASES = ['peça', 'peca', 'peças', 'pecas', 'item', 'nome', 'descrição', 'descricao', 'função', 'funcao'];
+// "item" de propósito NÃO está aqui: numa tabela real de PDF (ver
+// PDF_TABLE_WITH_COMBINED_DIMENSAO nos testes), "Item" é uma coluna de
+// código/id (ex: "14.AZ", "1.BF"), separada de "Descrição" - incluir "item"
+// aqui fazia essa coluna de código vencer a de descrição de verdade,
+// quando as duas colunas existem juntas na mesma tabela.
+const FUNCAO_HEADER_ALIASES = ['peça', 'peca', 'peças', 'pecas', 'nome', 'descrição', 'descricao', 'função', 'funcao'];
 const MATERIAL_HEADER_ALIASES = ['material'];
+const COMPLEMENTO_HEADER_ALIASES = ['observação', 'observacao', 'ambiente'];
+/** Coluna com as 3 medidas já juntas numa célula só (ex: "1700 x 70 x 15") — alternativa a ter Comprimento/Largura em colunas separadas, comum em listas exportadas de programas de otimização de corte. */
+const DIMENSAO_HEADER_ALIASES = ['dimensão', 'dimensao', 'medidas'];
 const FITA_C1_HEADER_ALIASES = ['fita c1', 'c1'];
 const FITA_C2_HEADER_ALIASES = ['fita c2', 'c2'];
 const FITA_L1_HEADER_ALIASES = ['fita l1', 'l1'];
 const FITA_L2_HEADER_ALIASES = ['fita l2', 'l2'];
 
+/** "1700 x 70 x 15" -> [1700, 70, 15] (comprimento, largura, espessura), na ordem em que aparecem na célula. */
+const COMBINED_DIMENSION_RE = /^(\d+(?:[.,]\d+)?)\s*x\s*(\d+(?:[.,]\d+)?)\s*x\s*(\d+(?:[.,]\d+)?)$/i;
+
 /** Índice (na linha, já dividida em células) de cada coluna reconhecida no cabeçalho. */
 export interface TableColumns {
-  qtyIdx: number;
-  comprIdx: number;
-  largIdx: number;
+  /** `null` quando a tabela não tem coluna de quantidade — cada linha conta como 1 peça (comum em listas onde peças repetidas viram linhas duplicadas, sem quantidade nenhuma). */
+  qtyIdx: number | null;
+  /** `null` quando a medida vem combinada numa única coluna "Dimensão" (ver `dimensaoIdx`) em vez de colunas separadas. */
+  comprIdx: number | null;
+  largIdx: number | null;
+  /** Coluna com as 3 medidas juntas ("1700 x 70 x 15") — alternativa a `comprIdx`/`largIdx` separados. `null` se a tabela usa colunas separadas. */
+  dimensaoIdx: number | null;
   /** Coluna com o nome/descrição da peça (ex: "Pilares verticais") ou a própria Função (ex: "TRAV") — `null` se a tabela não tiver essa coluna. */
   funcaoIdx: number | null;
+  /** Coluna com o ambiente/complemento (ex: "SALA") — `null` se a tabela não tiver essa coluna. */
+  complementoIdx: number | null;
   /** Coluna com o material da linha (ex: "MDF 25mm") — `null` se a tabela não tiver essa coluna. */
   materialIdx: number | null;
   /** Colunas de fita explícita por lado (✓/-) — `null` cada uma se a tabela não tiver essa coluna específica. */
@@ -44,6 +61,7 @@ export interface TableRow {
   compr: number;
   larg: number;
   funcao: string | null;
+  complemento: string | null;
   material: string | null;
   thicknessMm: number | null;
   /** Só vem preenchido quando a tabela tem pelo menos uma coluna de fita (Fita C1/C2/L1/L2) — nesse caso, representa o estado explícito e completo dessa linha (coluna ausente = lado não fitado). */
@@ -67,29 +85,36 @@ function normalizeHeaderCell(cell: string): string {
 /**
  * Tenta mapear as células de uma linha de cabeçalho (já divididas pelo
  * delimitador do formato específico — "|" ou tabulação) para o índice de
- * cada coluna reconhecida. Devolve null se não tiver as três colunas
- * obrigatórias (Quantidade, Comprimento, Largura).
+ * cada coluna reconhecida. Devolve null se não tiver Comprimento+Largura
+ * (separados) NEM Dimensão (combinada) — essas são as únicas colunas
+ * realmente obrigatórias; Quantidade é opcional (linha sem ela vale 1 peça).
  */
 export function matchTableColumns(cells: string[]): TableColumns | null {
-  if (cells.length < 3) return null;
+  if (cells.length < 2) return null;
 
   const normalized = cells.map(normalizeHeaderCell);
   const qtyIdx = normalized.findIndex((cell) => QTY_HEADER_ALIASES.includes(cell));
   const comprIdx = normalized.findIndex((cell) => COMPR_HEADER_ALIASES.includes(cell));
   const largIdx = normalized.findIndex((cell) => LARG_HEADER_ALIASES.includes(cell));
-  if (qtyIdx === -1 || comprIdx === -1 || largIdx === -1) return null;
+  const dimensaoIdx = normalized.findIndex((cell) => DIMENSAO_HEADER_ALIASES.includes(cell));
+
+  const hasSeparateDimensions = comprIdx !== -1 && largIdx !== -1;
+  if (!hasSeparateDimensions && dimensaoIdx === -1) return null;
 
   const funcaoIdx = normalized.findIndex((cell) => FUNCAO_HEADER_ALIASES.includes(cell));
+  const complementoIdx = normalized.findIndex((cell) => COMPLEMENTO_HEADER_ALIASES.includes(cell));
   const materialIdx = normalized.findIndex((cell) => MATERIAL_HEADER_ALIASES.includes(cell));
   const c1Idx = normalized.findIndex((cell) => FITA_C1_HEADER_ALIASES.includes(cell));
   const c2Idx = normalized.findIndex((cell) => FITA_C2_HEADER_ALIASES.includes(cell));
   const l1Idx = normalized.findIndex((cell) => FITA_L1_HEADER_ALIASES.includes(cell));
   const l2Idx = normalized.findIndex((cell) => FITA_L2_HEADER_ALIASES.includes(cell));
   return {
-    qtyIdx,
-    comprIdx,
-    largIdx,
+    qtyIdx: qtyIdx === -1 ? null : qtyIdx,
+    comprIdx: hasSeparateDimensions ? comprIdx : null,
+    largIdx: hasSeparateDimensions ? largIdx : null,
+    dimensaoIdx: hasSeparateDimensions ? null : dimensaoIdx,
     funcaoIdx: funcaoIdx === -1 ? null : funcaoIdx,
+    complementoIdx: complementoIdx === -1 ? null : complementoIdx,
     materialIdx: materialIdx === -1 ? null : materialIdx,
     c1Idx: c1Idx === -1 ? null : c1Idx,
     c2Idx: c2Idx === -1 ? null : c2Idx,
@@ -116,15 +141,31 @@ function isFitaCellChecked(cell: string): boolean {
  * reconhecida" em analyzeText, indo para a conferência.
  */
 export function buildTableRow(cells: string[], columns: TableColumns): TableRow | null {
-  const maxIdx = Math.max(columns.qtyIdx, columns.comprIdx, columns.largIdx);
+  const requiredIdxs = [columns.qtyIdx, columns.comprIdx, columns.largIdx, columns.dimensaoIdx].filter(
+    (idx): idx is number => idx != null,
+  );
+  const maxIdx = Math.max(...requiredIdxs);
   if (cells.length <= maxIdx) return null;
 
-  const qty = toNumber(cells[columns.qtyIdx]!);
-  const compr = toNumber(cells[columns.comprIdx]!);
-  const larg = toNumber(cells[columns.largIdx]!);
+  const qty = columns.qtyIdx != null ? toNumber(cells[columns.qtyIdx]!) : 1;
+
+  let compr: number;
+  let larg: number;
+  let dimensionThickness: number | null = null;
+  if (columns.dimensaoIdx != null) {
+    const dimensionMatch = COMBINED_DIMENSION_RE.exec(cells[columns.dimensaoIdx]!.trim());
+    if (!dimensionMatch) return null;
+    compr = toNumber(dimensionMatch[1]!);
+    larg = toNumber(dimensionMatch[2]!);
+    dimensionThickness = toNumber(dimensionMatch[3]!);
+  } else {
+    compr = toNumber(cells[columns.comprIdx!]!);
+    larg = toNumber(cells[columns.largIdx!]!);
+  }
   if (isNaN(qty) || isNaN(compr) || isNaN(larg)) return null;
 
   const funcaoCell = columns.funcaoIdx != null ? cells[columns.funcaoIdx] : null;
+  const complementoCell = columns.complementoIdx != null ? cells[columns.complementoIdx] : null;
 
   // "MDF 25mm" -> material "MDF", espessura 25 - mesma leitura usada por um
   // cabeçalho "MDF ..." de bloco (ver header.ts).
@@ -146,8 +187,9 @@ export function buildTableRow(cells: string[], columns: TableColumns): TableRow 
     compr,
     larg,
     funcao: funcaoCell || null,
+    complemento: complementoCell || null,
     material: materialInfo?.material || null,
-    thicknessMm: materialInfo?.thickness ?? null,
+    thicknessMm: materialInfo?.thickness ?? dimensionThickness,
     customFita,
   };
 }

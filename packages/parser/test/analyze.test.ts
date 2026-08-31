@@ -18,6 +18,8 @@ import {
   MARKDOWN_TABLE_LIST_WITH_UNIT_HEADER,
   MARKDOWN_TABLE_LIST_WITH_FITA_COLUMNS,
   TSV_TABLE_LIST,
+  PDF_TABLE_WITH_OBSERVACAO,
+  PDF_TABLE_WITH_COMBINED_DIMENSAO,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -185,6 +187,38 @@ describe('analyzeText — tabela colada de planilha (TSV, delimitada por tabula�
       { qtd: 2, compr: 860, larg: 120, funcao: 'LAT', material: 'MDF 25mm', fita: { c1: true, c2: true, l1: false, l2: false } },
     ]);
     expect(result.materialMentioned).toBe(false); // material vem da própria linha, não de um cabeçalho de bloco.
+  });
+});
+
+describe('analyzeText — tabela extraída de PDF via OCR, com "Observação" (real user data)', () => {
+  it('lê Largura/Altura (Altura = comprimento) e usa Observação como Complemento', () => {
+    const result = analyzeText(PDF_TABLE_WITH_OBSERVACAO, makeNextId());
+
+    expect(result.discarded).toHaveLength(0);
+    expect(result.pieces).toHaveLength(3);
+    expect(
+      result.pieces.map((p) => ({ qtd: p.qtd, compr: p.compr, larg: p.larg, funcao: p.funcao, complemento: p.complemento })),
+    ).toEqual([
+      { qtd: 1, compr: 302, larg: 1452, funcao: 'Painel @B14 @T14 @L14 @R14', complemento: 'SALA' },
+      { qtd: 1, compr: 302, larg: 223.5, funcao: 'Lateral Esquerda @B14 @T14 @L14 @R14', complemento: 'SALA' },
+      { qtd: 1, compr: 301, larg: 207, funcao: 'Divisoria @B14 @R14', complemento: 'SALA' },
+    ]);
+  });
+});
+
+describe('analyzeText — tabela extraída de PDF via OCR, sem quantidade e com Dimensão combinada (real user data)', () => {
+  it('lê "compr x larg x espessura" de uma célula só e assume 1 peça por linha (sem coluna de quantidade)', () => {
+    const result = analyzeText(PDF_TABLE_WITH_COMBINED_DIMENSAO, makeNextId());
+
+    expect(result.discarded).toHaveLength(0);
+    expect(result.pieces).toHaveLength(3);
+    expect(
+      result.pieces.map((p) => ({ qtd: p.qtd, compr: p.compr, larg: p.larg, thicknessMm: p.thicknessMm, funcao: p.funcao })),
+    ).toEqual([
+      { qtd: 1, compr: 250, larg: 435, thicknessMm: 15, funcao: 'Base 15' },
+      { qtd: 1, compr: 250, larg: 435, thicknessMm: 15, funcao: 'Prateleira Linear (Fixa)' },
+      { qtd: 1, compr: 1700, larg: 70, thicknessMm: 15, funcao: 'Base 15' },
+    ]);
   });
 });
 

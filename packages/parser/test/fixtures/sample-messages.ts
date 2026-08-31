@@ -84,6 +84,31 @@ export const TSV_TABLE_LIST = [
   '2\t860\t120\tLAT\t✓\t✓\t-\t-\tMDF 25mm',
 ].join('\n');
 
+/**
+ * Tabela real extraída (via OCR) de um plano de corte em PDF — colunas
+ * "Largura"/"Altura" separadas (Altura = comprimento) e "Observação" (o
+ * ambiente da peça, ex: "SALA"), com colunas extras não usadas (Projeto,
+ * Código, Leg) que devem ser ignoradas.
+ */
+export const PDF_TABLE_WITH_OBSERVACAO = [
+  'N\tProjeto\tCódigo\tDescrição\tObservação\tLeg\tLargura\tAltura\tQt',
+  '1\t322\t9\tPainel @B14 @T14 @L14 @R14\tSALA\tA\t1452\t302\t1',
+  '2\t322\t1\tLateral Esquerda @B14 @T14 @L14 @R14\tSALA\tB\t223,5\t302\t1',
+  '7\t322\t3\tDivisoria @B14 @R14\tSALA\tG\t207\t301\t1',
+].join('\n');
+
+/**
+ * Tabela real extraída (via OCR) de uma "Lista de Cortes" em PDF — sem
+ * coluna de quantidade nenhuma (cada peça repetida vira uma linha própria)
+ * e com a coluna "Dimensão" trazendo as 3 medidas juntas numa célula só.
+ */
+export const PDF_TABLE_WITH_COMBINED_DIMENSAO = [
+  'Item\tDescrição\tDimensão\tBorda\tDescrição do Pai\tProjeto (Cliente)\tObs.',
+  '14.AZ\tBase 15\t250 x 435 x 15\tInferior\t50-Cozinhas - Ambiente 3D(Sem Cliente)\t\t',
+  '15.AZ\tPrateleira Linear (Fixa)\t250 x 435 x 15\tInferior\t50-Cozinhas - Ambiente 3D(Sem Cliente)\t\t',
+  '1.BF\tBase 15\t1700 x 70 x 15\tSuperior\t50-Cozinhas - Ambiente 3D(Sem Cliente)\t\t',
+].join('\n');
+
 /** Linha de peça com digitação truncada, mas que tem correção válida sugerível. */
 export const TYPO_LINE = '2=50/32..2';
 

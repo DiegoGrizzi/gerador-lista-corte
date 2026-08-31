@@ -58,6 +58,15 @@ processo pra instalar pela primeira vez ou pra atualizar depois.
 - Se fechar o navegador, o sistema continua rodando em segundo plano —
   é só abrir o atalho de novo.
 
+## Se o sistema cair sozinho
+
+Uma tarefa agendada recorrente (`GeradorListaCorteVigia`, criada
+automaticamente na primeira vez que o servidor sobe — ver
+`deploy/vigia-servidor.ps1`) confere a cada 2 minutos se o servidor está
+respondendo e religa sozinho se não estiver, não importa o motivo da queda.
+Então, mesmo que uma atualização automática falhe ao reiniciar, o sistema
+volta ao ar sozinho em até 2 minutos, sem precisar de ninguém mexer.
+
 ## Depois de atualizar o código
 
 Rode o `instalador.bat` de novo (mesma máquina, mesmo

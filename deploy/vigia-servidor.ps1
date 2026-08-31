@@ -26,8 +26,25 @@ $scriptDir = $PSScriptRoot
 $launcherPath = Join-Path $scriptDir 'iniciar-servidor-oculto.ps1'
 $port = 5175
 
-$isListening = $null -ne (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)
-if (-not $isListening) {
+# Tenta conectar de verdade na porta, em vez de consultar a tabela de
+# conexões do Windows (Get-NetTCPConnection) - essa consulta passa por
+# WMI/CIM por baixo dos panos, que já se mostrou pouco confiável quando
+# rodado dentro de uma tarefa agendada (contexto de execução diferente de
+# rodar interativamente), causando religamentos disparados à toa com o
+# servidor já no ar (visível como uma janela de cmd piscando a cada
+# checagem). Uma conexão TCP de verdade é o sinal mais direto possível de
+# "tem algo respondendo aqui".
+$isUp = $false
+try {
+    $client = New-Object System.Net.Sockets.TcpClient
+    $client.Connect('127.0.0.1', $port)
+    $isUp = $true
+    $client.Close()
+} catch {
+    $isUp = $false
+}
+
+if (-not $isUp) {
     # Start-Process (não bloqueante) de propósito: precisa terminar rápido
     # pra não deixar essa MESMA tarefa agendada "presa em execução" e
     # impedir a próxima checagem de rodar no horário (o servidor, uma vez

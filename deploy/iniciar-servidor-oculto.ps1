@@ -71,4 +71,15 @@ Set-Location $serverDir
 # FullyQualifiedErrorId :" etc.) mesmo quando não houve erro nenhum de
 # verdade - poluindo o log. O redirecionamento do cmd.exe ("2>&1") é
 # simples e direto, sem essa embromação.
-& cmd /c "node dist\index.js >> `"$logPath`" 2>&1"
+#
+# Start-Process com -WindowStyle Hidden aqui de propósito, em vez do
+# operador de chamada "&" usado antes: esse cmd.exe filho não herda
+# automaticamente o estilo de janela escondido do PowerShell pai em todo
+# contexto (relatado pelo usuário: uma janela do cmd piscando na tela a
+# cada checagem do vigia, a cada 2 minutos) - Start-Process aplica o
+# esconder direto nesse processo, sem depender de herança nenhuma. Não
+# precisa mais ser bloqueante (o script antigo ficava "preso" aqui pra
+# sempre, já que o node roda para sempre): nada depois desta linha faz
+# limpeza nenhuma, então o script pode terminar na hora - o node, uma vez
+# iniciado, continua rodando independente deste processo ter saído.
+Start-Process -FilePath 'cmd.exe' -ArgumentList @('/c', "node dist\index.js >> `"$logPath`" 2>&1") -WindowStyle Hidden

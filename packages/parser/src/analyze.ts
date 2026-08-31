@@ -160,6 +160,7 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
   /** Sobrescritas vindas de uma linha de tabela (Markdown ou TSV) — cada campo da própria linha tem prioridade sobre o contexto corrente. */
   interface DimensionFirstOverrides {
     funcao?: string | null;
+    complemento?: string | null;
     material?: string | null;
     thicknessMm?: number | null;
     customFita?: RawPiece['customFita'];
@@ -179,6 +180,7 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     pendingMaterialName = null;
     const piece = buildPieceFromDimensionFirstMatch(match, ctx);
     if (overrides?.funcao) piece.funcao = overrides.funcao;
+    if (overrides?.complemento) piece.complemento = overrides.complemento;
     if (overrides?.material) piece.material = overrides.material;
     if (overrides?.thicknessMm != null) piece.thicknessMm = overrides.thicknessMm;
     if (overrides?.customFita) piece.customFita = overrides.customFita;
@@ -273,6 +275,7 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
         }
         addDimensionFirstPiece(tableRow, snapshotContext(), {
           funcao: tableRow.funcao,
+          complemento: tableRow.complemento,
           material: tableRow.material,
           thicknessMm: tableRow.thicknessMm,
           customFita: tableRow.customFita,

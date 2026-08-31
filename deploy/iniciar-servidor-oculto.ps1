@@ -39,20 +39,74 @@ $logPath = Join-Path $scriptDir 'server.log'
 # antes mesmo dele chegar até aqui, em vez do node ter falhado ao iniciar.
 Add-Content -Path $logPath -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] iniciar-servidor-oculto.ps1 iniciado"
 
-# Garante que a tarefa recorrente de vigia está registrada (ver
-# deploy/vigia-servidor.ps1) - checado em TODA inicialização (não só na
-# instalação), pra que instalações já existentes ganhem essa proteção
-# sozinhas, na próxima vez que o servidor subir, sem precisar rodar o
-# instalador de novo. Só tenta CRIAR se ainda não existe: sobrescrever uma
-# tarefa já criada esbarrou num "Acesso negado" real (ver comentário sobre
-# isso em run-update.ts), então o mais seguro é nunca tentar de novo depois
-# da primeira vez.
+# Garante que a tarefa recorrente de vigia está registrada COM a
+# propriedade "Oculta" de verdade (ver deploy/vigia-servidor.ps1) -
+# checado em TODA inicialização (não só na instalação), pra que
+# instalações já existentes ganhem essa proteção sozinhas, na próxima vez
+# que o servidor subir, sem precisar rodar o instalador de novo.
+#
+# "-WindowStyle Hidden" no argumento do PowerShell (usado na primeira
+# versão desta proteção) reduz o tempo de uma janela aparecer, mas não
+# GARANTE isso numa tarefa agendada - o Windows pode alocar brevemente uma
+# janela de console antes do PowerShell processar esse argumento (relatado
+# pelo usuário: uma janela ainda piscava a cada checagem, mesmo depois
+# dessa tentativa). A propriedade "Oculta" da PRÓPRIA tarefa (<Hidden>true
+# no XML) é o mecanismo de verdade pra isso - só dá pra configurar via XML,
+# o "schtasks /create" simples não tem opção de linha de comando pra ela.
+#
+# Se a tarefa já existe mas SEM essa propriedade (de uma versão anterior
+# desta proteção), apaga e recria - ao contrário do religamento de
+# uma-vez-só do auto-update (run-update.ts), que usa nome único
+# justamente pra nunca precisar sobrescrever, aqui é seguro porque é
+# sempre esta mesma tarefa, criada por este mesmo script.
 $vigiaTaskName = 'GeradorListaCorteVigia'
-schtasks /query /tn $vigiaTaskName 2>$null | Out-Null
-if ($LASTEXITCODE -ne 0) {
+$vigiaCurrentXml = schtasks /query /tn $vigiaTaskName /xml 2>$null
+$vigiaAlreadyHidden = ($LASTEXITCODE -eq 0) -and ($vigiaCurrentXml -match '<Hidden>true</Hidden>')
+
+if (-not $vigiaAlreadyHidden) {
+    schtasks /delete /tn $vigiaTaskName /f 2>$null | Out-Null
+
     $vigiaScriptPath = Join-Path $scriptDir 'vigia-servidor.ps1'
-    $vigiaTr = "powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -File \`"$vigiaScriptPath\`""
-    schtasks /create /tn $vigiaTaskName /tr $vigiaTr /sc minute /mo 2 /f 2>$null | Out-Null
+    $vigiaTaskXmlPath = Join-Path $env:TEMP 'gerador-lista-corte-vigia-task.xml'
+    $vigiaTaskXml = @"
+<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <Triggers>
+    <TimeTrigger>
+      <StartBoundary>2026-01-01T00:00:00</StartBoundary>
+      <Enabled>true</Enabled>
+      <Repetition>
+        <Interval>PT2M</Interval>
+        <StopAtDurationEnd>false</StopAtDurationEnd>
+      </Repetition>
+    </TimeTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <Hidden>true</Hidden>
+    <ExecutionTimeLimit>PT1M</ExecutionTimeLimit>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>powershell.exe</Command>
+      <Arguments>-WindowStyle Hidden -ExecutionPolicy Bypass -File "$vigiaScriptPath"</Arguments>
+    </Exec>
+  </Actions>
+</Task>
+"@
+    Set-Content -Path $vigiaTaskXmlPath -Value $vigiaTaskXml -Encoding Unicode
+    schtasks /create /tn $vigiaTaskName /xml $vigiaTaskXmlPath /f 2>$null | Out-Null
+    Remove-Item -Path $vigiaTaskXmlPath -Force -ErrorAction SilentlyContinue
 }
 
 # Espera o processo antigo do servidor morrer de vez e liberar a porta e o

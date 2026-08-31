@@ -23,21 +23,29 @@ export function MmUnitModal({ isOpen, onAnswered }: MmUnitModalProps): JSX.Eleme
     }
   }, [isOpen]);
 
+  // Ouvinte no document, em vez de onKeyDown no próprio modal: os botões
+  // "Sim"/"Não" não recebem foco sozinhos ao abrir (nenhum autoFocus), então
+  // um onKeyDown local dependia do usuário já ter clicado dentro do modal
+  // antes de apertar Enter (o evento só propaga a partir de quem está com
+  // foco) - na prática o Enter simplesmente não fazia nada.
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      // Enter confirma a etapa atual - "Sim, já em mm" (passo 1) ou
+      // "Converter para mm" (passo 2, se o usuário já escolheu "Não").
+      if (e.key !== 'Enter') return;
+      if (showUnitStep) {
+        onAnswered(unit);
+      } else {
+        onAnswered(1);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, showUnitStep, unit, onAnswered]);
+
   return (
-    <div
-      className={'modal-overlay' + (isOpen ? ' open' : '')}
-      id="mm-modal-wrap"
-      onKeyDown={(e) => {
-        // Enter confirma a etapa atual - "Sim, já em mm" (passo 1) ou
-        // "Converter para mm" (passo 2, se o usuário já escolheu "Não").
-        if (e.key !== 'Enter') return;
-        if (showUnitStep) {
-          onAnswered(unit);
-        } else {
-          onAnswered(1);
-        }
-      }}
-    >
+    <div className={'modal-overlay' + (isOpen ? ' open' : '')} id="mm-modal-wrap">
       <div className="modal">
         <p className="title">As medidas já estão em milímetros (mm)?</p>
         <p className="sub">Confira antes de revisar as peças — evita peças cortadas na medida errada.</p>

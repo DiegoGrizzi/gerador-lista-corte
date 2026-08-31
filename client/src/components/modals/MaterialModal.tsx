@@ -34,6 +34,9 @@ export function MaterialModal({ isOpen, onConfirm }: MaterialModalProps): JSX.El
           placeholder="Ex: MDF branco 15mm"
           value={material}
           onChange={(e) => setMaterial(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && canConfirm) onConfirm(material);
+          }}
         />
         <div className="choice-row">
           <button

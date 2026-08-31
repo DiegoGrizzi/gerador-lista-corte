@@ -42,6 +42,9 @@ export function PhotoMaterialModal({ isOpen, prompt, onConfirm, onInherit }: Pho
           placeholder="Ex: branco 15mm"
           value={material}
           onChange={(e) => setMaterial(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && canConfirm) onConfirm(material);
+          }}
         />
         <div className="choice-row">
           <button

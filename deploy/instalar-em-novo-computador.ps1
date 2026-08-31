@@ -180,10 +180,25 @@ if ($installDirExists -and -not $isGitRepo -and -not $isEmptyDir) {
 }
 
 if ($isGitRepo) {
+    # Usa "fetch + reset --hard" em vez de "git pull" de proposito - caso
+    # real reportado: "git pull" falhou com "Your local changes to
+    # package-lock.json would be overwritten by merge". O npm (principalmente
+    # no Windows, por causa de dependencias opcionais especificas da
+    # plataforma - o mesmo tipo de problema do Rollup comentado mais abaixo)
+    # as vezes reescreve package-lock.json de um jeito levemente diferente do
+    # que esta commitado, e essa mudanca local trava qualquer atualizacao
+    # futura. Esta pasta e uma instalacao controlada pelo instalador -
+    # ninguem deveria editar nada aqui a mao - entao descartar qualquer
+    # mudanca local antes de atualizar e o comportamento certo, nao uma
+    # perda de trabalho de verdade.
     Write-Host 'Atualizando projeto existente...'
     Push-Location $InstallDir
-    git pull
+    git fetch origin
     $gitExitCode = $LASTEXITCODE
+    if ($gitExitCode -eq 0) {
+        git reset --hard '@{u}'
+        $gitExitCode = $LASTEXITCODE
+    }
     Pop-Location
     if ($gitExitCode -ne 0) {
         Stop-OnFailure 'git pull falhou. Confira a conexao com a internet e tente de novo.'

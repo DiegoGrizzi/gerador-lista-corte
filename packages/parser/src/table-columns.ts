@@ -30,8 +30,8 @@ const FITA_C2_HEADER_ALIASES = ['fita c2', 'c2'];
 const FITA_L1_HEADER_ALIASES = ['fita l1', 'l1'];
 const FITA_L2_HEADER_ALIASES = ['fita l2', 'l2'];
 
-/** "1700 x 70 x 15" -> [1700, 70, 15] (comprimento, largura, espessura), na ordem em que aparecem na célula. */
-const COMBINED_DIMENSION_RE = /^(\d+(?:[.,]\d+)?)\s*x\s*(\d+(?:[.,]\d+)?)\s*x\s*(\d+(?:[.,]\d+)?)$/i;
+/** "1700 x 70 x 15" -> [1700, 70, 15] (comprimento, largura, espessura), na ordem em que aparecem na célula. Aceita "x" ou "×" (sinal de multiplicação de verdade). */
+const COMBINED_DIMENSION_RE = /^(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)$/i;
 
 /** Índice (na linha, já dividida em células) de cada coluna reconhecida no cabeçalho. */
 export interface TableColumns {

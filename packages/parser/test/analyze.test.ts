@@ -20,6 +20,7 @@ import {
   TSV_TABLE_LIST,
   PDF_TABLE_WITH_OBSERVACAO,
   PDF_TABLE_WITH_COMBINED_DIMENSAO,
+  MULTIPLICATION_SIGN_MESSAGE,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -430,5 +431,17 @@ describe('analyzeText — quantidade por extenso, saudação colada e espessura 
     const result = analyzeText(SPELLED_OUT_QUANTITY_MESSAGE, makeNextId());
     const last = result.pieces[13]!;
     expect(last).toMatchObject({ qtd: 1, compr: 1730, larg: 2000, funcao: 'fundo', thicknessMm: 6 });
+  });
+});
+
+describe('analyzeText — "×" (sinal de multiplicação de verdade) como separador de medidas (real user list)', () => {
+  it('reconhece as 4 peças em vez de mandar tudo pra conferência', () => {
+    const result = analyzeText(MULTIPLICATION_SIGN_MESSAGE, makeNextId());
+    expect(result.pieces).toMatchObject([
+      { qtd: 4, compr: 0.55, larg: 2.45 },
+      { qtd: 2, compr: 0.55, larg: 1.47 },
+      { qtd: 10, compr: 0.55, larg: 0.67 },
+      { qtd: 2, compr: 0.71, larg: 2.4 },
+    ]);
   });
 });

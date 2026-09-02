@@ -297,3 +297,19 @@ export const SPELLED_OUT_QUANTITY_MESSAGE = [
   'esses são de 15 ml',
   'uma de 1730x2000 fundo de 6ml',
 ].join('\n');
+
+/**
+ * Lista real de um usuário usando "×" (sinal de multiplicação de verdade,
+ * U+00D7 — comum ao colar de teclado de símbolos do celular), não a letra
+ * "x", como separador entre as medidas, com o material declarado numa
+ * linha só DEPOIS de todas as peças. Antes desta correção, "×" não batia
+ * com nenhum separador aceito e a linha inteira ia pra conferência (mesmo
+ * "parecendo" uma peça).
+ */
+export const MULTIPLICATION_SIGN_MESSAGE = [
+  '04= 0,55×2,45',
+  '02=0,55×1,47',
+  '10=0,55×0,67',
+  '02=0,71×2,40',
+  'Tudo branco comum sem fitamento',
+].join('\n');

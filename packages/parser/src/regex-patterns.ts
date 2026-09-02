@@ -27,20 +27,22 @@ export const QUANTITY_RE = new RegExp('^(\\d+)\\s*(' + QUANTITY_MARKER_WORDS + '
 
 /**
  * Duas medidas (comprimento x largura), aceitando:
- *  - separador "x", "pro" (=por), "/" ou "*" (ex: "3*624*480" — lista onde
- *    o usuário usa "*" no lugar de "x" em toda a mensagem)
+ *  - separador "x", "×" (sinal de multiplicação de verdade, comum ao colar
+ *    de calculadora/teclado de símbolos no celular), "pro" (=por), "/" ou
+ *    "*" (ex: "3*624*480" — lista onde o usuário usa "*" no lugar de "x"
+ *    em toda a mensagem)
  *  - decimais com ponto, vírgula ou aspa simples (56'5 = 56,5)
  *  - a palavra "fita" colada a um dos números, indicando fita naquele lado
  *  - uma terceira medida opcional (espessura), ex: "820 x 400 x 18"
  *
  * "fita" só é reconhecida como essa marcação quando faz sentido como
- * palavra isolada (antes do separador "x"/"pro", ou no fim, sem mais
+ * palavra isolada (antes do separador "x"/"×"/"pro", ou no fim, sem mais
  * letras coladas depois) — isso evita confundir com o início de uma
  * palavra maior colada sem espaço, como "49'5fitado os 4 lados", onde
  * "fita" faz parte de "fitado", não é a marcação de fita no número.
  */
 export const DIMENSIONS_RE =
-  /(\d+(?:[.,']\d+)?)\s*(fita(?=\s*(?:x|pro)))?\s*(?:x|pro|\/|\*)\s*(\d+(?:[.,']\d+)?)\s*(fita(?![a-zà-öø-ÿ]))?(?:\s*(?:x|pro|\*)?\s*(\d+(?:[.,']\d+)?))?/i;
+  /(\d+(?:[.,']\d+)?)\s*(fita(?=\s*(?:x|×|pro)))?\s*(?:x|×|pro|\/|\*)\s*(\d+(?:[.,']\d+)?)\s*(fita(?![a-zà-öø-ÿ]))?(?:\s*(?:x|×|pro|\*)?\s*(\d+(?:[.,']\d+)?))?/i;
 
 /**
  * Igual a DIMENSIONS_RE, mas sem aceitar "/" como separador.
@@ -49,7 +51,7 @@ export const DIMENSIONS_RE =
  * seria lida como uma peça de 1x4.
  */
 export const DIMENSIONS_NO_SLASH_RE =
-  /(\d+(?:[.,']\d+)?)\s*(fita(?=\s*(?:x|pro)))?\s*(?:x|pro|\*)\s*(\d+(?:[.,']\d+)?)\s*(fita(?![a-zà-öø-ÿ]))?(?:\s*(?:x|pro|\*)?\s*(\d+(?:[.,']\d+)?))?/i;
+  /(\d+(?:[.,']\d+)?)\s*(fita(?=\s*(?:x|×|pro)))?\s*(?:x|×|pro|\*)\s*(\d+(?:[.,']\d+)?)\s*(fita(?![a-zà-öø-ÿ]))?(?:\s*(?:x|×|pro|\*)?\s*(\d+(?:[.,']\d+)?))?/i;
 
 /**
  * Formato alternativo, com as medidas ANTES da quantidade e separadas dela
@@ -63,7 +65,7 @@ export const DIMENSIONS_NO_SLASH_RE =
  * corrente (ver buildPieceFromDimensionFirstMatch).
  */
 export const DIMENSION_FIRST_RE = new RegExp(
-  '^(\\d+(?:[.,\']\\d+)?)\\s*x\\s*(\\d+(?:[.,\']\\d+)?)\\s*:\\s*(\\d+)?\\s*(?:' + QUANTITY_MARKER_WORDS + ')?\\.?$',
+  '^(\\d+(?:[.,\']\\d+)?)\\s*[x×]\\s*(\\d+(?:[.,\']\\d+)?)\\s*:\\s*(\\d+)?\\s*(?:' + QUANTITY_MARKER_WORDS + ')?\\.?$',
   'i',
 );
 
@@ -173,7 +175,7 @@ export const UNIT_ONLY_RE = /^(mm|cm|m)\.?$/i;
  * para a lista de conferência (em vez de ser ignorada silenciosamente,
  * como aconteceria com o nome de um ambiente que tem número, "Quarto 2").
  */
-export const LOOKS_LIKE_PIECE_RE = /\d+\s*[.,'+\-*/x]+\s*\d+/i;
+export const LOOKS_LIKE_PIECE_RE = /\d+\s*[.,'+\-*/x×]+\s*\d+/i;
 
 /**
  * Sinal de número cortado por digitação: um símbolo (. , ' + - * /) colado

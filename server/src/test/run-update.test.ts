@@ -28,7 +28,8 @@ describe('runUpdateSteps', () => {
   it('não roda "npm install" quando o pull não muda package.json/package-lock.json', async () => {
     vi.mocked(spawn)
       .mockImplementationOnce(() => fakeChild(0, 'sha-antes') as never) // git rev-parse HEAD (antes)
-      .mockImplementationOnce(() => fakeChild(0) as never) // git pull
+      .mockImplementationOnce(() => fakeChild(0) as never) // git fetch origin
+      .mockImplementationOnce(() => fakeChild(0) as never) // git reset --hard @{u}
       .mockImplementationOnce(() => fakeChild(0, 'sha-depois') as never) // git rev-parse HEAD (depois)
       .mockImplementationOnce(() => fakeChild(0, 'client/src/App.tsx\nREADME.md') as never) // git diff --name-only
       .mockImplementationOnce(() => fakeChild(0) as never); // npm run build
@@ -36,11 +37,12 @@ describe('runUpdateSteps', () => {
     const result = await runUpdateSteps(PROJECT_ROOT);
 
     expect(result).toEqual({ ok: true });
-    expect(spawn).toHaveBeenCalledTimes(5);
+    expect(spawn).toHaveBeenCalledTimes(6);
     const commands = vi.mocked(spawn).mock.calls.map((call) => [call[0], call[1]]);
     expect(commands).toEqual([
       ['git', ['rev-parse', 'HEAD']],
-      ['git', ['pull']],
+      ['git', ['fetch', 'origin']],
+      ['git', ['reset', '--hard', '@{u}']],
       ['git', ['rev-parse', 'HEAD']],
       ['git', ['diff', '--name-only', 'sha-antes', 'sha-depois']],
       ['npm', ['run', 'build']],
@@ -50,7 +52,8 @@ describe('runUpdateSteps', () => {
   it('roda "npm install" quando o pull muda package-lock.json', async () => {
     vi.mocked(spawn)
       .mockImplementationOnce(() => fakeChild(0, 'sha-antes') as never)
-      .mockImplementationOnce(() => fakeChild(0) as never)
+      .mockImplementationOnce(() => fakeChild(0) as never) // git fetch origin
+      .mockImplementationOnce(() => fakeChild(0) as never) // git reset --hard @{u}
       .mockImplementationOnce(() => fakeChild(0, 'sha-depois') as never)
       .mockImplementationOnce(() => fakeChild(0, 'package-lock.json\nserver/src/index.ts') as never)
       .mockImplementationOnce(() => fakeChild(0) as never) // npm install
@@ -62,7 +65,8 @@ describe('runUpdateSteps', () => {
     const commands = vi.mocked(spawn).mock.calls.map((call) => [call[0], call[1]]);
     expect(commands).toEqual([
       ['git', ['rev-parse', 'HEAD']],
-      ['git', ['pull']],
+      ['git', ['fetch', 'origin']],
+      ['git', ['reset', '--hard', '@{u}']],
       ['git', ['rev-parse', 'HEAD']],
       ['git', ['diff', '--name-only', 'sha-antes', 'sha-depois']],
       ['npm', ['install']],
@@ -73,38 +77,53 @@ describe('runUpdateSteps', () => {
   it('não roda git diff nem npm install quando o pull não muda nada (SHA igual)', async () => {
     vi.mocked(spawn)
       .mockImplementationOnce(() => fakeChild(0, 'sha-igual') as never)
-      .mockImplementationOnce(() => fakeChild(0) as never)
+      .mockImplementationOnce(() => fakeChild(0) as never) // git fetch origin
+      .mockImplementationOnce(() => fakeChild(0) as never) // git reset --hard @{u}
       .mockImplementationOnce(() => fakeChild(0, 'sha-igual') as never)
       .mockImplementationOnce(() => fakeChild(0) as never); // npm run build
 
     const result = await runUpdateSteps(PROJECT_ROOT);
 
     expect(result).toEqual({ ok: true });
-    expect(spawn).toHaveBeenCalledTimes(4);
+    expect(spawn).toHaveBeenCalledTimes(5);
     const commands = vi.mocked(spawn).mock.calls.map((call) => [call[0], call[1]]);
     expect(commands).toEqual([
       ['git', ['rev-parse', 'HEAD']],
-      ['git', ['pull']],
+      ['git', ['fetch', 'origin']],
+      ['git', ['reset', '--hard', '@{u}']],
       ['git', ['rev-parse', 'HEAD']],
       ['npm', ['run', 'build']],
     ]);
   });
 
-  it('para em "git pull" se ele falhar, sem chamar npm nenhum', async () => {
+  it('para em "git pull" se o fetch falhar, sem chamar npm nenhum', async () => {
     vi.mocked(spawn)
       .mockImplementationOnce(() => fakeChild(0, 'sha-antes') as never)
-      .mockImplementationOnce(() => fakeChild(1, 'conflito de merge') as never); // git pull falha
+      .mockImplementationOnce(() => fakeChild(1, 'sem conexão') as never); // git fetch falha
 
     const result = await runUpdateSteps(PROJECT_ROOT);
 
-    expect(result).toEqual({ ok: false, step: 'git pull', error: 'conflito de merge' });
+    expect(result).toEqual({ ok: false, step: 'git pull', error: 'sem conexão' });
     expect(spawn).toHaveBeenCalledTimes(2);
+  });
+
+  it('para em "git pull" se o reset --hard falhar, sem chamar npm nenhum', async () => {
+    vi.mocked(spawn)
+      .mockImplementationOnce(() => fakeChild(0, 'sha-antes') as never)
+      .mockImplementationOnce(() => fakeChild(0) as never) // git fetch origin
+      .mockImplementationOnce(() => fakeChild(1, 'conflito inesperado') as never); // git reset --hard falha
+
+    const result = await runUpdateSteps(PROJECT_ROOT);
+
+    expect(result).toEqual({ ok: false, step: 'git pull', error: 'conflito inesperado' });
+    expect(spawn).toHaveBeenCalledTimes(3);
   });
 
   it('para em "npm install" se ele falhar, sem rodar o build', async () => {
     vi.mocked(spawn)
       .mockImplementationOnce(() => fakeChild(0, 'sha-antes') as never)
-      .mockImplementationOnce(() => fakeChild(0) as never)
+      .mockImplementationOnce(() => fakeChild(0) as never) // git fetch origin
+      .mockImplementationOnce(() => fakeChild(0) as never) // git reset --hard @{u}
       .mockImplementationOnce(() => fakeChild(0, 'sha-depois') as never)
       .mockImplementationOnce(() => fakeChild(0, 'package.json') as never)
       .mockImplementationOnce(() => fakeChild(1, 'ENOTFOUND registry') as never); // npm install falha
@@ -112,6 +131,6 @@ describe('runUpdateSteps', () => {
     const result = await runUpdateSteps(PROJECT_ROOT);
 
     expect(result).toEqual({ ok: false, step: 'npm install', error: 'ENOTFOUND registry' });
-    expect(spawn).toHaveBeenCalledTimes(5);
+    expect(spawn).toHaveBeenCalledTimes(6);
   });
 });

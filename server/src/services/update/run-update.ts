@@ -1,8 +1,8 @@
 /**
  * run-update.ts
  * ---------------------------------------------------------------------------
- * Executa a sequência de atualização (git pull, [npm install], npm run
- * build) e, se tudo der certo, relança o servidor via
+ * Executa a sequência de atualização (git fetch + reset --hard, [npm
+ * install], npm run build) e, se tudo der certo, relança o servidor via
  * deploy/iniciar-servidor-oculto.ps1 (ver comentário em restartServer).
  * ---------------------------------------------------------------------------
  */
@@ -76,8 +76,21 @@ async function pullChangedDependencyFiles(projectRoot: string, beforeSha: string
 export async function runUpdateSteps(projectRoot: string): Promise<UpdateStepResult> {
   const beforeSha = (await runStep('git', ['rev-parse', 'HEAD'], projectRoot)).output.trim();
 
-  const pull = await runStep('git', ['pull'], projectRoot);
-  if (pull.code !== 0) return fail('git pull', pull);
+  // "git fetch" + "git reset --hard" em vez de "git pull" direto - caso
+  // real reportado: em outros computadores (diferente do usado pra
+  // desenvolver), "git pull" falhava com "Your local changes to
+  // package-lock.json would be overwritten by merge" (o npm, principalmente
+  // no Windows, às vezes reescreve esse arquivo de um jeito levemente
+  // diferente do commitado - ver o mesmo problema, já corrigido, em
+  // deploy/instalar-em-novo-computador.ps1). Essa pasta é uma instalação
+  // controlada só por este próprio mecanismo de atualização - ninguém
+  // deveria editar nada nela a mão - então descartar qualquer mudança local
+  // antes de atualizar é o comportamento certo, não perda de trabalho.
+  const fetch = await runStep('git', ['fetch', 'origin'], projectRoot);
+  if (fetch.code !== 0) return fail('git pull', fetch);
+
+  const reset = await runStep('git', ['reset', '--hard', '@{u}'], projectRoot);
+  if (reset.code !== 0) return fail('git pull', reset);
 
   const afterSha = (await runStep('git', ['rev-parse', 'HEAD'], projectRoot)).output.trim();
 

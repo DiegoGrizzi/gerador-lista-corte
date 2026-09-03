@@ -1,8 +1,39 @@
 import { execFile } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 
+import sharp from 'sharp';
+
 import { cleanupTempFile, writeTempImage } from '../temp-file.js';
 import { OcrFailureError, type OcrProvider, type OcrResult } from './types.js';
+
+/**
+ * Largura mínima (em pixels) abaixo da qual a imagem é ampliada antes do
+ * OCR. Caso real: um print de tela de 457×209px — bem comum quando o
+ * usuário manda um recorte pequeno em vez de uma foto de celular (que já
+ * costuma vir bem maior que isso) — não reconhecia NADA do texto da
+ * tabela nessa resolução original; ampliada 4x, o Tesseract leu quase
+ * tudo certo. Mesmo princípio já validado em pdf-renderer.ts
+ * (RENDER_SCALE) para as páginas de PDF renderizadas.
+ */
+const MIN_WIDTH_PX = 1600;
+
+/**
+ * Amplia a imagem antes do OCR se ela for menor que MIN_WIDTH_PX de
+ * largura — fotos de celular normais já vêm bem maiores que isso e saem
+ * inalteradas; só ajuda prints/recortes pequenos. Se a imagem não for
+ * processável por algum motivo (buffer corrompido, formato não suportado),
+ * devolve o buffer original sem travar o OCR — mais vale tentar ler do
+ * jeito que veio do que falhar tudo por causa de um passo opcional.
+ */
+async function upscaleIfSmall(imageBuffer: Buffer): Promise<Buffer> {
+  try {
+    const metadata = await sharp(imageBuffer).metadata();
+    if (!metadata.width || metadata.width >= MIN_WIDTH_PX) return imageBuffer;
+    return await sharp(imageBuffer).resize({ width: MIN_WIDTH_PX, kernel: 'lanczos3' }).toBuffer();
+  } catch {
+    return imageBuffer;
+  }
+}
 
 export interface TesseractProviderOptions {
   tesseractPath: string;
@@ -43,7 +74,8 @@ export class TesseractOcrProvider implements OcrProvider {
     this.lang = options.lang;
   }
 
-  async recognize(imageBuffer: Buffer): Promise<OcrResult> {
+  async recognize(rawImageBuffer: Buffer): Promise<OcrResult> {
+    const imageBuffer = await upscaleIfSmall(rawImageBuffer);
     const imagePath = await writeTempImage(imageBuffer, '.png');
     const outputBase = imagePath.replace(/\.[^.]+$/, '');
     const outputTxtPath = `${outputBase}.txt`;

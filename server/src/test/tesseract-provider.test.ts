@@ -1,5 +1,6 @@
 import { promises as fs } from 'node:fs';
 
+import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type ExecFileCallback = (error: (Error & { code?: string }) | null) => void;
@@ -39,6 +40,64 @@ describe('TesseractOcrProvider', () => {
     const [calledPath, calledArgs] = execFileMock.mock.calls[0]!;
     expect(calledPath).toBe('tesseract');
     expect(calledArgs).toEqual(expect.arrayContaining(['-l', 'por']));
+  });
+
+  it('amplia uma imagem pequena antes do OCR (caso real: print de tela de 457x209px onde o Tesseract não lia nada)', async () => {
+    let writtenWidth: number | undefined;
+    execFileMock.mockImplementation((_file, args, callback) => {
+      const imagePath = args[0] as string;
+      const outputBase = args[1] as string;
+      // Lê as dimensões do arquivo temporário AQUI DENTRO, antes do
+      // callback disparar - o recognize() apaga esse arquivo (cleanup) assim
+      // que o tesseract "termina", então ler depois de esperar a Promise
+      // do provider já seria tarde demais (arquivo já não existe mais).
+      void sharp(imagePath)
+        .metadata()
+        .then((metadata) => {
+          writtenWidth = metadata.width;
+          return fs.writeFile(`${outputBase}.txt`, 'texto');
+        })
+        .then(() => callback(null));
+    });
+
+    // Imagem pequena de verdade (bem abaixo do limiar), não um buffer falso -
+    // precisa ser uma imagem válida pro sharp conseguir processar.
+    const smallImage = await sharp({
+      create: { width: 200, height: 100, channels: 3, background: { r: 255, g: 255, b: 255 } },
+    })
+      .png()
+      .toBuffer();
+
+    const provider = new TesseractOcrProvider({ tesseractPath: 'tesseract', lang: 'por' });
+    await provider.recognize(smallImage);
+
+    expect(writtenWidth).toBeGreaterThanOrEqual(1600);
+  });
+
+  it('não mexe numa imagem que já é grande o bastante', async () => {
+    let writtenWidth: number | undefined;
+    execFileMock.mockImplementation((_file, args, callback) => {
+      const imagePath = args[0] as string;
+      const outputBase = args[1] as string;
+      void sharp(imagePath)
+        .metadata()
+        .then((metadata) => {
+          writtenWidth = metadata.width;
+          return fs.writeFile(`${outputBase}.txt`, 'texto');
+        })
+        .then(() => callback(null));
+    });
+
+    const largeImage = await sharp({
+      create: { width: 2000, height: 1000, channels: 3, background: { r: 255, g: 255, b: 255 } },
+    })
+      .png()
+      .toBuffer();
+
+    const provider = new TesseractOcrProvider({ tesseractPath: 'tesseract', lang: 'por' });
+    await provider.recognize(largeImage);
+
+    expect(writtenWidth).toBe(2000);
   });
 
   it('traduz erro ENOENT em mensagem amigável em português', async () => {

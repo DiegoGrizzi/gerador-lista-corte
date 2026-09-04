@@ -313,3 +313,23 @@ export const MULTIPLICATION_SIGN_MESSAGE = [
   '02=0,71×2,40',
   'Tudo branco comum sem fitamento',
 ].join('\n');
+
+/**
+ * Tabela real extraída (texto nativo, sem OCR) de um PDF de várias páginas
+ * do Cortecloud Central — o cabeçalho da tabela se REPETE em cada página
+ * (comum em relatórios paginados). Antes desta correção, a repetição do
+ * cabeçalho batia como "linha de dados inválida" da tabela em andamento
+ * (encerrando ela) sem nunca reabrir uma tabela nova, fazendo TODA a
+ * "página 2" cair fora do reconhecimento de tabela. Usa "Chapa" (não
+ * "Material") como nome da coluna de material — outra grafia real vista
+ * nesse mesmo PDF.
+ */
+export const TSV_TABLE_WITH_REPEATED_HEADER = [
+  'Peça\tQtde\tChapa\tComprimento\tLargura\tFita\tC1\tC2\tL1\tL2',
+  'Lateral direita\t1\tBranco 15mm\t2200.0\t550.0\tFita Branco\t✓\t✓\t✓\t✓',
+  'Lateral esquerda\t1\tBranco 15mm\t2200.0\t550.0\tFita Branco\t✓\t✓\t✓\t✓',
+  '',
+  'Peça\tQtde\tChapa\tComprimento\tLargura\tFita\tC1\tC2\tL1\tL2',
+  'Prateleira\t4\tBranco 15mm\t950.0\t300.0\tFita Branco\t✓\t✓\t\t',
+  'Rodapé\t1\tBranco 15mm\t1385.0\t80.0\tFita Branco\t✓\t✓\t\t',
+].join('\n');

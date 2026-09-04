@@ -21,7 +21,7 @@ const LARG_HEADER_ALIASES = ['largura', 'larg'];
 // aqui fazia essa coluna de código vencer a de descrição de verdade,
 // quando as duas colunas existem juntas na mesma tabela.
 const FUNCAO_HEADER_ALIASES = ['peça', 'peca', 'peças', 'pecas', 'nome', 'descrição', 'descricao', 'função', 'funcao'];
-const MATERIAL_HEADER_ALIASES = ['material'];
+const MATERIAL_HEADER_ALIASES = ['material', 'chapa'];
 const COMPLEMENTO_HEADER_ALIASES = ['observação', 'observacao', 'ambiente'];
 /** Coluna com as 3 medidas já juntas numa célula só (ex: "1700 x 70 x 15") — alternativa a ter Comprimento/Largura em colunas separadas, comum em listas exportadas de programas de otimização de corte. */
 const DIMENSAO_HEADER_ALIASES = ['dimensão', 'dimensao', 'medidas'];

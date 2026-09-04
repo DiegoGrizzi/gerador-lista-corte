@@ -21,6 +21,7 @@ import {
   PDF_TABLE_WITH_OBSERVACAO,
   PDF_TABLE_WITH_COMBINED_DIMENSAO,
   MULTIPLICATION_SIGN_MESSAGE,
+  TSV_TABLE_WITH_REPEATED_HEADER,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -443,5 +444,20 @@ describe('analyzeText — "×" (sinal de multiplicação de verdade) como separa
       { qtd: 10, compr: 0.55, larg: 0.67 },
       { qtd: 2, compr: 0.71, larg: 2.4 },
     ]);
+  });
+});
+
+describe('analyzeText — tabela TSV com o cabeçalho repetido no meio da mensagem (real PDF de várias páginas)', () => {
+  it('reabre a tabela na segunda ocorrência do cabeçalho, em vez de perder as peças depois dela', () => {
+    const result = analyzeText(TSV_TABLE_WITH_REPEATED_HEADER, makeNextId());
+
+    expect(result.discarded).toEqual([]);
+    expect(result.pieces).toMatchObject([
+      { funcao: 'Lateral direita', qtd: 1, compr: 2200, larg: 550, material: 'Branco 15mm' },
+      { funcao: 'Lateral esquerda', qtd: 1, compr: 2200, larg: 550, material: 'Branco 15mm' },
+      { funcao: 'Prateleira', qtd: 4, compr: 950, larg: 300, material: 'Branco 15mm' },
+      { funcao: 'Rodapé', qtd: 1, compr: 1385, larg: 80, material: 'Branco 15mm' },
+    ]);
+    expect(result.pieces[2]!.fita).toEqual({ c1: true, c2: true, l1: false, l2: false });
   });
 });

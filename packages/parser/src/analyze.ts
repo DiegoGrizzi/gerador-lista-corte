@@ -286,6 +286,28 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
       // (ou a linha nem é de tabela mais) - a tabela terminou.
       tableColumns = null;
       tableDelimiter = null;
+
+      // Antes de desistir, confere se essa MESMA linha é o cabeçalho de uma
+      // tabela nova - caso real: um PDF de várias páginas repete a linha de
+      // cabeçalho em toda página nova (comum em relatórios paginados). Sem
+      // essa checagem, essa repetição batia aqui como "linha de dados
+      // inválida" (encerrando a tabela em andamento) e SUMIA em silêncio,
+      // sem nunca reabrir uma tabela nova - fazendo o resto daquela página
+      // inteira (até a página seguinte repetir o cabeçalho de novo) cair
+      // pra fora do reconhecimento de tabela, uma por uma, como linhas
+      // soltas não reconhecidas.
+      const markdownHeaderRetry = parseMarkdownTableHeader(line);
+      if (markdownHeaderRetry) {
+        tableColumns = markdownHeaderRetry;
+        tableDelimiter = 'markdown';
+        return;
+      }
+      const tsvHeaderRetry = parseTsvTableHeader(line);
+      if (tsvHeaderRetry) {
+        tableColumns = tsvHeaderRetry;
+        tableDelimiter = 'tsv';
+        return;
+      }
     }
 
     // Códigos de fita colados ao final da linha (ex: "... 1M 1m", "... 3L")

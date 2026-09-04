@@ -45,7 +45,7 @@ import {
   buildPieceFromDimensionFirstMatch,
 } from './piece-matcher.js';
 import type { PieceMatch, DimensionFirstMatch } from './piece-matcher.js';
-import { finalizePiece, markFitaUnknownIfNeeded } from './finalize.js';
+import { finalizePiece, looksLikeNoMaterial, markFitaUnknownIfNeeded } from './finalize.js';
 import type { AnalyzeResult, DiscardedItem, FitamentoType, NextIdFn, ParseContext, Piece, RawPiece } from './types.js';
 
 /**
@@ -537,6 +537,21 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
   });
   // finalizePiece muta e devolve a mesma referência, já tipada como Piece.
   const finalizedPieces: Piece[] = pieces.map(finalizePiece);
+
+  // materialMentioned começa marcado só quando uma declaração de material
+  // em TEXTO LIVRE foi vista em algum lugar da mensagem (ver
+  // setNewMaterial acima) — isso NUNCA acontece para peças vindas de uma
+  // tabela com coluna própria de material/Chapa (ver overrides.material em
+  // addDimensionFirstPiece, table-columns.ts), já que essas nunca passam
+  // por setNewMaterial. Caso real: um PDF inteiro em formato de tabela,
+  // cada peça já com material preenchido pela própria coluna, mas o
+  // sistema perguntava "não encontrei material" mesmo assim. Corrige aqui,
+  // no fim: se TODAS as peças já têm material de verdade (não vazio, não
+  // só a espessura sozinha), não há nada a perguntar, mesmo que nenhuma
+  // declaração de texto livre tenha sido vista.
+  if (!materialMentioned && finalizedPieces.length > 0) {
+    materialMentioned = finalizedPieces.every((p) => !looksLikeNoMaterial(p.material));
+  }
 
   return { pieces: finalizedPieces, discarded, materialMentioned };
 }

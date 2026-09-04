@@ -188,7 +188,11 @@ describe('analyzeText — tabela colada de planilha (TSV, delimitada por tabula�
       { qtd: 4, compr: 900, larg: 100, funcao: 'TRAV', material: 'MDF 25mm', fita: { c1: false, c2: false, l1: false, l2: false } },
       { qtd: 2, compr: 860, larg: 120, funcao: 'LAT', material: 'MDF 25mm', fita: { c1: true, c2: true, l1: false, l2: false } },
     ]);
-    expect(result.materialMentioned).toBe(false); // material vem da própria linha, não de um cabeçalho de bloco.
+    // Material vem da própria linha da tabela (coluna Material), não de um
+    // cabeçalho de bloco — mas como TODAS as peças já têm material de
+    // verdade, não há motivo pra perguntar (ver comentário em analyze.ts
+    // sobre materialMentioned recalculado no fim de analyzeText).
+    expect(result.materialMentioned).toBe(true);
   });
 });
 
@@ -459,6 +463,26 @@ describe('analyzeText — tabela TSV com o cabeçalho repetido no meio da mensag
       { funcao: 'Rodapé', qtd: 1, compr: 1385, larg: 80, material: 'Branco 15mm' },
     ]);
     expect(result.pieces[2]!.fita).toEqual({ c1: true, c2: true, l1: false, l2: false });
+    // Caso real reportado: o sistema perguntava "não encontrei material"
+    // mesmo com TODAS as peças já vindo com material da própria coluna da
+    // tabela (Chapa) — materialMentioned só ficava true quando o material
+    // vinha de um cabeçalho de texto livre (ex: "MDF ..."), nunca de
+    // tabela. Corrigido: com toda peça já tendo material de verdade, não
+    // há nada a perguntar.
+    expect(result.materialMentioned).toBe(true);
+  });
+
+  it('materialMentioned continua false se SÓ ALGUMAS peças têm material (a pergunta ainda vale a pena)', () => {
+    const mixedMaterialTable = [
+      'Peça\tQtde\tChapa\tComprimento\tLargura',
+      'Lateral\t1\tBranco 15mm\t2200.0\t550.0',
+      'Rodapé\t1\t\t1385.0\t80.0',
+    ].join('\n');
+
+    const result = analyzeText(mixedMaterialTable, makeNextId());
+
+    expect(result.pieces).toHaveLength(2);
+    expect(result.materialMentioned).toBe(false);
   });
 });
 

@@ -11,21 +11,6 @@ import { applyGrainOrientationRule } from './grain-rule.js';
 import type { Piece, RawPiece } from './types.js';
 
 /**
- * Calcula os booleanos finais de fita (c1/c2/l1/l2) e junta a espessura
- * ao nome do material (ex: "MDF branco" + 15 → "MDF branco 15mm").
- * Deve ser chamada uma única vez por peça, depois que todo contexto
- * pendente (material/fita/espessura que só aparecem mais abaixo na
- * mensagem) já foi resolvido.
- *
- * Não aplica a regra do sentido do veio aqui de propósito — nesse ponto
- * a medida pode ainda não estar em milímetros (a pergunta "já está em
- * mm?" só é respondida depois). Ver convertPieceToMm.
- *
- * Muta o objeto recebido (mesma referência usada pelo mecanismo de
- * pendências de analyzeText) e devolve a mesma referência já tipada como
- * Piece, agora com `fita` presente.
- */
-/**
  * Marca `fitaUnknown` quando a peça não tem NENHUMA informação de fita
  * (nem `fitaType`, nem `customFita`) no momento em que é chamada — ver o
  * comentário em RawPiece.fitaUnknown sobre por que isso é diferente de
@@ -47,6 +32,35 @@ export function markFitaUnknownIfNeeded(piece: RawPiece): void {
   }
 }
 
+/**
+ * Verdadeiro quando o rótulo de material está vazio, ou é só a espessura
+ * sem nome nenhum (ex: "15mm") — usado tanto para decidir se o fallback de
+ * material digitado pelo usuário deve ser aplicado a uma peça (client-side,
+ * PIECE_FIELD_EDITED/MATERIAL_CONFIRMED) quanto para decidir se a pergunta
+ * de material deve aparecer (ver materialMentioned em analyzeText). Espelha
+ * looksLikeNoMaterial do app.js legado — movido pra cá (de
+ * cutListReducer.ts) pra poder ser reaproveitado dos dois lados sem
+ * duplicar a mesma regex.
+ */
+export function looksLikeNoMaterial(material: string): boolean {
+  return !material || /^\d+(?:[.,]\d+)?mm$/i.test(material);
+}
+
+/**
+ * Calcula os booleanos finais de fita (c1/c2/l1/l2) e junta a espessura
+ * ao nome do material (ex: "MDF branco" + 15 → "MDF branco 15mm").
+ * Deve ser chamada uma única vez por peça, depois que todo contexto
+ * pendente (material/fita/espessura que só aparecem mais abaixo na
+ * mensagem) já foi resolvido.
+ *
+ * Não aplica a regra do sentido do veio aqui de propósito — nesse ponto
+ * a medida pode ainda não estar em milímetros (a pergunta "já está em
+ * mm?" só é respondida depois). Ver convertPieceToMm.
+ *
+ * Muta o objeto recebido (mesma referência usada pelo mecanismo de
+ * pendências de analyzeText) e devolve a mesma referência já tipada como
+ * Piece, agora com `fita` presente.
+ */
 export function finalizePiece(piece: RawPiece): Piece {
   const fita = piece.customFita || resolveFitaFromType(piece.fitaType, piece.compr, piece.larg);
   let label = piece.material || '';

@@ -15,7 +15,7 @@
  * ---------------------------------------------------------------------------
  */
 
-import { convertPieceToMm, resolveFitaFromType, resolveThreeLadosFita, toNumber } from '@corte-cloud/parser';
+import { convertPieceToMm, looksLikeNoMaterial, resolveFitaFromType, resolveThreeLadosFita, toNumber } from '@corte-cloud/parser';
 import type { Piece } from '@corte-cloud/parser';
 import type { CutListAction, CutListState } from './types.js';
 
@@ -81,10 +81,10 @@ export function createNextId(seed: number): { nextId: () => string; getIdCounter
   };
 }
 
-/** Verdadeiro quando o material está vazio, ou é só a espessura sem nome ("15mm"). Ver looksLikeNoMaterial no legado. */
-export function looksLikeNoMaterial(material: string): boolean {
-  return !material || /^\d+(?:[.,]\d+)?mm$/i.test(material);
-}
+// Reexportado por conveniência - antes vivia só aqui, movido pra
+// @corte-cloud/parser pra poder ser reaproveitado por analyzeText também
+// (ver comentário em finalize.ts sobre materialMentioned).
+export { looksLikeNoMaterial };
 
 function clonePiece(piece: Piece): Piece {
   return { ...piece, fita: { ...piece.fita } };

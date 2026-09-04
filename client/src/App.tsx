@@ -26,6 +26,7 @@ import { PieceReviewTable } from './components/PieceReviewTable.js';
 import { ResultCard } from './components/ResultCard.js';
 import { MmUnitModal } from './components/modals/MmUnitModal.js';
 import { ThreeLadosModal } from './components/modals/ThreeLadosModal.js';
+import { FitaMissingModal } from './components/modals/FitaMissingModal.js';
 import { MaterialModal } from './components/modals/MaterialModal.js';
 import { PhotoMaterialModal } from './components/modals/PhotoMaterialModal.js';
 import { ErrorModal } from './components/modals/ErrorModal.js';
@@ -171,6 +172,10 @@ export function App(): JSX.Element {
       <ThreeLadosModal
         isOpen={state.activeModal === 'threeLados'}
         onAnswered={(choice) => dispatch({ type: 'THREE_LADOS_ANSWERED', choice })}
+      />
+      <FitaMissingModal
+        isOpen={state.activeModal === 'fitaMissing'}
+        onAnswered={(fitaType) => dispatch({ type: 'FITA_MISSING_ANSWERED', fitaType })}
       />
       <MaterialModal
         isOpen={state.activeModal === 'material'}

@@ -11,6 +11,7 @@ export { analyzeText } from './analyze.js';
 export { quickParseLine } from './quick-parse.js';
 export { convertPieceToMm } from './finalize.js';
 export { resolveThreeLadosFita } from './fita-codes.js';
+export { resolveFitaFromType } from './fitamento.js';
 
 export type {
   Piece,

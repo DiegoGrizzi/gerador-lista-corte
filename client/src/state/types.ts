@@ -17,9 +17,9 @@
  * ---------------------------------------------------------------------------
  */
 
-import type { DiscardedItem, Piece } from '@corte-cloud/parser';
+import type { DiscardedItem, FitamentoType, Piece } from '@corte-cloud/parser';
 
-export type ActiveModal = 'none' | 'mm' | 'threeLados' | 'material' | 'photoMaterial' | 'error';
+export type ActiveModal = 'none' | 'mm' | 'threeLados' | 'fitaMissing' | 'material' | 'photoMaterial' | 'error';
 
 export type EditablePieceTextField = 'qtd' | 'compr' | 'larg' | 'material' | 'complemento' | 'funcao';
 export type EditablePieceFitaField = 'c1' | 'c2' | 'l1' | 'l2';
@@ -57,6 +57,12 @@ export interface CutListState {
    * lados, ver Piece.pendingThreeLados) já foi respondida nesta mensagem.
    */
   threeLadosAsked: boolean;
+
+  /**
+   * Se a pergunta sobre peças sem NENHUMA informação de fita (ver
+   * Piece.fitaUnknown) já foi respondida nesta mensagem.
+   */
+  fitaAsked: boolean;
 
   /**
    * Peça resgatada da conferência enquanto a pergunta de mm ainda não tinha
@@ -105,6 +111,7 @@ export type CutListAction =
   | { type: 'CLEAR_INPUT' }
   | { type: 'MM_ANSWERED'; factor: number }
   | { type: 'THREE_LADOS_ANSWERED'; choice: 'maior' | 'menor' }
+  | { type: 'FITA_MISSING_ANSWERED'; fitaType: FitamentoType }
   | { type: 'MATERIAL_CONFIRMED'; material: string }
   | { type: 'DISCARD_RETRY_FAILED'; index: number; message: string }
   | { type: 'DISCARD_RETRY_SUCCEEDED_AS_PENDING'; index: number; rescued: Piece; idCounter: number }

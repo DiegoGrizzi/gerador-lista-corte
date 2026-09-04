@@ -45,7 +45,7 @@ import {
   buildPieceFromDimensionFirstMatch,
 } from './piece-matcher.js';
 import type { PieceMatch, DimensionFirstMatch } from './piece-matcher.js';
-import { finalizePiece } from './finalize.js';
+import { finalizePiece, markFitaUnknownIfNeeded } from './finalize.js';
 import type { AnalyzeResult, DiscardedItem, FitamentoType, NextIdFn, ParseContext, Piece, RawPiece } from './types.js';
 
 /**
@@ -525,6 +525,12 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
       // Senão, linha não reconhecida, ignorada em silêncio.
     }
   });
+
+  // Marca ANTES de defaultar fitaType pendente pra 'none-explicit' logo
+  // abaixo - só nesse momento "fitaType == null" significa de verdade que
+  // nada foi dito sobre fita em lugar nenhum da mensagem (ver
+  // RawPiece.fitaUnknown e markFitaUnknownIfNeeded em finalize.ts).
+  pieces.forEach(markFitaUnknownIfNeeded);
 
   pendingFitamento.forEach((entry) => {
     entry.fitaType = entry.fitaType || 'none-explicit';

@@ -15,7 +15,7 @@
  * ---------------------------------------------------------------------------
  */
 
-import { convertPieceToMm, resolveThreeLadosFita, toNumber } from '@corte-cloud/parser';
+import { convertPieceToMm, resolveFitaFromType, resolveThreeLadosFita, toNumber } from '@corte-cloud/parser';
 import type { Piece } from '@corte-cloud/parser';
 import type { CutListAction, CutListState } from './types.js';
 
@@ -51,6 +51,7 @@ export function createInitialState(): CutListState {
     mmAsked: false,
     mmFactor: 1,
     threeLadosAsked: false,
+    fitaAsked: false,
     pendingRescuedPiece: null,
     activeModal: 'none',
     errorMessage: '',
@@ -127,6 +128,7 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
         mmAsked: false,
         mmFactor: 1,
         threeLadosAsked: false,
+        fitaAsked: false,
         pendingRescuedPiece: null,
         activeModal: pieces.length > 0 ? 'mm' : 'none',
         // Espelha handleAnalyze: só chama renderPreview() diretamente
@@ -147,6 +149,7 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
         mmAsked: false,
         mmFactor: 1,
         threeLadosAsked: false,
+        fitaAsked: false,
         pendingRescuedPiece: null,
         previewVisible: false,
         resultVisible: false,
@@ -164,12 +167,21 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
         pieces = [...pieces, rescued];
       }
 
-      // pendingThreeLados só pode ser resolvido com a medida FINAL (já em
-      // mm) — por isso a pergunta correspondente vem depois desta, nunca
-      // antes (ver THREE_LADOS_ANSWERED).
+      // pendingThreeLados e fitaUnknown só podem ser resolvidos com a
+      // medida FINAL (já em mm) — a comparação maior/menor de
+      // resolveFitaFromType/resolveThreeLadosFita depende disso — por isso
+      // as perguntas correspondentes vêm depois desta, nunca antes (ver
+      // THREE_LADOS_ANSWERED e FITA_MISSING_ANSWERED).
       const needsThreeLados = !state.threeLadosAsked && pieces.some((piece) => piece.pendingThreeLados);
-      const openMaterialModal = !needsThreeLados && !state.materialAsked && pieces.length > 0;
-      const activeModal = needsThreeLados ? 'threeLados' : openMaterialModal ? 'material' : 'none';
+      const needsFitaMissing = !needsThreeLados && !state.fitaAsked && pieces.some((piece) => piece.fitaUnknown);
+      const openMaterialModal = !needsThreeLados && !needsFitaMissing && !state.materialAsked && pieces.length > 0;
+      const activeModal = needsThreeLados
+        ? 'threeLados'
+        : needsFitaMissing
+          ? 'fitaMissing'
+          : openMaterialModal
+            ? 'material'
+            : 'none';
 
       return {
         ...state,
@@ -190,10 +202,31 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
         next.pendingThreeLados = false;
         return next;
       });
-      const openMaterialModal = !state.materialAsked && pieces.length > 0;
+      const needsFitaMissing = !state.fitaAsked && pieces.some((piece) => piece.fitaUnknown);
+      const openMaterialModal = !needsFitaMissing && !state.materialAsked && pieces.length > 0;
+      const activeModal = needsFitaMissing ? 'fitaMissing' : openMaterialModal ? 'material' : 'none';
       return {
         ...state,
         threeLadosAsked: true,
+        pieces,
+        activeModal,
+        previewVisible: activeModal === 'none' ? true : state.previewVisible,
+      };
+    }
+
+    case 'FITA_MISSING_ANSWERED': {
+      const pieces = state.pieces.map((piece) => {
+        if (!piece.fitaUnknown) return piece;
+        const next = clonePiece(piece);
+        next.fita = resolveFitaFromType(action.fitaType, piece.compr, piece.larg);
+        next.fitaType = action.fitaType;
+        next.fitaUnknown = false;
+        return next;
+      });
+      const openMaterialModal = !state.materialAsked && pieces.length > 0;
+      return {
+        ...state,
+        fitaAsked: true,
         pieces,
         activeModal: openMaterialModal ? 'material' : 'none',
         previewVisible: openMaterialModal ? state.previewVisible : true,

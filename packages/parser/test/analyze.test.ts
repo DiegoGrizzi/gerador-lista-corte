@@ -461,3 +461,38 @@ describe('analyzeText — tabela TSV com o cabeçalho repetido no meio da mensag
     expect(result.pieces[2]!.fita).toEqual({ c1: true, c2: true, l1: false, l2: false });
   });
 });
+
+describe('analyzeText — fitaUnknown (nenhuma informação de fita em lugar nenhum da mensagem)', () => {
+  it('marca fitaUnknown quando nada é dito sobre fita em toda a mensagem', () => {
+    const result = analyzeText('MDF branco 15mm\n2=50/60\n3=70/80', makeNextId());
+
+    expect(result.pieces).toHaveLength(2);
+    expect(result.pieces[0]!.fitaUnknown).toBe(true);
+    expect(result.pieces[1]!.fitaUnknown).toBe(true);
+    // fitaType ainda cai pro default de sempre, e a fita final fica sem
+    // nenhum lado marcado - fitaUnknown é só o sinal extra pra interface
+    // saber que isso não foi uma decisão explícita do usuário.
+    expect(result.pieces[0]!.fitaType).toBe('none-explicit');
+    expect(result.pieces[0]!.fita).toEqual({ c1: false, c2: false, l1: false, l2: false });
+  });
+
+  it('NÃO marca fitaUnknown quando o usuário disse explicitamente "sem fita"', () => {
+    const result = analyzeText('MDF branco 15mm\n2=50/60 sem fita', makeNextId());
+
+    expect(result.pieces[0]!.fitaType).toBe('none-explicit');
+    expect(result.pieces[0]!.fitaUnknown).toBeUndefined();
+  });
+
+  it('NÃO marca fitaUnknown quando um padrão de bloco resolve o fitamento ("fitado os 4 lados")', () => {
+    const result = analyzeText('MDF branco 15mm fitado os 4 lados\n2=50/60', makeNextId());
+
+    expect(result.pieces[0]!.fitaType).toBe('all');
+    expect(result.pieces[0]!.fitaUnknown).toBeUndefined();
+  });
+
+  it('NÃO marca fitaUnknown quando a peça vem de uma tabela com fita explícita por lado (customFita)', () => {
+    const result = analyzeText(TSV_TABLE_LIST, makeNextId());
+
+    expect(result.pieces.every((p) => !p.fitaUnknown)).toBe(true);
+  });
+});

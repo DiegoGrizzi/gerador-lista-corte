@@ -245,6 +245,100 @@ describe('MM_ANSWERED', () => {
     expect(original.compr).toBe(50);
     expect(original.larg).toBe(30);
   });
+
+  it('abre o modal de fita (antes do material) quando há peças com fitaUnknown', () => {
+    const state: CutListState = {
+      ...createInitialState(),
+      pieces: [makePiece({ fitaUnknown: true })],
+      materialAsked: false,
+    };
+
+    const next = cutListReducer(state, { type: 'MM_ANSWERED', factor: 1 });
+
+    expect(next.activeModal).toBe('fitaMissing');
+    expect(next.previewVisible).toBe(false);
+  });
+
+  it('não abre o modal de fita de novo se fitaAsked já é true', () => {
+    const state: CutListState = {
+      ...createInitialState(),
+      pieces: [makePiece({ fitaUnknown: true })],
+      materialAsked: true,
+      fitaAsked: true,
+    };
+
+    const next = cutListReducer(state, { type: 'MM_ANSWERED', factor: 1 });
+
+    expect(next.activeModal).toBe('none');
+  });
+});
+
+describe('FITA_MISSING_ANSWERED', () => {
+  it('resolve a fita só das peças com fitaUnknown, ignorando as demais', () => {
+    const state: CutListState = {
+      ...createInitialState(),
+      pieces: [
+        makePiece({ id: 'a', fitaUnknown: true, compr: 500, larg: 300 }),
+        makePiece({ id: 'b', fitaUnknown: false, fita: { c1: true, c2: false, l1: false, l2: false } }),
+      ],
+      materialAsked: true,
+    };
+
+    const next = cutListReducer(state, { type: 'FITA_MISSING_ANSWERED', fitaType: 'all' });
+
+    expect(next.pieces[0]).toMatchObject({ fita: { c1: true, c2: true, l1: true, l2: true }, fitaUnknown: false });
+    // peça que já tinha fita resolvida não é tocada
+    expect(next.pieces[1]!.fita).toEqual({ c1: true, c2: false, l1: false, l2: false });
+    expect(next.fitaAsked).toBe(true);
+  });
+
+  it('"não, sem fita" (none-explicit) deixa todos os lados sem fita', () => {
+    const state: CutListState = {
+      ...createInitialState(),
+      pieces: [makePiece({ fitaUnknown: true })],
+      materialAsked: true,
+    };
+
+    const next = cutListReducer(state, { type: 'FITA_MISSING_ANSWERED', fitaType: 'none-explicit' });
+
+    expect(next.pieces[0]!.fita).toEqual({ c1: false, c2: false, l1: false, l2: false });
+  });
+
+  it('abre o modal de material em seguida quando ainda não foi perguntado', () => {
+    const state: CutListState = {
+      ...createInitialState(),
+      pieces: [makePiece({ fitaUnknown: true })],
+      materialAsked: false,
+    };
+
+    const next = cutListReducer(state, { type: 'FITA_MISSING_ANSWERED', fitaType: 'all' });
+
+    expect(next.activeModal).toBe('material');
+    expect(next.previewVisible).toBe(false);
+  });
+
+  it('revela a conferência quando o material já foi perguntado', () => {
+    const state: CutListState = {
+      ...createInitialState(),
+      pieces: [makePiece({ fitaUnknown: true })],
+      materialAsked: true,
+    };
+
+    const next = cutListReducer(state, { type: 'FITA_MISSING_ANSWERED', fitaType: 'all' });
+
+    expect(next.activeModal).toBe('none');
+    expect(next.previewVisible).toBe(true);
+  });
+
+  it('não muta a peça original do estado anterior (imutabilidade)', () => {
+    const original = makePiece({ fitaUnknown: true });
+    const state: CutListState = { ...createInitialState(), pieces: [original], materialAsked: true };
+
+    cutListReducer(state, { type: 'FITA_MISSING_ANSWERED', fitaType: 'all' });
+
+    expect(original.fitaUnknown).toBe(true);
+    expect(original.fita).toEqual({ c1: false, c2: false, l1: false, l2: false });
+  });
 });
 
 describe('MATERIAL_CONFIRMED', () => {

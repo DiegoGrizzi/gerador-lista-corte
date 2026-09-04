@@ -23,7 +23,7 @@ import {
   buildPieceFromDimensionFirstMatch,
 } from './piece-matcher.js';
 import { extractTrailingFitaCodes, applyFitaCodesToPiece } from './fita-codes.js';
-import { finalizePiece } from './finalize.js';
+import { finalizePiece, markFitaUnknownIfNeeded } from './finalize.js';
 import type { NextIdFn, ParseContext, Piece } from './types.js';
 
 /**
@@ -63,6 +63,7 @@ export function quickParseLine(line: string, ctx: ParseContext, nextId: NextIdFn
     const piece = buildPieceFromDimensionFirstMatch(dimensionFirstMatch, ctx);
     piece.id = nextId();
     if (fitaCodes.length > 0) applyFitaCodesToPiece(piece, fitaCodes);
+    markFitaUnknownIfNeeded(piece);
     return finalizePiece(piece);
   }
 
@@ -72,6 +73,7 @@ export function quickParseLine(line: string, ctx: ParseContext, nextId: NextIdFn
     const piece = buildPieceFromDimensionFirstMatch(pcAsteriskMatch, ctx);
     piece.id = nextId();
     if (fitaCodes.length > 0) applyFitaCodesToPiece(piece, fitaCodes);
+    markFitaUnknownIfNeeded(piece);
     return finalizePiece(piece);
   }
 
@@ -86,5 +88,6 @@ export function quickParseLine(line: string, ctx: ParseContext, nextId: NextIdFn
   const built = buildPieceFromMatch(match.qty, match.prefix, match.dimensionMatch, match.suffix, ctx);
   built.piece.id = nextId();
   if (fitaCodes.length > 0) applyFitaCodesToPiece(built.piece, fitaCodes);
+  markFitaUnknownIfNeeded(built.piece);
   return finalizePiece(built.piece);
 }

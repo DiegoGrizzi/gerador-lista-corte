@@ -71,6 +71,16 @@ export interface HeaderInfo {
  * maiores + 1 menor" e "2 lados menores + 1 maior" — fica `true` até a
  * pergunta correspondente ser respondida na interface, com `customFita`
  * provisoriamente "sem nenhum lado" nesse meio tempo.
+ *
+ * `fitaUnknown` fica `true` quando a peça chegou ao fim da interpretação
+ * SEM nenhuma informação de fita — nem um tipo (`fitaType`) resolvido, nem
+ * fita explícita por lado (`customFita`). Diferente de `fitaType ===
+ * 'none-explicit'` (que também é o valor usado quando o texto realmente
+ * disse "sem fita"/"não precisa" — ver parseFitamentoPhrase), este
+ * sinalizador distingue os dois casos: "o usuário decidiu que não tem
+ * fita" (não marcado) de "ninguém disse nada sobre fita" (marcado) — só o
+ * segundo caso deve disparar a pergunta correspondente na interface. Ver
+ * markFitaUnknownIfNeeded em finalize.ts.
  */
 export interface RawPiece {
   id: string;
@@ -86,6 +96,7 @@ export interface RawPiece {
   isOverride: boolean;
   note: string;
   pendingThreeLados?: boolean;
+  fitaUnknown?: boolean;
 }
 
 /**

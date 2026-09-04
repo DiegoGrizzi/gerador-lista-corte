@@ -25,6 +25,28 @@ import type { Piece, RawPiece } from './types.js';
  * pendências de analyzeText) e devolve a mesma referência já tipada como
  * Piece, agora com `fita` presente.
  */
+/**
+ * Marca `fitaUnknown` quando a peça não tem NENHUMA informação de fita
+ * (nem `fitaType`, nem `customFita`) no momento em que é chamada — ver o
+ * comentário em RawPiece.fitaUnknown sobre por que isso é diferente de
+ * `fitaType === 'none-explicit'`.
+ *
+ * Chamado em dois lugares, com timings diferentes de propósito:
+ *   - analyzeText chama isso para TODAS as peças antes de defaultar
+ *     fitaType pendente para 'none-explicit' no fim da mensagem (ver
+ *     analyze.ts) — nesse ponto, `fitaType == null` significa de verdade
+ *     "nada foi dito em lugar nenhum da mensagem".
+ *   - quickParseLine (resgate de uma linha da conferência) chama isso
+ *     depois de montar a peça, já que essa função nunca passa pelo laço de
+ *     pendências de analyzeText — o contexto herdado já reflete o que foi
+ *     resolvido até aquele ponto da mensagem original.
+ */
+export function markFitaUnknownIfNeeded(piece: RawPiece): void {
+  if (piece.fitaType == null && !piece.customFita) {
+    piece.fitaUnknown = true;
+  }
+}
+
 export function finalizePiece(piece: RawPiece): Piece {
   const fita = piece.customFita || resolveFitaFromType(piece.fitaType, piece.compr, piece.larg);
   let label = piece.material || '';

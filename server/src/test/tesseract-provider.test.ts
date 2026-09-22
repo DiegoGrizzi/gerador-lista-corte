@@ -42,26 +42,24 @@ describe('TesseractOcrProvider', () => {
     expect(calledArgs).toEqual(expect.arrayContaining(['-l', 'por']));
   });
 
-  it('amplia uma imagem pequena antes do OCR (caso real: print de tela de 457x209px onde o Tesseract não lia nada)', async () => {
-    let writtenWidth: number | undefined;
+  it('não tenta ampliar quando a primeira leitura já trouxe texto suficiente (mesmo numa imagem pequena)', async () => {
+    // Caso real: uma foto de 514x827px de uma tabela lia PERFEITAMENTE
+    // sem nenhuma ampliação - ampliar ela (mesmo moderadamente) BORRAVA o
+    // texto e piorava a leitura. Ampliar só quando a primeira tentativa
+    // falhar de verdade (ver teste abaixo) evita esse caso.
+    const widthsSeen: number[] = [];
     execFileMock.mockImplementation((_file, args, callback) => {
       const imagePath = args[0] as string;
       const outputBase = args[1] as string;
-      // Lê as dimensões do arquivo temporário AQUI DENTRO, antes do
-      // callback disparar - o recognize() apaga esse arquivo (cleanup) assim
-      // que o tesseract "termina", então ler depois de esperar a Promise
-      // do provider já seria tarde demais (arquivo já não existe mais).
       void sharp(imagePath)
         .metadata()
         .then((metadata) => {
-          writtenWidth = metadata.width;
-          return fs.writeFile(`${outputBase}.txt`, 'texto');
+          widthsSeen.push(metadata.width!);
+          return fs.writeFile(`${outputBase}.txt`, 'texto reconhecido com mais de cinquenta caracteres de verdade');
         })
         .then(() => callback(null));
     });
 
-    // Imagem pequena de verdade (bem abaixo do limiar), não um buffer falso -
-    // precisa ser uma imagem válida pro sharp conseguir processar.
     const smallImage = await sharp({
       create: { width: 200, height: 100, channels: 3, background: { r: 255, g: 255, b: 255 } },
     })
@@ -71,21 +69,71 @@ describe('TesseractOcrProvider', () => {
     const provider = new TesseractOcrProvider({ tesseractPath: 'tesseract', lang: 'por' });
     await provider.recognize(smallImage);
 
-    expect(writtenWidth).toBeGreaterThanOrEqual(1600);
+    expect(execFileMock).toHaveBeenCalledTimes(1);
+    expect(widthsSeen).toEqual([200]);
   });
 
-  it('não mexe numa imagem que já é grande o bastante', async () => {
-    let writtenWidth: number | undefined;
+  it('tenta de novo com a imagem ampliada quando a primeira leitura veio curta demais (caso real: print de 457x209px)', async () => {
+    const widthsSeen: number[] = [];
+    let call = 0;
     execFileMock.mockImplementation((_file, args, callback) => {
       const imagePath = args[0] as string;
       const outputBase = args[1] as string;
+      call++;
+      const text = call === 1 ? 'só um título' : 'texto bem mais completo reconhecido na segunda tentativa, depois de ampliar';
       void sharp(imagePath)
         .metadata()
         .then((metadata) => {
-          writtenWidth = metadata.width;
-          return fs.writeFile(`${outputBase}.txt`, 'texto');
+          widthsSeen.push(metadata.width!);
+          return fs.writeFile(`${outputBase}.txt`, text);
         })
         .then(() => callback(null));
+    });
+
+    const smallImage = await sharp({
+      create: { width: 200, height: 100, channels: 3, background: { r: 255, g: 255, b: 255 } },
+    })
+      .png()
+      .toBuffer();
+
+    const provider = new TesseractOcrProvider({ tesseractPath: 'tesseract', lang: 'por' });
+    const result = await provider.recognize(smallImage);
+
+    expect(execFileMock).toHaveBeenCalledTimes(2);
+    expect(widthsSeen[0]).toBe(200);
+    expect(widthsSeen[1]).toBeGreaterThanOrEqual(1600);
+    expect(result.text).toBe('texto bem mais completo reconhecido na segunda tentativa, depois de ampliar');
+  });
+
+  it('fica com o resultado da primeira tentativa se a ampliada não trouxer mais texto', async () => {
+    // Caso real: ampliar uma imagem que já lia bem sem ajuda pode ATÉ
+    // piorar o resultado (texto borrado vira reconhecimento pior, não
+    // melhor) - por isso o resultado ampliado só substitui o original
+    // quando é estritamente maior, nunca "só porque tentou de novo".
+    let call = 0;
+    execFileMock.mockImplementation((_file, args, callback) => {
+      const outputBase = args[1] as string;
+      call++;
+      const text = call === 1 ? 'primeira tentativa, ainda curta mas maior que a segunda' : 'curto';
+      void fs.writeFile(`${outputBase}.txt`, text).then(() => callback(null));
+    });
+
+    const smallImage = await sharp({
+      create: { width: 200, height: 100, channels: 3, background: { r: 255, g: 255, b: 255 } },
+    })
+      .png()
+      .toBuffer();
+
+    const provider = new TesseractOcrProvider({ tesseractPath: 'tesseract', lang: 'por' });
+    const result = await provider.recognize(smallImage);
+
+    expect(result.text).toBe('primeira tentativa, ainda curta mas maior que a segunda');
+  });
+
+  it('não tenta de novo se a imagem já era grande o bastante e mesmo assim leu pouco (ampliar não ajudaria)', async () => {
+    execFileMock.mockImplementation((_file, args, callback) => {
+      const outputBase = args[1] as string;
+      void fs.writeFile(`${outputBase}.txt`, 'curto').then(() => callback(null));
     });
 
     const largeImage = await sharp({
@@ -97,7 +145,7 @@ describe('TesseractOcrProvider', () => {
     const provider = new TesseractOcrProvider({ tesseractPath: 'tesseract', lang: 'por' });
     await provider.recognize(largeImage);
 
-    expect(writtenWidth).toBe(2000);
+    expect(execFileMock).toHaveBeenCalledTimes(1);
   });
 
   it('traduz erro ENOENT em mensagem amigável em português', async () => {

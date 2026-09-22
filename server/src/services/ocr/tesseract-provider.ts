@@ -7,29 +7,33 @@ import { cleanupTempFile, writeTempImage } from '../temp-file.js';
 import { OcrFailureError, type OcrProvider, type OcrResult } from './types.js';
 
 /**
- * Largura mínima (em pixels) abaixo da qual a imagem é ampliada antes do
- * OCR. Caso real: um print de tela de 457×209px — bem comum quando o
- * usuário manda um recorte pequeno em vez de uma foto de celular (que já
- * costuma vir bem maior que isso) — não reconhecia NADA do texto da
- * tabela nessa resolução original; ampliada 4x, o Tesseract leu quase
- * tudo certo. Mesmo princípio já validado em pdf-renderer.ts
- * (RENDER_SCALE) para as páginas de PDF renderizadas.
+ * Largura mínima (em pixels) usada para ampliar a imagem QUANDO a
+ * primeira tentativa (sem ampliar) falha — ver recognize() abaixo sobre
+ * por que isso é tentado como reserva, não sempre de cara.
  */
-const MIN_WIDTH_PX = 1600;
+const UPSCALE_TARGET_WIDTH_PX = 1600;
 
 /**
- * Amplia a imagem antes do OCR se ela for menor que MIN_WIDTH_PX de
- * largura — fotos de celular normais já vêm bem maiores que isso e saem
- * inalteradas; só ajuda prints/recortes pequenos. Se a imagem não for
- * processável por algum motivo (buffer corrompido, formato não suportado),
- * devolve o buffer original sem travar o OCR — mais vale tentar ler do
- * jeito que veio do que falhar tudo por causa de um passo opcional.
+ * Quantidade mínima de caracteres (sem espaço) no texto reconhecido pra
+ * contar como "leu alguma coisa de verdade" — abaixo disso, a primeira
+ * tentativa é tratada como falha e a ampliada é tentada por cima. Bem
+ * abaixo do que uma tabela real tem (algumas dezenas de caracteres só no
+ * cabeçalho), mas acima do que sobra de um título solto sem nenhuma linha
+ * da tabela reconhecida (caso real: só "ARMÁRIO DA ÁREA DE SERVIÇO -
+ * MAIOR", 35 caracteres, com o resto da tabela inteiro perdido).
  */
-async function upscaleIfSmall(imageBuffer: Buffer): Promise<Buffer> {
+const MIN_USEFUL_TEXT_CHARS = 50;
+
+/**
+ * Amplia a imagem pra UPSCALE_TARGET_WIDTH_PX de largura. Se a imagem não
+ * for processável por algum motivo (buffer corrompido, formato não
+ * suportado), devolve o buffer original sem travar o OCR.
+ */
+async function upscaleImage(imageBuffer: Buffer): Promise<Buffer> {
   try {
     const metadata = await sharp(imageBuffer).metadata();
-    if (!metadata.width || metadata.width >= MIN_WIDTH_PX) return imageBuffer;
-    return await sharp(imageBuffer).resize({ width: MIN_WIDTH_PX, kernel: 'lanczos3' }).toBuffer();
+    if (!metadata.width || metadata.width >= UPSCALE_TARGET_WIDTH_PX) return imageBuffer;
+    return await sharp(imageBuffer).resize({ width: UPSCALE_TARGET_WIDTH_PX, kernel: 'lanczos3' }).toBuffer();
   } catch {
     return imageBuffer;
   }
@@ -74,8 +78,8 @@ export class TesseractOcrProvider implements OcrProvider {
     this.lang = options.lang;
   }
 
-  async recognize(rawImageBuffer: Buffer): Promise<OcrResult> {
-    const imageBuffer = await upscaleIfSmall(rawImageBuffer);
+  /** Roda o Tesseract uma vez, no buffer de imagem exatamente como recebido (sem ampliar). */
+  private async recognizeOnce(imageBuffer: Buffer): Promise<OcrResult> {
     const imagePath = await writeTempImage(imageBuffer, '.png');
     const outputBase = imagePath.replace(/\.[^.]+$/, '');
     const outputTxtPath = `${outputBase}.txt`;
@@ -95,5 +99,28 @@ export class TesseractOcrProvider implements OcrProvider {
       await cleanupTempFile(imagePath);
       await cleanupTempFile(outputTxtPath);
     }
+  }
+
+  /**
+   * Tenta ler a imagem como veio primeiro, e só amplia como RESERVA se
+   * isso não ler texto suficiente — nunca amplia de cara. Caso real que
+   * motivou essa ordem: ampliar sempre que a imagem for "pequena" ajudava
+   * um print de tela de 457×209px (nada legível na resolução original),
+   * mas do mesmo jeito ATRAPALHAVA uma foto de tabela de 514×827px que já
+   * lia perfeitamente sem ampliar — a ampliação (mesmo moderada) borra uma
+   * imagem que já tinha resolução suficiente pro texto dela, sem
+   * acrescentar informação real nenhuma. Não dá pra decidir só pelo
+   * tamanho da imagem se ela "precisa" de ampliação; tentar sem ampliar
+   * primeiro e comparar o resultado é o sinal confiável.
+   */
+  async recognize(rawImageBuffer: Buffer): Promise<OcrResult> {
+    const firstAttempt = await this.recognizeOnce(rawImageBuffer);
+    if (firstAttempt.text.trim().length >= MIN_USEFUL_TEXT_CHARS) return firstAttempt;
+
+    const upscaled = await upscaleImage(rawImageBuffer);
+    if (upscaled === rawImageBuffer) return firstAttempt;
+
+    const secondAttempt = await this.recognizeOnce(upscaled);
+    return secondAttempt.text.trim().length > firstAttempt.text.trim().length ? secondAttempt : firstAttempt;
   }
 }

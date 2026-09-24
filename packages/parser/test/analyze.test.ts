@@ -22,6 +22,7 @@ import {
   PDF_TABLE_WITH_COMBINED_DIMENSAO,
   MULTIPLICATION_SIGN_MESSAGE,
   TSV_TABLE_WITH_REPEATED_HEADER,
+  DIMENSION_FIRST_PARENS_MESSAGE,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -518,5 +519,30 @@ describe('analyzeText — fitaUnknown (nenhuma informação de fita em lugar nen
     const result = analyzeText(TSV_TABLE_LIST, makeNextId());
 
     expect(result.pieces.every((p) => !p.fitaUnknown)).toBe(true);
+  });
+});
+
+describe('analyzeText — "comprimento x largura (quantidade)" — parênteses em vez de dois-pontos (real user list)', () => {
+  it('reconhece as 15 peças, com "x"/"×" e decimal com vírgula misturados, espaço antes do parêntese opcional', () => {
+    const result = analyzeText(DIMENSION_FIRST_PARENS_MESSAGE, makeNextId());
+
+    expect(result.discarded).toEqual([]);
+    expect(result.pieces.map((p) => ({ qtd: p.qtd, compr: p.compr, larg: p.larg }))).toEqual([
+      { qtd: 1, compr: 35, larg: 20 },
+      { qtd: 2, compr: 13, larg: 45 },
+      { qtd: 1, compr: 16, larg: 10 },
+      { qtd: 5, compr: 73, larg: 3.5 },
+      { qtd: 1, compr: 13, larg: 92.5 },
+      { qtd: 2, compr: 12, larg: 19 },
+      { qtd: 1, compr: 12, larg: 15 },
+      { qtd: 1, compr: 9.5, larg: 15 },
+      { qtd: 1, compr: 15, larg: 17 },
+      { qtd: 2, compr: 19, larg: 21 },
+      { qtd: 1, compr: 11, larg: 11 },
+      { qtd: 2, compr: 11, larg: 19 },
+      { qtd: 2, compr: 27, larg: 10 },
+      { qtd: 2, compr: 19, larg: 10 },
+      { qtd: 1, compr: 19, larg: 25 },
+    ]);
   });
 });

@@ -333,3 +333,34 @@ export const TSV_TABLE_WITH_REPEATED_HEADER = [
   'Prateleira\t4\tBranco 15mm\t950.0\t300.0\tFita Branco\t✓\t✓\t\t',
   'Rodapé\t1\tBranco 15mm\t1385.0\t80.0\tFita Branco\t✓\t✓\t\t',
 ].join('\n');
+
+/**
+ * Lista real de um usuário no formato "comprimento x largura (quantidade)"
+ * — medidas primeiro, quantidade entre parênteses no final, sem dois-pontos
+ * nem palavra nenhuma (diferente de DIMENSION_FIRST_RE, que exige
+ * dois-pontos: "760x395: 2 peças"). Mistura "x" e "×" (sinal de
+ * multiplicação de verdade) na mesma mensagem, decimais com vírgula, e
+ * o espaço antes do parêntese é inconsistente (às vezes tem, às vezes
+ * não: "15x17 (1)" vs "11×11(1)") — linhas em branco separam blocos, sem
+ * nenhum cabeçalho de material entre eles.
+ */
+export const DIMENSION_FIRST_PARENS_MESSAGE = [
+  '35x20 (1)',
+  '13x45 (2)',
+  '16×10 (1)',
+  '73×3,5 (5)',
+  '13×92,5 (1)',
+  '',
+  '12×19 (2)',
+  '12×15 (1)',
+  '9,5×15(1)',
+  '15x17 (1)',
+  '',
+  '19×21 (2)',
+  '11×11(1)',
+  '11×19(2)',
+  '',
+  '27×10 (2)',
+  '19×10 (2)',
+  '19×25 (1)',
+].join('\n');

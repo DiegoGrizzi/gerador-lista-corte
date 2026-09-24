@@ -119,6 +119,26 @@ describe('tryMatchDimensionFirstLine — "comprimento x largura: quantidade" for
   });
 });
 
+describe('tryMatchDimensionFirstLine — "comprimento x largura (quantidade)" format (parênteses, real user list)', () => {
+  it.each([
+    ['35x20 (1)', 1, '35', '20'],
+    ['16×10 (1)', 1, '16', '10'],
+    ['73×3,5 (5)', 5, '73', '3.5'],
+    ['9,5×15(1)', 1, '9.5', '15'],
+    ['11×11(1)', 1, '11', '11'],
+  ])('parses "%s"', (line, qty, compr, larg) => {
+    const match = tryMatchDimensionFirstLine(line);
+    expect(match).not.toBeNull();
+    expect(match!.qty).toBe(qty);
+    expect(match!.compr).toBe(Number(compr));
+    expect(match!.larg).toBe(Number(larg));
+  });
+
+  it('does not match a line without the parentheses', () => {
+    expect(tryMatchDimensionFirstLine('35x20')).toBeNull();
+  });
+});
+
 describe('tryMatchPcAsteriskLine — "quantidade+pc+comprimento*largura" format', () => {
   it.each([
     ['1pc96*65', 1, 96, 65],

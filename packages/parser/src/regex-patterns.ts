@@ -70,6 +70,18 @@ export const DIMENSION_FIRST_RE = new RegExp(
 );
 
 /**
+ * Segundo formato "medidas antes da quantidade" (real user list): a
+ * quantidade vem entre parênteses no final, sem dois-pontos nem palavra
+ * nenhuma — "35x20 (1)", "73×3,5 (5)", "9,5×15(1)" (sem espaço antes do
+ * parêntese também aceito). Diferente de DIMENSION_FIRST_RE, aqui a
+ * quantidade é sempre obrigatória (não faria sentido um parêntese vazio) —
+ * mesma limitação de não carregar fita/espessura/material inline (ver
+ * buildPieceFromDimensionFirstMatch).
+ */
+export const DIMENSION_FIRST_PARENS_RE =
+  /^(\d+(?:[.,']\d+)?)\s*[x×]\s*(\d+(?:[.,']\d+)?)\s*\(\s*(\d+)\s*\)\.?$/i;
+
+/**
  * Terceiro formato alternativo: uma lista inteira de peças na mesma linha,
  * separada por ponto, cada peça no formato "quantidade+pc+comprimento*
  * largura" (ex: "1pc96*65. 1pc192*65. 4pc69.5*65"). Usada em conjunto com

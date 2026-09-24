@@ -12,6 +12,7 @@ import {
   DIMENSIONS_RE,
   DIMENSIONS_NO_SLASH_RE,
   DIMENSION_FIRST_RE,
+  DIMENSION_FIRST_PARENS_RE,
   PC_ASTERISK_RE,
   THICKNESS_SUFFIX_RE,
   PIECE_SEPARATOR_RE,
@@ -109,19 +110,32 @@ export interface DimensionFirstMatch {
 
 /**
  * Tenta reconhecer o formato "comprimento x largura: quantidade" (ver
- * DIMENSION_FIRST_RE) — usado por listas exportadas de outros programas de
- * otimização de corte, na ordem oposta ao formato principal do sistema.
- * Devolve null se a linha não bater com esse formato específico.
+ * DIMENSION_FIRST_RE) ou "comprimento x largura (quantidade)" (ver
+ * DIMENSION_FIRST_PARENS_RE) — dois formatos de listas exportadas de
+ * outros programas de otimização de corte, na ordem oposta ao formato
+ * principal do sistema. Devolve null se a linha não bater com nenhum dos
+ * dois.
  */
 export function tryMatchDimensionFirstLine(line: string): DimensionFirstMatch | null {
   const match = DIMENSION_FIRST_RE.exec(line);
-  if (!match) return null;
+  if (match) {
+    return {
+      qty: match[3] ? parseInt(match[3], 10) : 1,
+      compr: toNumber(match[1]!),
+      larg: toNumber(match[2]!),
+    };
+  }
 
-  return {
-    qty: match[3] ? parseInt(match[3], 10) : 1,
-    compr: toNumber(match[1]!),
-    larg: toNumber(match[2]!),
-  };
+  const parensMatch = DIMENSION_FIRST_PARENS_RE.exec(line);
+  if (parensMatch) {
+    return {
+      qty: parseInt(parensMatch[3]!, 10),
+      compr: toNumber(parensMatch[1]!),
+      larg: toNumber(parensMatch[2]!),
+    };
+  }
+
+  return null;
 }
 
 /**

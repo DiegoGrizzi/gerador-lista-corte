@@ -53,6 +53,49 @@ export const PECAS_COLUMN_ROW_RE =
   /(\d+(?:[.,]\d+)?)(?:\s*[xX]\s*|\s+)(\d+(?:[.,]\d+)?)\s*-\s*(\d+(?:[.,]\d+)?)/;
 
 /**
+ * Terceiro formato de tabela suportado (real user list, foto de uma
+ * planilha): "Qtd Nome Medida1 x Medida2 Esp Fitamento Cor" — o nome vem
+ * ENTRE a quantidade e as medidas (diferente dos outros dois formatos,
+ * onde não há nome ou ele vem por último), mais uma coluna de espessura
+ * e uma frase de fitamento com vocabulário próprio ("Maior", "Menor", "2
+ * menores + 1 maior", "2 maiores + 2 menores", "—"/"sem fita"), e a
+ * cor/material no final.
+ *
+ * O nome captura tudo (non-greedy) até a PRIMEIRA ocorrência de "número
+ * x número" da linha — funciona mesmo quando o nome tem números dentro
+ * (ex: "Divisória 3 Duplado 1/2"), já que nenhum desses números vem
+ * colado a um "x"/"×" literal, só a medida de verdade tem isso.
+ *
+ * Espessura aceita qualquer token curto (não só dígitos) de propósito —
+ * testado com uma foto real, o OCR errou "15" para "IS)" em algumas
+ * linhas; perder só a espessura dessas linhas (fica nula, sem travar o
+ * resto) é preferível a perder a peça inteira.
+ */
+export const ESTRUTURA_TABLE_ROW_RE =
+  /^(\d+)\s+(.+?)\s+(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s+(\S+)\s+((?:\d*\s*(?:maior|menor)(?:es)?(?:\s*\+\s*\d*\s*(?:maior|menor)(?:es)?)?)|[-—]+|sem\s*fita|nenhum)\s+(.+)$/i;
+
+/**
+ * Converte a frase da coluna Fitamento (ver ESTRUTURA_TABLE_ROW_RE) nos
+ * códigos de fita que @corte-cloud/parser já entende (ver fita-codes.ts
+ * do pacote parser — "1M"/"2M" = 1/2 lados do par maior, "1m"/"2m" = do
+ * par menor, combinados livremente: "1M 2m" = 1 lado maior + 2 lados
+ * menores) — "maior"/"menor" sozinhos, sem número na frente, valem como
+ * 1. Lista vazia quando a frase indica "sem fita" (traço, "sem fita",
+ * "nenhum").
+ */
+function fitamentoLabelToFitaCodes(label: string): string[] {
+  const trimmed = label.trim();
+  if (!trimmed || /^[-—]+$/.test(trimmed) || /^(sem\s*fita|nenhum)$/i.test(trimmed)) return [];
+
+  const codes: string[] = [];
+  const maiorMatch = trimmed.match(/(\d+)?\s*maior(?:es)?/i);
+  if (maiorMatch) codes.push((maiorMatch[1] ? parseInt(maiorMatch[1], 10) : 1) + 'M');
+  const menorMatch = trimmed.match(/(\d+)?\s*menor(?:es)?/i);
+  if (menorMatch) codes.push((menorMatch[1] ? parseInt(menorMatch[1], 10) : 1) + 'm');
+  return codes;
+}
+
+/**
  * Resíduo de checkbox vazio da coluna "PA" mal reconhecido pelo OCR (o
  * quadradinho ☐ virando letras/símbolos soltos). Em vez de tentar prever
  * cada padrão específico que o OCR pode inventar (o que varia de foto
@@ -100,12 +143,49 @@ export interface ReformatResult {
 export function reformatTableText(rawText: string): ReformatResult {
   const pieceLines: string[] = [];
   let candidateLineCount = 0;
+  let recognizedPieceCount = 0;
+  // Material da última linha da tabela "Estrutura/Portas/Prateleiras" (ver
+  // ESTRUTURA_TABLE_ROW_RE) já emitido — evita repetir "MDF Branco Supremo
+  // Matt" antes de toda peça quando várias seguidas usam a mesma cor.
+  let lastEstruturaMaterial: string | null = null;
 
   rawText.split('\n').forEach((rawLine) => {
     const line = rawLine.trim();
     if (!line) return;
 
     const looksLikeRowAttempt = (line.match(/\d+/g) ?? []).length >= 2;
+
+    // ESTRUTURA_TABLE_ROW_RE checada PRIMEIRO, antes de TABLE_ROW_RE, de
+    // propósito: é a única das três totalmente ancorada (^...$), então um
+    // "match" dela é bem mais confiável. TABLE_ROW_RE busca 3 números
+    // seguidos em QUALQUER posição da linha, sem âncora — quando a frase
+    // de fitamento começa com dígito ("2 menores + 1 maior"), o trio
+    // esp/contagem-1/contagem-2 (ex: "15 2 ...") batia com TABLE_ROW_RE
+    // por engano antes desta reordenação, embaralhando a linha inteira
+    // (confirmado com um caso real: "15 2 menores + 1 maior" virava
+    // "2=800/15", perdendo tudo o resto).
+    const estruturaMatch = line.match(ESTRUTURA_TABLE_ROW_RE);
+    if (estruturaMatch) {
+      if (looksLikeRowAttempt) candidateLineCount++;
+      const [, quantidade, nomeRaw, comprimento, largura, espRaw, fitamentoLabel, corRaw] = estruturaMatch;
+      const nome = (nomeRaw || '').trim();
+      const cor = (corRaw || '').trim();
+      const esp = /^\d+(?:[.,]\d+)?$/.test(espRaw!) ? espRaw : null;
+
+      if (cor && cor !== lastEstruturaMaterial) {
+        pieceLines.push(buildMaterialHeader(cor).trim());
+        lastEstruturaMaterial = cor;
+      }
+
+      let pieceLine = quantidade + '=' + comprimento + '/' + largura;
+      if (nome) pieceLine += ' ' + nome;
+      if (esp) pieceLine += ' de ' + esp + 'mm';
+      const codes = fitamentoLabelToFitaCodes(fitamentoLabel!);
+      if (codes.length > 0) pieceLine += ' ' + codes.join(' ');
+      pieceLines.push(pieceLine);
+      recognizedPieceCount++;
+      return;
+    }
 
     const match = line.match(TABLE_ROW_RE);
     if (match) {
@@ -119,6 +199,7 @@ export function reformatTableText(rawText: string): ReformatResult {
       let pieceLine = quantidade + '=' + comprimento + '/' + largura;
       if (nome) pieceLine += ' ' + nome;
       pieceLines.push(pieceLine);
+      recognizedPieceCount++;
       return;
     }
 
@@ -126,13 +207,14 @@ export function reformatTableText(rawText: string): ReformatResult {
     if (pecasMatch) {
       if (looksLikeRowAttempt) candidateLineCount++;
       pieceLines.push(pecasMatch[3] + '=' + pecasMatch[1] + '/' + pecasMatch[2]);
+      recognizedPieceCount++;
       return;
     }
 
     if (looksLikeRowAttempt) candidateLineCount++;
   });
 
-  return { text: pieceLines.join('\n'), candidateLineCount, recognizedLineCount: pieceLines.length };
+  return { text: pieceLines.join('\n'), candidateLineCount, recognizedLineCount: recognizedPieceCount };
 }
 
 /**

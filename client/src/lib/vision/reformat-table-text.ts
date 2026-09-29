@@ -128,6 +128,15 @@ export interface ReformatResult {
   candidateLineCount: number;
   /** Quantas dessas linhas realmente viraram uma peça reconhecida. */
   recognizedLineCount: number;
+  /**
+   * true quando pelo menos uma linha reconhecida já trouxe o material embutido
+   * na própria tabela (coluna Cor do formato "Estrutura/Portas/Prateleiras" —
+   * ver ESTRUTURA_TABLE_ROW_RE). Nesse caso não faz sentido perguntar o
+   * material da foto pro usuário: ele já está no texto reformatado, igual ao
+   * que `looksLikeNoMaterial`/`materialMentioned` fazem pro fluxo de texto
+   * colado (ver finalize.ts no pacote parser).
+   */
+  materialIncluded: boolean;
 }
 
 /**
@@ -144,6 +153,7 @@ export function reformatTableText(rawText: string): ReformatResult {
   const pieceLines: string[] = [];
   let candidateLineCount = 0;
   let recognizedPieceCount = 0;
+  let materialIncluded = false;
   // Material da última linha da tabela "Estrutura/Portas/Prateleiras" (ver
   // ESTRUTURA_TABLE_ROW_RE) já emitido — evita repetir "MDF Branco Supremo
   // Matt" antes de toda peça quando várias seguidas usam a mesma cor.
@@ -167,6 +177,7 @@ export function reformatTableText(rawText: string): ReformatResult {
     const estruturaMatch = line.match(ESTRUTURA_TABLE_ROW_RE);
     if (estruturaMatch) {
       if (looksLikeRowAttempt) candidateLineCount++;
+      materialIncluded = true;
       const [, quantidade, nomeRaw, comprimento, largura, espRaw, fitamentoLabel, corRaw] = estruturaMatch;
       const nome = (nomeRaw || '').trim();
       const cor = (corRaw || '').trim();
@@ -214,7 +225,7 @@ export function reformatTableText(rawText: string): ReformatResult {
     if (looksLikeRowAttempt) candidateLineCount++;
   });
 
-  return { text: pieceLines.join('\n'), candidateLineCount, recognizedLineCount: recognizedPieceCount };
+  return { text: pieceLines.join('\n'), candidateLineCount, recognizedLineCount: recognizedPieceCount, materialIncluded };
 }
 
 /**

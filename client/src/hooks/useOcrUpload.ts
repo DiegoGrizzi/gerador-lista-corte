@@ -121,7 +121,6 @@ export function useOcrUpload(dispatch: Dispatch<CutListAction>): UseOcrUploadRes
 
       for (let index = 0; index < files.length; index++) {
         const file = files[index]!;
-        const material = await askMaterialForPhoto(file, index, files.length);
 
         dispatch({
           type: 'PHOTO_STATUS_CHANGED',
@@ -132,9 +131,24 @@ export function useOcrUpload(dispatch: Dispatch<CutListAction>): UseOcrUploadRes
         try {
           const base64 = await readFileAsBase64(file);
           const { text } = await requestOcr(base64);
-          const { text: reformatted, candidateLineCount, recognizedLineCount } = reformatTableText(text);
+          const { text: reformatted, candidateLineCount, recognizedLineCount, materialIncluded } = reformatTableText(text);
 
-          if (reformatted) {
+          if (reformatted && materialIncluded) {
+            // A tabela já traz o material embutido (coluna Cor do formato
+            // "Estrutura/Portas/Prateleiras") — perguntar de novo seria
+            // redundante, então pula direto pro texto reformatado.
+            blocks.push(reformatted);
+            if (recognizedLineCount < candidateLineCount) {
+              hadError = true;
+              const faltando = candidateLineCount - recognizedLineCount;
+              dispatch({
+                type: 'PHOTO_STATUS_CHANGED',
+                message: `Atenção: reconheci ${recognizedLineCount} de ${candidateLineCount} linhas que pareciam ter uma peça na foto ${index + 1} de ${files.length} (${faltando} pode ter ficado de fora) — confira com a foto original antes de analisar.`,
+                isError: true,
+              });
+            }
+          } else if (reformatted) {
+            const material = await askMaterialForPhoto(file, index, files.length);
             blocks.push(buildMaterialHeader(material) + reformatted);
             if (recognizedLineCount < candidateLineCount) {
               // O OCR errou de um jeito imprevisível numa ou mais linhas
@@ -157,6 +171,7 @@ export function useOcrUpload(dispatch: Dispatch<CutListAction>): UseOcrUploadRes
             // perder informação em silêncio, mesmo quando não dá para
             // organizar automaticamente).
             hadError = true;
+            const material = await askMaterialForPhoto(file, index, files.length);
             blocks.push(buildMaterialHeader(material) + text.trim());
             dispatch({
               type: 'PHOTO_STATUS_CHANGED',

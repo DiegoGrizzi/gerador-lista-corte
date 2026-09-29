@@ -125,6 +125,27 @@ describe('reformatTableText — formato "Estrutura/Portas/Prateleiras" (QTD. PE�
     // Nome com ruído de OCR ("AZ" em vez de "A2") não impede o reconhecimento.
     expect(result.text).toContain('1=563,86/807 Porta AZ 2M 2m');
   });
+
+  it('materialIncluded fica true — a coluna Cor já é o material, não precisa perguntar de novo', () => {
+    const raw = '1 Base 144 x 940 15 Maior Branco Supremo Matt';
+    expect(reformatTableText(raw).materialIncluded).toBe(true);
+  });
+});
+
+describe('reformatTableText — materialIncluded (formatos sem coluna de material/cor)', () => {
+  it('fica false no formato de colunas separadas (Compr./Largura/Quant.), que não tem coluna de material', () => {
+    const raw = '1. 720 400 2 Não Lateral';
+    expect(reformatTableText(raw).materialIncluded).toBe(false);
+  });
+
+  it('fica false no formato "Peças" (comprimento X largura - quantidade), que não tem coluna de material', () => {
+    const raw = '1900 X 350 - 2';
+    expect(reformatTableText(raw).materialIncluded).toBe(false);
+  });
+
+  it('fica false quando nada é reconhecido', () => {
+    expect(reformatTableText('Lista de corte').materialIncluded).toBe(false);
+  });
 });
 
 describe('reformatTableText — contagem de candidatas vs. reconhecidas', () => {

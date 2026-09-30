@@ -139,6 +139,26 @@ describe('tryMatchDimensionFirstLine — "comprimento x largura (quantidade)" fo
   });
 });
 
+describe('tryMatchDimensionFirstLine — "(quantidade)comprimentoxlargura" format (parênteses no início, sem espaço, real user list)', () => {
+  it.each([
+    ['(1)120.8x7', 1, '120.8', '7'],
+    ['(4)70x51', 4, '70', '51'],
+    ['(2)54.5x42.7', 2, '54.5', '42.7'],
+    ['(8)25.3x12', 8, '25.3', '12'],
+    ['(1) 645 x 37.7', 1, '645', '37.7'],
+  ])('parses "%s"', (line, qty, compr, larg) => {
+    const match = tryMatchDimensionFirstLine(line);
+    expect(match).not.toBeNull();
+    expect(match!.qty).toBe(qty);
+    expect(match!.compr).toBe(Number(compr));
+    expect(match!.larg).toBe(Number(larg));
+  });
+
+  it('does not match a line without the leading parentheses', () => {
+    expect(tryMatchDimensionFirstLine('1)120.8x7')).toBeNull();
+  });
+});
+
 describe('tryMatchPcAsteriskLine — "quantidade+pc+comprimento*largura" format', () => {
   it.each([
     ['1pc96*65', 1, 96, 65],

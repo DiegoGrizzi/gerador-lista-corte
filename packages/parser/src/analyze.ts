@@ -11,6 +11,8 @@
 import {
   QUANTITY_RE,
   THICKNESS_ONLY_RE,
+  THICKNESS_WITH_TRAILING_MATERIAL_RE,
+  stripTrailingAcknowledgement,
   PECAS_HEADER_RE,
   GENERIC_THICKNESS_HEADER_RE,
   BARE_THICKNESS_HEADER_RE,
@@ -441,6 +443,32 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
       });
       pendingThickness = [];
       return;
+    }
+
+    // Declaração retroativa de espessura QUE TAMBÉM traz o material na
+    // mesma linha, depois de um ponto (ex: "Todas essas pesas de 15mm.
+    // Branca ok" — ver THICKNESS_WITH_TRAILING_MATERIAL_RE). Checada antes
+    // de parseFitamentoPhrase/"mdf" porque essa frase não menciona fita nem
+    // a palavra MDF, cairia batendo em nenhum dos dois e só seria
+    // reconhecida (na melhor das hipóteses) como um cabeçalho de material
+    // solto SEM aproveitar a espessura, perdendo a peça de "15mm".
+    const thicknessWithMaterialMatch = line.match(THICKNESS_WITH_TRAILING_MATERIAL_RE);
+    if (thicknessWithMaterialMatch) {
+      const thicknessVal = toNumber(thicknessWithMaterialMatch[1]!);
+      const materialCandidate = stripTrailingAcknowledgement(thicknessWithMaterialMatch[2]!.trim());
+      if (materialCandidate) {
+        // setNewMaterial (ver acima) backfilla pendingMaterial, mas só
+        // LIMPA pendingThickness sem escrever de volta nas entradas (é
+        // assim mesmo no motor legado — ver o teste "retroactive backfill"
+        // em analyze.test.ts) — então a espessura desta linha (que
+        // TAMBÉM é retroativa, ao contrário do "MDF ... de Nmm" comum)
+        // precisa ser aplicada aqui, ANTES de chamar setNewMaterial.
+        pendingThickness.forEach((entry) => {
+          if (entry.thicknessMm == null) entry.thicknessMm = thicknessVal;
+        });
+        setNewMaterial(materialCandidate, null, thicknessVal);
+        return;
+      }
     }
 
     const fitamentoType = parseFitamentoPhrase(line);

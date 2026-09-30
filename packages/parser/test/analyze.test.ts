@@ -23,6 +23,7 @@ import {
   MULTIPLICATION_SIGN_MESSAGE,
   TSV_TABLE_WITH_REPEATED_HEADER,
   DIMENSION_FIRST_PARENS_MESSAGE,
+  QUANTITY_PARENS_FIRST_MESSAGE,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -544,5 +545,35 @@ describe('analyzeText — "comprimento x largura (quantidade)" — parênteses e
       { qtd: 2, compr: 19, larg: 10 },
       { qtd: 1, compr: 19, larg: 25 },
     ]);
+  });
+});
+
+describe('analyzeText — "(quantidade)comprimentoxlargura" — parênteses no início, sem espaço (real user list)', () => {
+  it('reconhece as 28 peças, com espessura e material retroativos declarados em dois blocos separados', () => {
+    const result = analyzeText(QUANTITY_PARENS_FIRST_MESSAGE, makeNextId());
+
+    expect(result.discarded).toEqual([]);
+    expect(result.materialMentioned).toBe(true);
+    expect(result.pieces).toHaveLength(28);
+
+    // As 26 primeiras peças: espessura e material vêm de "Todas essas
+    // pesas de 15mm. Branca ok" — retroativo, DEPOIS delas na mensagem.
+    const first26 = result.pieces.slice(0, 26);
+    for (const piece of first26) {
+      expect(piece.thicknessMm).toBe(15);
+      expect(piece.material).toBe('Branca 15mm');
+    }
+    expect(first26[0]).toMatchObject({ qtd: 1, compr: 120.8, larg: 7 });
+    expect(first26[25]).toMatchObject({ qtd: 8, compr: 40, larg: 12 });
+
+    // As 2 últimas: só a espessura muda ("Essas agora são de 6mm") — o
+    // material continua "Branca", herdado do bloco anterior.
+    const last2 = result.pieces.slice(26);
+    for (const piece of last2) {
+      expect(piece.thicknessMm).toBe(6);
+      expect(piece.material).toBe('Branca 6mm');
+    }
+    expect(last2[0]).toMatchObject({ qtd: 1, compr: 126, larg: 76 });
+    expect(last2[1]).toMatchObject({ qtd: 8, compr: 42, larg: 42 });
   });
 });

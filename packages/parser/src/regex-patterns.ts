@@ -82,6 +82,21 @@ export const DIMENSION_FIRST_PARENS_RE =
   /^(\d+(?:[.,']\d+)?)\s*[x×]\s*(\d+(?:[.,']\d+)?)\s*\(\s*(\d+)\s*\)\.?$/i;
 
 /**
+ * Quarto formato "medidas antes/depois da quantidade" (real user list): a
+ * quantidade vem entre parênteses NO INÍCIO da linha, sem espaço nenhum até
+ * o fim ("(1)120.8x7", "(4)70x51") — visualmente o oposto de
+ * DIMENSION_FIRST_PARENS_RE (lá a quantidade vem no final). Comentário do
+ * próprio usuário ao reportar essa lista: "por falta de espaço, o sistema
+ * não reconheceu" — mensagem exportada de outro programa/planilha que
+ * remove todo espaço em branco para caber mais peças na tela. Mesma
+ * limitação dos outros formatos "medidas primeiro": não carrega fita/
+ * espessura/material inline, sempre herda do contexto corrente (ver
+ * buildPieceFromDimensionFirstMatch).
+ */
+export const QUANTITY_PARENS_FIRST_RE =
+  /^\(\s*(\d+)\s*\)\s*(\d+(?:[.,']\d+)?)\s*[x×]\s*(\d+(?:[.,']\d+)?)\.?$/i;
+
+/**
  * Terceiro formato alternativo: uma lista inteira de peças na mesma linha,
  * separada por ponto, cada peça no formato "quantidade+pc+comprimento*
  * largura" (ex: "1pc96*65. 1pc192*65. 4pc69.5*65"). Usada em conjunto com
@@ -107,15 +122,52 @@ export const PC_ASTERISK_RE = /^(\d+)\s*pc\s*([\d.,']+)\s*\*\s*([\d.,']+)$/i;
  * — sem exigir isso, uma linha com só um número solto (sem "de" nem
  * unidade) viraria espessura por engano.
  *
+ * Uma janela de até 2 palavras soltas é tolerada entre "esse(s)/essa(s)" e
+ * "são" (ex: "essas agora são de 6mm", caso real de um usuário) — mas só
+ * ali: o resto da frase ("de N[unidade]", ou só "Nmm") continua colado
+ * sem nada no meio, senão a regra ficaria genérica demais e passaria a
+ * bater com QUALQUER linha que termine em "de Nmm" (ex: "MDF branco de
+ * 15mm", que é um cabeçalho de MATERIAL, não uma declaração de espessura
+ * solta — ver a checagem de "mdf" mais abaixo em analyze.ts). Continua
+ * exigindo que a linha INTEIRA seja só essa declaração (^...$) — nada de
+ * nome de material depois, isso é outro formato (ver
+ * THICKNESS_WITH_TRAILING_MATERIAL_RE).
+ *
  * A ordem "mm|ml|m" importa: alternação de regex tenta da esquerda pra
  * direita e para na primeira que bater — com "m" antes de "ml", a entrada
  * "ml" bateria só o "m" e sobraria um "l" solto, quebrando o "$" no final.
  */
 export const THICKNESS_ONLY_RE =
-  /^(?:tudo|todos|todas|esses?\s+s[ãa]o|essas?\s+s[ãa]o|s[ãa]o)?\s*(?:de\s+(\d+)\s*(?:mm|ml|m)?|(\d+)\s*(?:mm|ml))\.?$/i;
+  /^(?:tudo|todos|todas|(?:esses?|essas?)(?:\s+\S+){0,2}\s+s[ãa]o|s[ãa]o)?\s*(?:de\s+(\d+)\s*(?:mm|ml|m)?|(\d+)\s*(?:mm|ml))\.?$/i;
 
 /** Espessura mencionada dentro de outra linha: "...de 15mm", "...de 6m", "...de 6ml". */
 export const THICKNESS_SUFFIX_RE = /de\s+(\d+)\s*(?:mm|ml|m)?\.?/i;
+
+/**
+ * Declaração de espessura RETROATIVA (para as peças já listadas acima, ver
+ * pendingThickness em analyze.ts) que também já traz o material na mesma
+ * linha, depois de um ponto — caso real: "Todas essas pesas de 15mm.
+ * Branca ok" (o usuário nem sempre escreve "peças" corretamente, e às
+ * vezes emenda uma confirmação solta como "ok"/"blz" depois do nome do
+ * material). Diferente de THICKNESS_ONLY_RE, aqui a linha OBRIGATORIAMENTE
+ * continua depois do "Nmm" — é isso que distingue as duas: uma linha só
+ * de espessura cai em THICKNESS_ONLY_RE, uma que continua com mais texto
+ * (o material) cai aqui.
+ */
+export const THICKNESS_WITH_TRAILING_MATERIAL_RE =
+  /^(?:tudo|todos?|todas?)\s+(?:\S+\s+){0,3}de\s+(\d+(?:[.,]\d+)?)\s*(?:mm|ml|m)?\.?\s+(.+)$/i;
+
+/** Confirmação solta emendada no fim de um nome de material (ex: "Branca ok"). */
+const TRAILING_ACKNOWLEDGEMENT_RE = /\s*\b(?:ok|blz|beleza|certo|show)\.?$/i;
+
+/**
+ * Remove uma confirmação solta do fim de um candidato a nome de material
+ * (ver THICKNESS_WITH_TRAILING_MATERIAL_RE) — sem isso, "Branca ok" viraria
+ * o nome do material ao pé da letra, incluindo o "ok".
+ */
+export function stripTrailingAcknowledgement(text: string): string {
+  return text.replace(TRAILING_ACKNOWLEDGEMENT_RE, '').trim();
+}
 
 /**
  * Cabeçalho de material sem NENHUMA palavra-chave nem unidade na frente —

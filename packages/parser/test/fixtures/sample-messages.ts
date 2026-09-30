@@ -364,3 +364,54 @@ export const DIMENSION_FIRST_PARENS_MESSAGE = [
   '19×10 (2)',
   '19×25 (1)',
 ].join('\n');
+
+/**
+ * Lista real de um usuário no formato "(quantidade)comprimentoxlargura" —
+ * quantidade entre parênteses no INÍCIO da linha, sem nenhum espaço até o
+ * fim (visualmente o oposto de DIMENSION_FIRST_PARENS_MESSAGE, onde a
+ * quantidade vem no final). Comentário do próprio usuário: "por falta de
+ * espaço, o sistema não reconheceu" — mensagem exportada de outro
+ * programa/planilha, sem espaço nenhum entre os tokens. Duas declarações
+ * de espessura/material RETROATIVAS na mesma mensagem: a primeira
+ * ("Todas essas pesas de 15mm. Branca ok") traz espessura E material numa
+ * linha só, pras 26 peças já listadas acima (nota o "pesas", erro de
+ * digitação de "peças"); a segunda ("Essas agora são de 6mm") só espessura
+ * — o material continua "Branca", herdado do bloco anterior — pras 2
+ * peças que vêm depois dela.
+ */
+export const QUANTITY_PARENS_FIRST_MESSAGE = [
+  'prano de corte',
+  '(1)120.8x7',
+  '(1)120.8x51',
+  '(4)70x51',
+  '(1)84.5x51',
+  '(2)76x51',
+  '(1)76.7x7',
+  '(1)68.4x51',
+  '(2)61.4x6',
+  '(2)54.5x42.7',
+  '(1)645x37.7',
+  '(2)64.5x39.2',
+  '(8)40x12',
+  '(8)28.8x12',
+  '(3)121x33.5',
+  '(2)75x33.5',
+  '(1)72x33.5',
+  '(3)41x75',
+  '(1)116.2x51',
+  '(1)116.2x7',
+  '(1)83.6x51',
+  '(2)70x51',
+  '(1)68.5x51',
+  '(2)64.5x42.4',
+  '(1)64.5x33.5',
+  '(8)25.3x12',
+  '(8)40x12',
+  '',
+  'Todas essas pesas de 15mm. Branca ok',
+  '',
+  'Essas agora são de 6mm',
+  '',
+  '(1)126x76',
+  '(8)42x42',
+].join('\n');

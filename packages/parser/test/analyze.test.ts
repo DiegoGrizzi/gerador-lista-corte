@@ -24,6 +24,7 @@ import {
   TSV_TABLE_WITH_REPEATED_HEADER,
   DIMENSION_FIRST_PARENS_MESSAGE,
   QUANTITY_PARENS_FIRST_MESSAGE,
+  PECAS_DASH_WITH_FITA_SECTION_MESSAGE,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -575,5 +576,74 @@ describe('analyzeText — "(quantidade)comprimentoxlargura" — parênteses no i
     }
     expect(last2[0]).toMatchObject({ qtd: 1, compr: 126, larg: 76 });
     expect(last2[1]).toMatchObject({ qtd: 8, compr: 42, larg: 42 });
+  });
+});
+
+describe('analyzeText — "N peças — C × L mm" + seção "Fita de borda:" por medida (real user list)', () => {
+  const sides = (p: { fita: { c1: boolean; c2: boolean; l1: boolean; l2: boolean } }) =>
+    [p.fita.c1, p.fita.c2, p.fita.l1, p.fita.l2].filter(Boolean).length;
+
+  it('lê as 10 peças e NÃO cria peça nova a partir das linhas de fita', () => {
+    const result = analyzeText(PECAS_DASH_WITH_FITA_SECTION_MESSAGE, makeNextId());
+
+    expect(result.discarded).toEqual([]);
+    expect(result.pieces.map((p) => `${p.qtd}x${p.compr}x${p.larg}`)).toEqual([
+      '4x1200x700',
+      '8x735x700',
+      '4x1170x300',
+      '8x500x260',
+      '4x500x370',
+      '4x370x260',
+      '8x395x120',
+      '16x450x100',
+      '16x315x100',
+      '8x450x345',
+    ]);
+  });
+
+  it('"nos 4 lados" fita os 4 lados da peça de mesma medida', () => {
+    const result = analyzeText(PECAS_DASH_WITH_FITA_SECTION_MESSAGE, makeNextId());
+    expect(result.pieces[0]!.fita).toEqual({ c1: true, c2: true, l1: true, l2: true });
+    expect(result.pieces[6]!.fita).toEqual({ c1: true, c2: true, l1: true, l2: true });
+  });
+
+  it('uma linha com duas medidas ("450 × 100 e 315 × 100") aplica a fita às duas peças', () => {
+    const result = analyzeText(PECAS_DASH_WITH_FITA_SECTION_MESSAGE, makeNextId());
+    expect(sides(result.pieces[7]!)).toBe(1);
+    expect(sides(result.pieces[8]!)).toBe(1);
+  });
+
+  it('posições por nome: 1 borda = 1 lado maior; 3 bordas = 1 maior + 2 menores', () => {
+    const result = analyzeText(PECAS_DASH_WITH_FITA_SECTION_MESSAGE, makeNextId());
+    // 500 × 260 "borda frontal": comprimento (maior) com 1 lado.
+    expect(result.pieces[3]!.fita).toEqual({ c1: true, c2: false, l1: false, l2: false });
+    // 1170 × 300 "borda superior e laterais": 1 lado maior (C) + os 2 menores (L).
+    expect(result.pieces[2]!.fita).toEqual({ c1: true, c2: false, l1: true, l2: true });
+  });
+
+  it('peças que não aparecem na seção de fita ficam sem fita, sem perguntar', () => {
+    const result = analyzeText(PECAS_DASH_WITH_FITA_SECTION_MESSAGE, makeNextId());
+    for (const index of [4, 5, 9]) {
+      expect(result.pieces[index]!.fita).toEqual({ c1: false, c2: false, l1: false, l2: false });
+      expect(result.pieces[index]!.fitaUnknown).toBeUndefined();
+    }
+  });
+
+  it('linha de fita cujas medidas não existem na lista vai para a conferência', () => {
+    const result = analyzeText(['2 peças — 100 × 50 mm', '999 × 888: nos 4 lados'].join('\n'), makeNextId());
+    expect(result.pieces).toHaveLength(1);
+    expect(result.discarded.map((d) => d.text)).toEqual(['999 × 888: nos 4 lados']);
+  });
+
+  it('a seção de fita pode vir ANTES das peças', () => {
+    const result = analyzeText(['100 × 50: nos 4 lados', '2 peças — 100 × 50 mm'].join('\n'), makeNextId());
+    expect(result.pieces).toHaveLength(1);
+    expect(result.pieces[0]!.fita).toEqual({ c1: true, c2: true, l1: true, l2: true });
+  });
+
+  it('aceita a medida em ordem trocada (50 × 100 casa com a peça 100 × 50)', () => {
+    const result = analyzeText(['2 peças — 100 × 50 mm', '50 × 100: nos 4 lados'].join('\n'), makeNextId());
+    expect(result.discarded).toEqual([]);
+    expect(result.pieces[0]!.fita).toEqual({ c1: true, c2: true, l1: true, l2: true });
   });
 });

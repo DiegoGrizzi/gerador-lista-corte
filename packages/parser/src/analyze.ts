@@ -33,6 +33,8 @@ import {
 } from './text-normalize.js';
 import { parseFitamentoPhrase } from './fitamento.js';
 import { extractTrailingFitaCodes, applyFitaCodesToPiece } from './fita-codes.js';
+import { parseFitaByDimensionLine, applyFitaByDimensionRules } from './fita-by-dimension.js';
+import type { FitaByDimensionRule } from './fita-by-dimension.js';
 import { classifyHeaderLine, extractHeaderInfo } from './header.js';
 import { isMarkdownTableSeparatorLine, parseMarkdownTableHeader, parseMarkdownTableRow } from './markdown-table.js';
 import { parseTsvTableHeader, parseTsvTableRow } from './tsv-table.js';
@@ -102,6 +104,9 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
    */
   let tableColumns: TableColumns | null = null;
   let tableDelimiter: 'markdown' | 'tsv' | null = null;
+
+  /** Linhas "1200 × 700: nos 4 lados" (ver fita-by-dimension.ts), aplicadas às peças só no fim — a fita pode vir antes OU depois da peça na mensagem. */
+  const fitaByDimensionRules: FitaByDimensionRule[] = [];
 
   function snapshotContext(): ParseContext {
     return {
@@ -230,7 +235,10 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
   const expandedText = expandPcSeparatedPieces(text);
 
   expandedText.split('\n').forEach((rawLine) => {
-    let line = stripWhatsAppFormatting(rawLine.trim());
+    // Marcador de lista ("* 4 peças ...", "• ...", "- ...") — só quando
+    // seguido de espaço, pra não confundir com "*negrito*" do WhatsApp nem
+    // com um sinal de menos colado a um número.
+    let line = stripWhatsAppFormatting(rawLine.trim().replace(/^[*•–-]\s+/, ''));
     if (!line) return;
 
     // Saudação solta ("Boa tarde duas laterais...") e quantidade por
@@ -310,6 +318,15 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
         tableDelimiter = 'tsv';
         return;
       }
+    }
+
+    // "1200 × 700: nos 4 lados" — fita de uma peça já listada, identificada
+    // pelas medidas (ver fita-by-dimension.ts). Antes do bloco de códigos
+    // abaixo, que troca um "450 x 100" inicial por "450 100".
+    const fitaByDimensionRule = parseFitaByDimensionLine(line);
+    if (fitaByDimensionRule) {
+      fitaByDimensionRules.push(fitaByDimensionRule);
+      return;
     }
 
     // Códigos de fita colados ao final da linha (ex: "... 1M 1m", "... 3L")
@@ -553,6 +570,8 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
       // Senão, linha não reconhecida, ignorada em silêncio.
     }
   });
+
+  applyFitaByDimensionRules(pieces, fitaByDimensionRules).forEach((unmatchedLine) => pushDiscarded(unmatchedLine));
 
   // Marca ANTES de defaultar fitaType pendente pra 'none-explicit' logo
   // abaixo - só nesse momento "fitaType == null" significa de verdade que

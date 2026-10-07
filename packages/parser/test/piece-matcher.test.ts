@@ -211,3 +211,17 @@ describe('splitIntoPieceSegments', () => {
     expect(segments[0]).toBe('2=47/47');
   });
 });
+
+describe('tryMatchDimensionFirstLine — "N peças — comprimento × largura mm" (travessão, real user list)', () => {
+  it.each([
+    ['4 peças — 1200 × 700 mm', 4, 1200, 700],
+    ['16 peças — 450 × 100 mm', 16, 450, 100],
+    ['2 pecas - 70,5 x 30', 2, 70.5, 30],
+  ])('parses "%s"', (line, qty, compr, larg) => {
+    expect(tryMatchDimensionFirstLine(line)).toEqual({ qty, compr, larg });
+  });
+
+  it('exige a palavra de quantidade (sem ela, "2 - 700x500" segue no formato principal)', () => {
+    expect(tryMatchDimensionFirstLine('2 - 700x500')).toBeNull();
+  });
+});

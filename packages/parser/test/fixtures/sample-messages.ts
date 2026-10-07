@@ -415,3 +415,33 @@ export const QUANTITY_PARENS_FIRST_MESSAGE = [
   '(1)126x76',
   '(8)42x42',
 ].join('\n');
+
+/**
+ * Lista real de um usuário em lista de marcadores: "N peças — C × L mm"
+ * (travessão entre a quantidade e as medidas, unidade "mm" no fim) e, depois,
+ * uma seção "Fita de borda:" que identifica cada peça só pelas medidas
+ * ("1200 × 700: nos 4 lados") — a linha de fita NÃO é uma peça nova, só diz
+ * qual fita vai na peça de mesma medida listada acima. Posições de borda
+ * por nome (frente/trás/superior/laterais) em vez de maior/menor.
+ */
+export const PECAS_DASH_WITH_FITA_SECTION_MESSAGE = [
+  '* 4 peças — 1200 × 700 mm',
+  '* 8 peças — 735 × 700 mm',
+  '* 4 peças — 1170 × 300 mm',
+  '* 8 peças — 500 × 260 mm',
+  '* 4 peças — 500 × 370 mm',
+  '* 4 peças — 370 × 260 mm',
+  '* 8 peças — 395 × 120 mm',
+  '* 16 peças — 450 × 100 mm',
+  '* 16 peças — 315 × 100 mm',
+  '* 8 peças — 450 × 345 mm',
+  '',
+  'Fita de borda:',
+  '',
+  '* 1200 × 700: nos 4 lados',
+  '* 735 × 700: frente, trás e parte inferior',
+  '* 1170 × 300: borda superior e laterais',
+  '* 395 × 120: nos 4 lados',
+  '* 500 × 260: borda frontal',
+  '* 450 × 100 e 315 × 100: borda superior',
+].join('\n');

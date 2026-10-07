@@ -97,6 +97,21 @@ export const QUANTITY_PARENS_FIRST_RE =
   /^\(\s*(\d+)\s*\)\s*(\d+(?:[.,']\d+)?)\s*[x×]\s*(\d+(?:[.,']\d+)?)\.?$/i;
 
 /**
+ * Quinto formato (real user list, lista de marcadores): "4 peças — 1200 ×
+ * 700 mm" — quantidade + palavra de quantidade ("peças") + travessão/hífen
+ * + as duas medidas + unidade "mm" opcional. A palavra de quantidade é
+ * obrigatória de propósito (sem ela, "2 - 700x500" já é coberto pelo
+ * formato principal e não deve mudar de caminho). Sem fita/espessura/
+ * material inline, como os outros formatos "medidas primeiro".
+ */
+export const QUANTITY_DASH_DIMENSIONS_RE = new RegExp(
+  '^(\\d+)\\s*(?:' +
+    QUANTITY_MARKER_WORDS +
+    ")\\s*[—–-]\\s*(\\d+(?:[.,']\\d+)?)\\s*[x×]\\s*(\\d+(?:[.,']\\d+)?)\\s*(?:mm)?\\.?$",
+  'i',
+);
+
+/**
  * Terceiro formato alternativo: uma lista inteira de peças na mesma linha,
  * separada por ponto, cada peça no formato "quantidade+pc+comprimento*
  * largura" (ex: "1pc96*65. 1pc192*65. 4pc69.5*65"). Usada em conjunto com

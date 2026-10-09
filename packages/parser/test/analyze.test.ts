@@ -25,6 +25,7 @@ import {
   DIMENSION_FIRST_PARENS_MESSAGE,
   QUANTITY_PARENS_FIRST_MESSAGE,
   PECAS_DASH_WITH_FITA_SECTION_MESSAGE,
+  DIMENSION_FIRST_EQUALS_MESSAGE,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -645,5 +646,26 @@ describe('analyzeText — "N peças — C × L mm" + seção "Fita de borda:" po
     const result = analyzeText(['2 peças — 100 × 50 mm', '50 × 100: nos 4 lados'].join('\n'), makeNextId());
     expect(result.discarded).toEqual([]);
     expect(result.pieces[0]!.fita).toEqual({ c1: true, c2: true, l1: true, l2: true });
+  });
+});
+
+describe('analyzeText — "comprimento x largura=quantidade" (real user list)', () => {
+  it('lê quantidade depois do "=", incluindo decimal (66.6x273=2), e aplica o material declarado no fim a todas', () => {
+    const result = analyzeText(DIMENSION_FIRST_EQUALS_MESSAGE, makeNextId());
+
+    expect(result.discarded).toEqual([]);
+    expect(result.materialMentioned).toBe(true);
+    expect(result.pieces.map((p) => ({ qtd: p.qtd, compr: p.compr, larg: p.larg, funcao: p.funcao }))).toEqual([
+      { qtd: 8, compr: 240, larg: 35, funcao: '' },
+      { qtd: 2, compr: 183, larg: 29.5, funcao: '' },
+      { qtd: 1, compr: 273, larg: 40, funcao: '' },
+      { qtd: 2, compr: 273, larg: 70.2, funcao: '' },
+      { qtd: 6, compr: 183, larg: 35, funcao: '' },
+      { qtd: 2, compr: 115, larg: 273, funcao: '' },
+      { qtd: 2, compr: 66.6, larg: 273, funcao: '' },
+      { qtd: 3, compr: 273, larg: 60, funcao: '' },
+      { qtd: 2, compr: 273, larg: 65, funcao: '' },
+    ]);
+    for (const piece of result.pieces) expect(piece.material).toBe('Mdf beige naval');
   });
 });

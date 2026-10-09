@@ -225,3 +225,17 @@ describe('tryMatchDimensionFirstLine — "N peças — comprimento × largura mm
     expect(tryMatchDimensionFirstLine('2 - 700x500')).toBeNull();
   });
 });
+
+describe('tryMatchDimensionFirstLine — "comprimento x largura=quantidade" (real user list)', () => {
+  it.each([
+    ['240x35=8', 8, 240, 35],
+    ['66.6x273=2', 2, 66.6, 273],
+    ['183 x 29,5 = 2', 2, 183, 29.5],
+  ])('parses "%s"', (line, qty, compr, larg) => {
+    expect(tryMatchDimensionFirstLine(line)).toEqual({ qty, compr, larg });
+  });
+
+  it('não confunde com o formato principal "quantidade=comprimento/largura"', () => {
+    expect(tryMatchDimensionFirstLine('2=47/47')).toBeNull();
+  });
+});

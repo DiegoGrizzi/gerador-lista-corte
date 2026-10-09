@@ -97,6 +97,18 @@ export const QUANTITY_PARENS_FIRST_RE =
   /^\(\s*(\d+)\s*\)\s*(\d+(?:[.,']\d+)?)\s*[x×]\s*(\d+(?:[.,']\d+)?)\.?$/i;
 
 /**
+ * Sexto formato (real user list): "240x35=8", "66.6x273=2" — medidas
+ * primeiro e a quantidade DEPOIS do "=" (o inverso de "quantidade=
+ * comprimento/largura"). Sem isso, "66.6x273=2" era lida como 66 peças de
+ * 6x273 e, nas demais, o "=8" virava Função. Mesma limitação dos outros
+ * formatos "medidas primeiro": sem fita/espessura/material inline.
+ */
+export const DIMENSION_FIRST_EQUALS_RE = new RegExp(
+  "^(\\d+(?:[.,']\\d+)?)\\s*[x×]\\s*(\\d+(?:[.,']\\d+)?)\\s*=\\s*(\\d+)\\s*(?:" + QUANTITY_MARKER_WORDS + ')?\\.?$',
+  'i',
+);
+
+/**
  * Quinto formato (real user list, lista de marcadores): "4 peças — 1200 ×
  * 700 mm" — quantidade + palavra de quantidade ("peças") + travessão/hífen
  * + as duas medidas + unidade "mm" opcional. A palavra de quantidade é

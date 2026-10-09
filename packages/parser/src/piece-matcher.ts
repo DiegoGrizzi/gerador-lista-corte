@@ -15,6 +15,7 @@ import {
   DIMENSION_FIRST_PARENS_RE,
   QUANTITY_PARENS_FIRST_RE,
   QUANTITY_DASH_DIMENSIONS_RE,
+  DIMENSION_FIRST_EQUALS_RE,
   PC_ASTERISK_RE,
   THICKNESS_SUFFIX_RE,
   PIECE_SEPARATOR_RE,
@@ -115,7 +116,8 @@ export interface DimensionFirstMatch {
  * DIMENSION_FIRST_RE), "comprimento x largura (quantidade)" (ver
  * DIMENSION_FIRST_PARENS_RE), "(quantidade)comprimentoxlargura" (ver
  * QUANTITY_PARENS_FIRST_RE) ou "N peças — comprimento × largura mm" (ver
- * QUANTITY_DASH_DIMENSIONS_RE) — formatos de listas exportadas de outros
+ * QUANTITY_DASH_DIMENSIONS_RE) ou "comprimento x largura=quantidade" (ver
+ * DIMENSION_FIRST_EQUALS_RE) — formatos de listas exportadas de outros
  * programas, todos fora da ordem do formato principal do sistema. Devolve
  * null se a linha não bater com nenhum deles.
  */
@@ -144,6 +146,15 @@ export function tryMatchDimensionFirstLine(line: string): DimensionFirstMatch | 
       qty: parseInt(qtyParensMatch[1]!, 10),
       compr: toNumber(qtyParensMatch[2]!),
       larg: toNumber(qtyParensMatch[3]!),
+    };
+  }
+
+  const equalsMatch = DIMENSION_FIRST_EQUALS_RE.exec(line);
+  if (equalsMatch) {
+    return {
+      qty: parseInt(equalsMatch[3]!, 10),
+      compr: toNumber(equalsMatch[1]!),
+      larg: toNumber(equalsMatch[2]!),
     };
   }
 

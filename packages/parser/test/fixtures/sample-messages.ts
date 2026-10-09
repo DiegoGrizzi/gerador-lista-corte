@@ -445,3 +445,31 @@ export const PECAS_DASH_WITH_FITA_SECTION_MESSAGE = [
   '* 500 × 260: borda frontal',
   '* 450 × 100 e 315 × 100: borda superior',
 ].join('\n');
+
+/**
+ * Lista real de um usuário no formato "comprimento x largura=quantidade"
+ * (quantidade DEPOIS do "="), em blocos "1. Plano" e com o material
+ * ("Mdf beige naval") declarado só no fim, valendo para a lista toda.
+ */
+export const DIMENSION_FIRST_EQUALS_MESSAGE = [
+  'Bom dia. Faz esse plano de corte. Vou pegar amanhã',
+  '1. Plano',
+  '240x35=8',
+  '183x29.5=2',
+  '',
+  '1. Plano',
+  '273x40=1',
+  '273x70.2=2',
+  '',
+  '1. Plano',
+  '183x35=6',
+  '',
+  '1. Plano',
+  '115x273=2',
+  '66.6x273=2',
+  '',
+  'Mdf beige naval',
+  '',
+  '273x60=3',
+  '273x65=2',
+].join('\n');

@@ -26,6 +26,13 @@ export function stripWhatsAppExportPrefixes(text: string): string {
     .join('\n');
 }
 
+const DOT_AFTER_QUANTITY_RE = new RegExp('^(\\s*\\d+)\\.(?=\\s*(?:' + QUANTITY_MARKER_WORDS + ')\\b)', 'gim');
+
+/** "2.peca 83x40" (ponto digitado no lugar do espaço depois da quantidade) vira "2 peca 83x40". */
+export function normalizeDotAfterQuantity(text: string): string {
+  return text.replace(DOT_AFTER_QUANTITY_RE, '$1 ');
+}
+
 const QUANTITY_ONLY_RE = new RegExp('^(\\d+)\\s*(?:' + QUANTITY_MARKER_WORDS + ')\\.?$', 'i');
 // Aceita ponto sobrando colado ao número ("15.x35.", comum em mensagem digitada rápido).
 const DIMENSIONS_ONLY_RE = /^(\d+(?:[.,]\d+)?)\.?\s*[x×]\s*(\d+(?:[.,]\d+)?)\.?$/i;
@@ -79,9 +86,12 @@ export function joinSplitQuantityLines(text: string): string {
         pendingQty = null;
         danglingIndex = null;
       } else {
+        // Sem quantidade antes: assume 1 (uma "quantidade depois" pode
+        // trocar isso). Reescrever já como "1=medidas" evita que o parser
+        // leia o comprimento decimal ("75.0x50.0") como quantidade.
         danglingIndex = out.length;
         danglingDims = dims;
-        out.push(line);
+        out.push('1=' + dims);
       }
       continue;
     }

@@ -513,3 +513,38 @@ export const WHATSAPP_EXPORT_SPLIT_LINES_MESSAGE = [
 ]
   .map((line) => WHATSAPP_PREFIX + line)
   .join('\n');
+
+/**
+ * Segunda cópia real da mesma conversa do WhatsApp, com duas irregularidades:
+ * "2.peca 83.0x40.0" (ponto no lugar do espaço depois da quantidade, tudo na
+ * mesma linha) e, depois de "MDF 6" (sem cor), uma medida sem NENHUMA linha de
+ * quantidade — o "75" de "75.0x50.0" era lido como quantidade (75 peças de 0x50).
+ */
+export const WHATSAPP_EXPORT_IRREGULAR_MESSAGE = [
+  'MDF branco d 15',
+  '2 peça',
+  '45.0x40.0',
+  '2.peca 83.0x40.0',
+  '8 peça',
+  '15.x35.',
+  '8 peca',
+  '15.x40',
+  '4 peça',
+  '16.x50',
+  '4 peça',
+  '160.0x50.0',
+  '75.0x20',
+  '12 peça',
+  '4 peça',
+  '260.0x50',
+  '12 peça',
+  '50.0x20.0',
+  '6 peça',
+  '76.0x22.0',
+  '8 peça',
+  '75.0x48.0',
+  'MDF 6',
+  '75.0x50.0',
+]
+  .map((line) => '[15:29, 15/10/2026] Taciana Araujo Madeiras: ' + line)
+  .join('\n');

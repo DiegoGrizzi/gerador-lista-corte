@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { convertPieceToMm, MIN_PLAUSIBLE_PIECE_MM } from '../src/finalize.js';
+import { convertPieceToMm, isMaterialWithoutColor, MIN_PLAUSIBLE_PIECE_MM } from '../src/finalize.js';
+
+describe('isMaterialWithoutColor', () => {
+  it.each(['MDF', 'mdf', 'MDF 6mm', 'mdf 15mm', 'MDF 12,5mm'])('"%s" é MDF sem cor', (material) => {
+    expect(isMaterialWithoutColor(material)).toBe(true);
+  });
+
+  it.each(['MDF branco', 'MDF Branco 6mm', 'Branca 15mm', '', '15mm', 'MDF beige naval'])(
+    '"%s" não é "só MDF"',
+    (material) => {
+      expect(isMaterialWithoutColor(material)).toBe(false);
+    },
+  );
+});
 import type { Piece } from '../src/types.js';
 
 function makePiece(overrides: Partial<Piece>): Piece {

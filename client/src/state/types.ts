@@ -19,7 +19,15 @@
 
 import type { DiscardedItem, FitamentoType, Piece } from '@corte-cloud/parser';
 
-export type ActiveModal = 'none' | 'mm' | 'threeLados' | 'fitaMissing' | 'material' | 'photoMaterial' | 'error';
+export type ActiveModal =
+  | 'none'
+  | 'mm'
+  | 'threeLados'
+  | 'fitaMissing'
+  | 'material'
+  | 'materialColor'
+  | 'photoMaterial'
+  | 'error';
 
 export type EditablePieceTextField = 'qtd' | 'compr' | 'larg' | 'material' | 'complemento' | 'funcao';
 export type EditablePieceFitaField = 'c1' | 'c2' | 'l1' | 'l2';
@@ -63,6 +71,12 @@ export interface CutListState {
    * Piece.fitaUnknown) já foi respondida nesta mensagem.
    */
   fitaAsked: boolean;
+
+  /**
+   * Materiais "só MDF" (sem cor, ver isMaterialWithoutColor) cuja cor já foi
+   * perguntada (respondida ou pulada) nesta mensagem — evita perguntar de novo.
+   */
+  colorAskedMaterials: string[];
 
   /**
    * Peça resgatada da conferência enquanto a pergunta de mm ainda não tinha
@@ -113,6 +127,7 @@ export type CutListAction =
   | { type: 'THREE_LADOS_ANSWERED'; choice: 'maior' | 'menor' }
   | { type: 'FITA_MISSING_ANSWERED'; fitaType: FitamentoType }
   | { type: 'MATERIAL_CONFIRMED'; material: string }
+  | { type: 'MATERIAL_COLOR_ANSWERED'; material: string; color: string }
   | { type: 'DISCARD_RETRY_FAILED'; index: number; message: string }
   | { type: 'DISCARD_RETRY_SUCCEEDED_AS_PENDING'; index: number; rescued: Piece; idCounter: number }
   | { type: 'DISCARD_RETRY_SUCCEEDED'; index: number; rescued: Piece; idCounter: number }

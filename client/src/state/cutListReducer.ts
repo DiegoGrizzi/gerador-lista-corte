@@ -15,7 +15,7 @@
  * ---------------------------------------------------------------------------
  */
 
-import { convertPieceToMm, looksLikeNoMaterial, resolveFitaFromType, resolveThreeLadosFita, toNumber } from '@corte-cloud/parser';
+import { convertPieceToMm, isMaterialWithoutColor, looksLikeNoMaterial, resolveFitaFromType, resolveThreeLadosFita, toNumber } from '@corte-cloud/parser';
 import type { Piece } from '@corte-cloud/parser';
 import type { CutListAction, CutListState } from './types.js';
 
@@ -52,6 +52,7 @@ export function createInitialState(): CutListState {
     mmFactor: 1,
     threeLadosAsked: false,
     fitaAsked: false,
+    colorAskedMaterials: [],
     pendingRescuedPiece: null,
     activeModal: 'none',
     errorMessage: '',
@@ -85,6 +86,18 @@ export function createNextId(seed: number): { nextId: () => string; getIdCounter
 // @corte-cloud/parser pra poder ser reaproveitado por analyzeText também
 // (ver comentário em finalize.ts sobre materialMentioned).
 export { looksLikeNoMaterial };
+
+/**
+ * Primeiro material "só MDF" (sem cor, ver isMaterialWithoutColor) ainda não
+ * perguntado — a cor desse material específico é pedida num modal próprio,
+ * separado do modal "não encontrei o material" (que vale pra lista toda).
+ */
+export function firstMaterialNeedingColor(pieces: Piece[], asked: string[]): string | null {
+  for (const piece of pieces) {
+    if (isMaterialWithoutColor(piece.material) && !asked.includes(piece.material)) return piece.material;
+  }
+  return null;
+}
 
 function clonePiece(piece: Piece): Piece {
   return { ...piece, fita: { ...piece.fita } };
@@ -129,6 +142,7 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
         mmFactor: 1,
         threeLadosAsked: false,
         fitaAsked: false,
+        colorAskedMaterials: [],
         pendingRescuedPiece: null,
         activeModal: pieces.length > 0 ? 'mm' : 'none',
         // Espelha handleAnalyze: só chama renderPreview() diretamente
@@ -150,6 +164,7 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
         mmFactor: 1,
         threeLadosAsked: false,
         fitaAsked: false,
+        colorAskedMaterials: [],
         pendingRescuedPiece: null,
         previewVisible: false,
         resultVisible: false,
@@ -181,7 +196,9 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
           ? 'fitaMissing'
           : openMaterialModal
             ? 'material'
-            : 'none';
+            : firstMaterialNeedingColor(pieces, state.colorAskedMaterials)
+              ? 'materialColor'
+              : 'none';
 
       return {
         ...state,
@@ -204,7 +221,13 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
       });
       const needsFitaMissing = !state.fitaAsked && pieces.some((piece) => piece.fitaUnknown);
       const openMaterialModal = !needsFitaMissing && !state.materialAsked && pieces.length > 0;
-      const activeModal = needsFitaMissing ? 'fitaMissing' : openMaterialModal ? 'material' : 'none';
+      const activeModal = needsFitaMissing
+        ? 'fitaMissing'
+        : openMaterialModal
+          ? 'material'
+          : firstMaterialNeedingColor(pieces, state.colorAskedMaterials)
+            ? 'materialColor'
+            : 'none';
       return {
         ...state,
         threeLadosAsked: true,
@@ -224,28 +247,51 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
         return next;
       });
       const openMaterialModal = !state.materialAsked && pieces.length > 0;
+      const activeModal = openMaterialModal
+        ? 'material'
+        : firstMaterialNeedingColor(pieces, state.colorAskedMaterials)
+          ? 'materialColor'
+          : 'none';
       return {
         ...state,
         fitaAsked: true,
         pieces,
-        activeModal: openMaterialModal ? 'material' : 'none',
-        previewVisible: openMaterialModal ? state.previewVisible : true,
+        activeModal,
+        previewVisible: activeModal === 'none' ? true : state.previewVisible,
       };
     }
 
     case 'MATERIAL_CONFIRMED': {
       const material = action.material.trim();
-      if (!material) {
-        return { ...state, materialAsked: true, activeModal: 'none', previewVisible: true };
-      }
-      const pieces = state.pieces.map((piece) => applyMaterialFallback(piece, material));
+      const pieces = material ? state.pieces.map((piece) => applyMaterialFallback(piece, material)) : state.pieces;
+      const activeModal = firstMaterialNeedingColor(pieces, state.colorAskedMaterials) ? 'materialColor' : 'none';
       return {
         ...state,
-        materialFallback: material,
+        materialFallback: material || state.materialFallback,
         materialAsked: true,
         pieces,
-        activeModal: 'none',
-        previewVisible: true,
+        activeModal,
+        previewVisible: activeModal === 'none' ? true : state.previewVisible,
+      };
+    }
+
+    case 'MATERIAL_COLOR_ANSWERED': {
+      const color = action.color.trim();
+      const pieces = color
+        ? state.pieces.map((piece) =>
+            piece.material === action.material
+              ? { ...piece, material: piece.material.replace(/^mdf/i, (mdf) => mdf + ' ' + color) }
+              : piece,
+          )
+        : state.pieces;
+      const colorAskedMaterials = [...state.colorAskedMaterials, action.material];
+      const activeModal = firstMaterialNeedingColor(pieces, colorAskedMaterials) ? 'materialColor' : 'none';
+      return {
+        ...state,
+        pieces,
+        colorAskedMaterials,
+        activeModal,
+        previewVisible: activeModal === 'none' ? true : state.previewVisible,
       };
     }
 
@@ -280,7 +326,11 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
         discardErrors,
         idCounter: action.idCounter,
         pieces,
-        activeModal: openMaterialModal ? 'material' : state.activeModal,
+        activeModal: openMaterialModal
+          ? 'material'
+          : firstMaterialNeedingColor([rescued], state.colorAskedMaterials)
+            ? 'materialColor'
+            : state.activeModal,
         previewVisible: true,
       };
     }

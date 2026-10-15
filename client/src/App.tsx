@@ -14,6 +14,7 @@ import { analyzeText, quickParseLine } from '@corte-cloud/parser';
 import { useCutList } from './state/cutListContext.js';
 import {
   createNextId,
+  firstMaterialNeedingColor,
   MSG_DISCARD_RETRY_FAILED,
   MSG_EMPTY_TEXT,
   MSG_GENERATE_EMPTY,
@@ -28,6 +29,7 @@ import { MmUnitModal } from './components/modals/MmUnitModal.js';
 import { ThreeLadosModal } from './components/modals/ThreeLadosModal.js';
 import { FitaMissingModal } from './components/modals/FitaMissingModal.js';
 import { MaterialModal } from './components/modals/MaterialModal.js';
+import { MaterialColorModal } from './components/modals/MaterialColorModal.js';
 import { PhotoMaterialModal } from './components/modals/PhotoMaterialModal.js';
 import { ErrorModal } from './components/modals/ErrorModal.js';
 import { UpdateProgressModal } from './components/modals/UpdateProgressModal.js';
@@ -46,6 +48,7 @@ export function App(): JSX.Element {
   const autoUpdate = useAutoUpdate();
   const currentVersion = useCurrentVersion();
   const resultCardRef = useRef<HTMLDivElement>(null);
+  const colorMaterial = firstMaterialNeedingColor(state.pieces, state.colorAskedMaterials) ?? '';
 
   const handleAnalyze = useCallback(() => {
     if (!state.rawText.trim()) {
@@ -180,6 +183,12 @@ export function App(): JSX.Element {
       <MaterialModal
         isOpen={state.activeModal === 'material'}
         onConfirm={(material) => dispatch({ type: 'MATERIAL_CONFIRMED', material })}
+      />
+      <MaterialColorModal
+        isOpen={state.activeModal === 'materialColor'}
+        material={colorMaterial}
+        onConfirm={(color) => dispatch({ type: 'MATERIAL_COLOR_ANSWERED', material: colorMaterial, color })}
+        onSkip={() => dispatch({ type: 'MATERIAL_COLOR_ANSWERED', material: colorMaterial, color: '' })}
       />
       <PhotoMaterialModal
         isOpen={state.activeModal === 'photoMaterial'}

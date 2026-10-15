@@ -692,4 +692,19 @@ describe('analyzeText — conversa do WhatsApp copiada, quantidade e medida em l
       '6x75x50 MDF Branco 6mm',
     ]);
   });
+
+  it('"MDF 6" sem cor depois vira material "MDF 6mm" (reconhecido, sem cor) só para as peças que vêm abaixo dele', () => {
+    const result = analyzeText(
+      ['MDF branco d 15', '8 peça', '15x35', 'MDF 6', '1 peça', '83x40', '2 peça', '85x260'].join('\n'),
+      makeNextId(),
+    );
+
+    expect(result.discarded).toEqual([]);
+    expect(result.materialMentioned).toBe(true);
+    expect(result.pieces.map((p) => `${p.qtd}x${p.compr}x${p.larg} ${p.material}`)).toEqual([
+      '8x15x35 MDF branco 15mm',
+      '1x83x40 MDF 6mm',
+      '2x85x260 MDF 6mm',
+    ]);
+  });
 });

@@ -548,3 +548,44 @@ export const WHATSAPP_EXPORT_IRREGULAR_MESSAGE = [
 ]
   .map((line) => '[15:29, 15/10/2026] Taciana Araujo Madeiras: ' + line)
   .join('\n');
+
+/**
+ * Terceira cópia real da conversa do WhatsApp, com as mensagens fora de
+ * ordem (quantidades e medidas embaralhadas, cor "Branco" ANTES de "MDF 6")
+ * e sem nenhuma informação de fita — a pergunta "vai ter fita?" tem que
+ * aparecer para as peças de 15mm.
+ */
+export const WHATSAPP_EXPORT_SHUFFLED_MESSAGE = [
+  'MDF branco d 15',
+  '8 peça',
+  '2.peca 83.0x40.0',
+  '45.0x40.0',
+  '2 peça',
+  '4 peça',
+  '15.x40',
+  '8 peca',
+  '15.x35.',
+  '75.0x20',
+  '160.0x50.0',
+  '4 peça',
+  '16.x50',
+  '12 peça',
+  '260.0x50',
+  '4 peça',
+  '12 peça',
+  '8 peça',
+  '76.0x22.0',
+  '6 peça',
+  '50.0x20.0',
+  '83.0x40.0',
+  '1 peça',
+  'Branco',
+  'MDF 6',
+  '75.0x48.0',
+  '75.0x50.0',
+  '6 peca',
+  '85.0x260.0',
+  '2 peca',
+]
+  .map((line) => '[15:29, 15/10/2026] Taciana Araujo Madeiras: ' + line)
+  .join('\n');

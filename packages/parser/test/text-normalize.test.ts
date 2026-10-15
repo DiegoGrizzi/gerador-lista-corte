@@ -6,7 +6,52 @@ import {
   expandPcSeparatedPieces,
   stripGreetingPrefix,
   normalizeLeadingNumberWord,
+  stripWhatsAppExportPrefixes,
+  joinSplitQuantityLines,
+  mergeMdfThicknessAndColorLines,
 } from '../src/text-normalize.js';
+
+describe('stripWhatsAppExportPrefixes', () => {
+  it('remove o prefixo do iPhone e do Android', () => {
+    expect(stripWhatsAppExportPrefixes('[15:29, 15/10/2026] Taciana Araujo Madeiras: 8 peça')).toBe('8 peça');
+    expect(stripWhatsAppExportPrefixes('15/10/2026 15:29 - Taciana: 15x35')).toBe('15x35');
+  });
+
+  it('não mexe em linha sem prefixo, nem em dois-pontos comuns', () => {
+    expect(stripWhatsAppExportPrefixes('760x395: 2 peças')).toBe('760x395: 2 peças');
+    expect(stripWhatsAppExportPrefixes('Fita de borda:')).toBe('Fita de borda:');
+  });
+});
+
+describe('joinSplitQuantityLines', () => {
+  it('junta quantidade e medida de linhas separadas, aceitando ponto sobrando ("15.x35.")', () => {
+    expect(joinSplitQuantityLines(['8 peça', '15.x35.', '4 peca', '160.0x50.0'].join('\n'))).toBe(
+      '8=15x35\n4=160.0x50.0',
+    );
+  });
+
+  it('medida sem quantidade antes recebe a quantidade da linha seguinte', () => {
+    expect(joinSplitQuantityLines(['75.0x20', '12 peça'].join('\n'))).toBe('12=75.0x20');
+  });
+
+  it('quantidade sem nenhuma medida volta como estava', () => {
+    expect(joinSplitQuantityLines(['8 peça', 'Quarto'].join('\n'))).toBe('8 peça\nQuarto');
+  });
+
+  it('não altera linhas que já trazem quantidade e medida juntas', () => {
+    expect(joinSplitQuantityLines('2=47/47\n35x20')).toBe('2=47/47\n35x20');
+  });
+});
+
+describe('mergeMdfThicknessAndColorLines', () => {
+  it('junta "MDF 6" com a cor da linha seguinte', () => {
+    expect(mergeMdfThicknessAndColorLines('MDF 6\nBranco')).toBe('MDF Branco 6mm');
+  });
+
+  it('sem cor na linha seguinte, só acrescenta a unidade', () => {
+    expect(mergeMdfThicknessAndColorLines('MDF 18\n2=47/47')).toBe('MDF 18mm\n2=47/47');
+  });
+});
 
 describe('stripWhatsAppFormatting', () => {
   it('strips bold markup wrapping the whole line', () => {

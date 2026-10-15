@@ -473,3 +473,43 @@ export const DIMENSION_FIRST_EQUALS_MESSAGE = [
   '273x60=3',
   '273x65=2',
 ].join('\n');
+
+/**
+ * Conversa real do WhatsApp copiada (cada linha uma mensagem, com o prefixo
+ * "[hora, data] Nome: "): quantidade ("8 peça") e medida ("15.x35.") em
+ * linhas separadas, normalmente com a quantidade ANTES — exceto 75.0x20, que
+ * vem sem quantidade antes e recebe o "12 peça" que aparece depois. Cabeçalhos
+ * "MDF branco d 15" (d = de, sem unidade) e "MDF 6" + "Branco" em duas linhas.
+ */
+const WHATSAPP_PREFIX = '[15:29, 15/10/2026] Taciana Araujo Madeiras: ';
+export const WHATSAPP_EXPORT_SPLIT_LINES_MESSAGE = [
+  'MDF branco d 15',
+  '8 peça',
+  '15.x35.',
+  '8 peca',
+  '15.x40',
+  '4 peça',
+  '16.x50',
+  '4 peça',
+  '160.0x50.0',
+  '75.0x20',
+  '12 peça',
+  '4 peça',
+  '260.0x50',
+  '12 peça',
+  '50.0x20.0',
+  '6 peça',
+  '76.0x22.0',
+  '8 peça',
+  '75.0x48.0',
+  'MDF 6',
+  'Branco',
+  '1 peça',
+  '83.0x40.0',
+  '2 peca',
+  '85.0x260.0',
+  '6 peca',
+  '75.0x50.0',
+]
+  .map((line) => WHATSAPP_PREFIX + line)
+  .join('\n');

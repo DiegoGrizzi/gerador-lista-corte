@@ -26,6 +26,7 @@ import {
   QUANTITY_PARENS_FIRST_MESSAGE,
   PECAS_DASH_WITH_FITA_SECTION_MESSAGE,
   DIMENSION_FIRST_EQUALS_MESSAGE,
+  WHATSAPP_EXPORT_SPLIT_LINES_MESSAGE,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -667,5 +668,28 @@ describe('analyzeText — "comprimento x largura=quantidade" (real user list)', 
       { qtd: 2, compr: 273, larg: 65, funcao: '' },
     ]);
     for (const piece of result.pieces) expect(piece.material).toBe('Mdf beige naval');
+  });
+});
+
+describe('analyzeText — conversa do WhatsApp copiada, quantidade e medida em linhas separadas (real user list)', () => {
+  it('lê as 12 peças, com a quantidade antes da medida (e uma depois), ignorando o prefixo de cada mensagem', () => {
+    const result = analyzeText(WHATSAPP_EXPORT_SPLIT_LINES_MESSAGE, makeNextId());
+
+    expect(result.discarded).toEqual([]);
+    expect(result.materialMentioned).toBe(true);
+    expect(result.pieces.map((p) => `${p.qtd}x${p.compr}x${p.larg} ${p.material}`)).toEqual([
+      '8x15x35 MDF branco 15mm',
+      '8x15x40 MDF branco 15mm',
+      '4x16x50 MDF branco 15mm',
+      '4x160x50 MDF branco 15mm',
+      '12x75x20 MDF branco 15mm',
+      '4x260x50 MDF branco 15mm',
+      '12x50x20 MDF branco 15mm',
+      '6x76x22 MDF branco 15mm',
+      '8x75x48 MDF branco 15mm',
+      '1x83x40 MDF Branco 6mm',
+      '2x85x260 MDF Branco 6mm',
+      '6x75x50 MDF Branco 6mm',
+    ]);
   });
 });

@@ -30,6 +30,9 @@ import {
   normalizeLeadingNumberWord,
   normalizeTypos,
   expandPcSeparatedPieces,
+  stripWhatsAppExportPrefixes,
+  joinSplitQuantityLines,
+  mergeMdfThicknessAndColorLines,
 } from './text-normalize.js';
 import { parseFitamentoPhrase } from './fitamento.js';
 import { extractTrailingFitaCodes, applyFitaCodesToPiece } from './fita-codes.js';
@@ -232,7 +235,9 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
   // Expande uma lista "1pc96*65. 1pc192*65. ..." (tudo numa única linha,
   // separada por ponto) em uma linha por peça, antes de mais nada — o resto
   // da função processa cada peça normalmente a partir daqui.
-  const expandedText = expandPcSeparatedPieces(text);
+  const expandedText = expandPcSeparatedPieces(
+    joinSplitQuantityLines(mergeMdfThicknessAndColorLines(stripWhatsAppExportPrefixes(text))),
+  );
 
   expandedText.split('\n').forEach((rawLine) => {
     // Marcador de lista ("* 4 peças ...", "• ...", "- ...") — só quando

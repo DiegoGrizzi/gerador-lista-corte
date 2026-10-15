@@ -7,7 +7,122 @@
  * ---------------------------------------------------------------------------
  */
 
-import { UNIT_ONLY_RE } from './regex-patterns.js';
+import { UNIT_ONLY_RE, QUANTITY_MARKER_WORDS } from './regex-patterns.js';
+
+/**
+ * Prefixo que o WhatsApp acrescenta a cada linha ao copiar várias mensagens
+ * de uma conversa: "[15:29, 15/10/2026] Nome: " (iPhone) ou "15/10/2026
+ * 15:29 - Nome: " (Android). Cada linha da lista costuma ser uma mensagem
+ * separada, então o prefixo aparece em todas.
+ */
+const WHATSAPP_EXPORT_PREFIX_RE =
+  /^[‎‏\s]*(?:\[\d{1,2}[:.]\d{2}(?::\d{2})?,\s*\d{1,2}\/\d{1,2}\/\d{2,4}\]|\d{1,2}\/\d{1,2}\/\d{2,4},?\s+\d{1,2}:\d{2}(?::\d{2})?\s*-)\s*[^:\n]{1,60}:[ \t]?/;
+
+/** Remove o prefixo "[hora, data] Nome:" de cada linha de uma conversa do WhatsApp copiada. */
+export function stripWhatsAppExportPrefixes(text: string): string {
+  return text
+    .split('\n')
+    .map((line) => line.replace(WHATSAPP_EXPORT_PREFIX_RE, ''))
+    .join('\n');
+}
+
+const QUANTITY_ONLY_RE = new RegExp('^(\\d+)\\s*(?:' + QUANTITY_MARKER_WORDS + ')\\.?$', 'i');
+// Aceita ponto sobrando colado ao número ("15.x35.", comum em mensagem digitada rápido).
+const DIMENSIONS_ONLY_RE = /^(\d+(?:[.,]\d+)?)\.?\s*[x×]\s*(\d+(?:[.,]\d+)?)\.?$/i;
+
+/**
+ * Junta quantidade e medidas escritas em linhas SEPARADAS ("8 peça" numa
+ * linha, "15.x35." na seguinte — cada uma geralmente uma mensagem diferente
+ * do WhatsApp) numa linha só no formato principal ("8=15x35"). A quantidade
+ * normalmente vem ANTES da medida; quando uma medida aparece sem quantidade
+ * antes dela, a próxima linha só de quantidade é dela (quantidade depois).
+ * Uma quantidade que não encontra nenhuma medida volta como estava.
+ */
+export function joinSplitQuantityLines(text: string): string {
+  const out: string[] = [];
+  let pendingQty: number | null = null;
+  let pendingRaw = '';
+  let danglingIndex: number | null = null;
+  let danglingDims = '';
+
+  const flushPending = (): void => {
+    if (pendingQty != null) out.push(pendingRaw);
+    pendingQty = null;
+  };
+
+  for (const raw of text.split('\n')) {
+    const line = raw.trim();
+    if (!line) {
+      out.push(raw);
+      continue;
+    }
+
+    const quantityMatch = line.match(QUANTITY_ONLY_RE);
+    if (quantityMatch) {
+      const qty = parseInt(quantityMatch[1]!, 10);
+      if (danglingIndex != null) {
+        out[danglingIndex] = qty + '=' + danglingDims;
+        danglingIndex = null;
+      } else {
+        flushPending();
+        pendingQty = qty;
+        pendingRaw = raw;
+      }
+      continue;
+    }
+
+    const dimensionsMatch = line.match(DIMENSIONS_ONLY_RE);
+    if (dimensionsMatch) {
+      const dims = dimensionsMatch[1] + 'x' + dimensionsMatch[2];
+      if (pendingQty != null) {
+        out.push(pendingQty + '=' + dims);
+        pendingQty = null;
+        danglingIndex = null;
+      } else {
+        danglingIndex = out.length;
+        danglingDims = dims;
+        out.push(line);
+      }
+      continue;
+    }
+
+    flushPending();
+    danglingIndex = null;
+    out.push(raw);
+  }
+  flushPending();
+  return out.join('\n');
+}
+
+const MDF_THICKNESS_ONLY_RE = /^mdf\s+(\d+(?:[.,]\d+)?)\s*(?:mm)?$/i;
+const COLOR_ONLY_RE = /^[a-zà-öø-ÿ][a-zà-öø-ÿ\s]{1,29}$/i;
+
+/**
+ * "MDF 6" (espessura sem unidade) seguido da cor numa linha própria
+ * ("Branco") vira "MDF Branco 6mm" — a forma que o resto do parser já
+ * entende. Sem cor na linha seguinte, vira só "MDF 6mm".
+ */
+export function mergeMdfThicknessAndColorLines(text: string): string {
+  const lines = text.split('\n');
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const match = lines[i]!.trim().match(MDF_THICKNESS_ONLY_RE);
+    if (!match) {
+      out.push(lines[i]!);
+      continue;
+    }
+    let next = i + 1;
+    while (next < lines.length && !lines[next]!.trim()) next++;
+    const color = next < lines.length ? lines[next]!.trim() : '';
+    if (COLOR_ONLY_RE.test(color)) {
+      out.push('MDF ' + color + ' ' + match[1] + 'mm');
+      i = next;
+    } else {
+      out.push('MDF ' + match[1] + 'mm');
+    }
+  }
+  return out.join('\n');
+}
 
 /**
  * Remove marcação de negrito (*texto*), itálico (_texto_) ou tachado

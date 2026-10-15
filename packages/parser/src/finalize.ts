@@ -10,6 +10,14 @@ import { resolveFitaFromType } from './fitamento.js';
 import { applyGrainOrientationRule } from './grain-rule.js';
 import type { Piece, RawPiece } from './types.js';
 
+/** Abaixo dessa espessura (mm) o MDF não leva fita de borda. */
+export const MIN_EDGE_BANDING_THICKNESS_MM = 15;
+
+/** Falso só quando a espessura é conhecida e menor que MIN_EDGE_BANDING_THICKNESS_MM (ex: MDF 6mm). */
+export function allowsEdgeBanding(thicknessMm: number | null | undefined): boolean {
+  return thicknessMm == null || thicknessMm >= MIN_EDGE_BANDING_THICKNESS_MM;
+}
+
 /**
  * Marca `fitaUnknown` quando a peça não tem NENHUMA informação de fita
  * (nem `fitaType`, nem `customFita`) no momento em que é chamada — ver o
@@ -27,6 +35,7 @@ import type { Piece, RawPiece } from './types.js';
  *     resolvido até aquele ponto da mensagem original.
  */
 export function markFitaUnknownIfNeeded(piece: RawPiece): void {
+  if (!allowsEdgeBanding(piece.thicknessMm)) return;
   if (piece.fitaType == null && !piece.customFita) {
     piece.fitaUnknown = true;
   }
@@ -72,7 +81,12 @@ export function isMaterialWithoutColor(material: string): boolean {
  * Piece, agora com `fita` presente.
  */
 export function finalizePiece(piece: RawPiece): Piece {
-  const fita = piece.customFita || resolveFitaFromType(piece.fitaType, piece.compr, piece.larg);
+  const canHaveFita = allowsEdgeBanding(piece.thicknessMm);
+  const fita = canHaveFita
+    ? piece.customFita || resolveFitaFromType(piece.fitaType, piece.compr, piece.larg)
+    : { c1: false, c2: false, l1: false, l2: false };
+  // Código "3L" numa peça fina não tem o que perguntar: ela não leva fita.
+  if (!canHaveFita) piece.pendingThreeLados = false;
   let label = piece.material || '';
   if (piece.thicknessMm != null) label += (label ? ' ' : '') + piece.thicknessMm + 'mm';
 

@@ -522,6 +522,12 @@ describe('edição de peças na tabela de conferência', () => {
     expect(next.pieces.find((p) => p.id === 'p1')!.fita).toEqual({ c1: false, c2: false, l1: false, l2: true });
   });
 
+  it('PIECE_FITA_EDITED é ignorado em peça de MDF abaixo de 15mm', () => {
+    const state: CutListState = { ...baseState, pieces: [makePiece({ id: 'fina', thicknessMm: 6 })] };
+    const next = cutListReducer(state, { type: 'PIECE_FITA_EDITED', id: 'fina', field: 'c1', checked: true });
+    expect(next.pieces[0]!.fita).toEqual({ c1: false, c2: false, l1: false, l2: false });
+  });
+
   it('PIECE_REMOVED remove só a peça com o id informado', () => {
     const next = cutListReducer(baseState, { type: 'PIECE_REMOVED', id: 'p1' });
     expect(next.pieces.map((p) => p.id)).toEqual(['p2']);

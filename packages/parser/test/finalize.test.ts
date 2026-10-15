@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { convertPieceToMm, isMaterialWithoutColor, MIN_PLAUSIBLE_PIECE_MM } from '../src/finalize.js';
+import {
+  allowsEdgeBanding,
+  convertPieceToMm,
+  finalizePiece,
+  isMaterialWithoutColor,
+  markFitaUnknownIfNeeded,
+  MIN_PLAUSIBLE_PIECE_MM,
+} from '../src/finalize.js';
 
 describe('isMaterialWithoutColor', () => {
   it.each(['MDF', 'mdf', 'MDF 6mm', 'mdf 15mm', 'MDF 12,5mm'])('"%s" é MDF sem cor', (material) => {
@@ -13,7 +20,7 @@ describe('isMaterialWithoutColor', () => {
     },
   );
 });
-import type { Piece } from '../src/types.js';
+import type { Piece, RawPiece } from '../src/types.js';
 
 function makePiece(overrides: Partial<Piece>): Piece {
   return {
@@ -90,5 +97,58 @@ describe('convertPieceToMm — aviso de medida implausível', () => {
     expect(piece.larg).toBe(1000);
     expect(piece.wasInverted).toBe(true);
     expect(piece.suspiciouslySmall).toBe(false);
+  });
+});
+
+describe('MDF abaixo de 15mm não leva fita', () => {
+  const rawPiece = (overrides: Partial<RawPiece>): RawPiece => ({
+    id: '1',
+    material: 'MDF Branco',
+    complemento: '',
+    funcao: '',
+    qtd: 1,
+    compr: 100,
+    larg: 50,
+    thicknessMm: 6,
+    fitaType: null,
+    customFita: null,
+    isOverride: false,
+    note: '',
+    ...overrides,
+  });
+
+  it('allowsEdgeBanding: só é falso com espessura conhecida abaixo de 15', () => {
+    expect(allowsEdgeBanding(6)).toBe(false);
+    expect(allowsEdgeBanding(14.9)).toBe(false);
+    expect(allowsEdgeBanding(15)).toBe(true);
+    expect(allowsEdgeBanding(18)).toBe(true);
+    expect(allowsEdgeBanding(null)).toBe(true);
+    expect(allowsEdgeBanding(undefined)).toBe(true);
+  });
+
+  it('finalizePiece zera a fita mesmo com fita explícita (tipo, códigos ou "3L" pendente)', () => {
+    const none = { c1: false, c2: false, l1: false, l2: false };
+    expect(finalizePiece(rawPiece({ fitaType: 'all' })).fita).toEqual(none);
+    expect(finalizePiece(rawPiece({ customFita: { c1: true, c2: true, l1: true, l2: true } })).fita).toEqual(none);
+    expect(finalizePiece(rawPiece({ pendingThreeLados: true })).pendingThreeLados).toBe(false);
+  });
+
+  it('finalizePiece mantém a fita em 15mm ou mais', () => {
+    expect(finalizePiece(rawPiece({ thicknessMm: 15, fitaType: 'all' })).fita).toEqual({
+      c1: true,
+      c2: true,
+      l1: true,
+      l2: true,
+    });
+  });
+
+  it('markFitaUnknownIfNeeded não marca peça fina (não há o que perguntar)', () => {
+    const thin = rawPiece({});
+    markFitaUnknownIfNeeded(thin);
+    expect(thin.fitaUnknown).toBeUndefined();
+
+    const thick = rawPiece({ thicknessMm: 15 });
+    markFitaUnknownIfNeeded(thick);
+    expect(thick.fitaUnknown).toBe(true);
   });
 });

@@ -1,3 +1,4 @@
+import { allowsEdgeBanding } from '@corte-cloud/parser';
 import type { Piece } from '@corte-cloud/parser';
 import type { EditablePieceFitaField, EditablePieceTextField } from '../state/types.js';
 
@@ -16,6 +17,8 @@ export function PieceReviewRow({
   onFitaChange,
   onRemove,
 }: PieceReviewRowProps): JSX.Element {
+  const fitaDisabled = !allowsEdgeBanding(piece.thicknessMm);
+  const fitaTitle = fitaDisabled ? 'MDF abaixo de 15mm não leva fita' : undefined;
   const notes: string[] = [];
   if (piece.note) notes.push(piece.note);
   if (piece.wasInverted) notes.push('comprimento/largura invertidos (fitamento ajustado)');
@@ -69,6 +72,8 @@ export function PieceReviewRow({
       <td className="check-cell" data-label="C1">
         <input
           type="checkbox"
+          disabled={fitaDisabled}
+          title={fitaTitle}
           checked={piece.fita.c1}
           onChange={(e) => onFitaChange(piece.id, 'c1', e.target.checked)}
         />
@@ -76,6 +81,8 @@ export function PieceReviewRow({
       <td className="check-cell" data-label="C2">
         <input
           type="checkbox"
+          disabled={fitaDisabled}
+          title={fitaTitle}
           checked={piece.fita.c2}
           onChange={(e) => onFitaChange(piece.id, 'c2', e.target.checked)}
         />
@@ -83,6 +90,8 @@ export function PieceReviewRow({
       <td className="check-cell" data-label="L1">
         <input
           type="checkbox"
+          disabled={fitaDisabled}
+          title={fitaTitle}
           checked={piece.fita.l1}
           onChange={(e) => onFitaChange(piece.id, 'l1', e.target.checked)}
         />
@@ -90,6 +99,8 @@ export function PieceReviewRow({
       <td className="check-cell" data-label="L2">
         <input
           type="checkbox"
+          disabled={fitaDisabled}
+          title={fitaTitle}
           checked={piece.fita.l2}
           onChange={(e) => onFitaChange(piece.id, 'l2', e.target.checked)}
         />

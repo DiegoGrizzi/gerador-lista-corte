@@ -704,6 +704,15 @@ describe('analyzeText — conversa do WhatsApp copiada, quantidade e medida em l
     expect(result.pieces.slice(0, 11).every((p) => p.material === 'MDF branco 15mm')).toBe(true);
   });
 
+  it('peça de MDF de 6mm fica sem fita e não dispara a pergunta de fita', () => {
+    const result = analyzeText(WHATSAPP_EXPORT_IRREGULAR_MESSAGE, makeNextId());
+    const thin = result.pieces[11]!;
+
+    expect(thin.thicknessMm).toBe(6);
+    expect(thin.fita).toEqual({ c1: false, c2: false, l1: false, l2: false });
+    expect(result.pieces.some((p) => p.fitaUnknown)).toBe(false);
+  });
+
   it('"MDF 6" sem cor depois vira material "MDF 6mm" (reconhecido, sem cor) só para as peças que vêm abaixo dele', () => {
     const result = analyzeText(
       ['MDF branco d 15', '8 peça', '15x35', 'MDF 6', '1 peça', '83x40', '2 peça', '85x260'].join('\n'),

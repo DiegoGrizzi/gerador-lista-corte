@@ -15,7 +15,7 @@
  * ---------------------------------------------------------------------------
  */
 
-import { convertPieceToMm, isMaterialWithoutColor, looksLikeNoMaterial, resolveFitaFromType, resolveThreeLadosFita, toNumber } from '@corte-cloud/parser';
+import { allowsEdgeBanding, convertPieceToMm, isMaterialWithoutColor, looksLikeNoMaterial, resolveFitaFromType, resolveThreeLadosFita, toNumber } from '@corte-cloud/parser';
 import type { Piece } from '@corte-cloud/parser';
 import type { CutListAction, CutListState } from './types.js';
 
@@ -366,7 +366,7 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
 
     case 'PIECE_FITA_EDITED': {
       const pieces = state.pieces.map((piece) => {
-        if (piece.id !== action.id) return piece;
+        if (piece.id !== action.id || !allowsEdgeBanding(piece.thicknessMm)) return piece;
         const next = clonePiece(piece);
         next.fita[action.field] = action.checked;
         return next;

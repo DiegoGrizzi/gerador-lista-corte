@@ -37,6 +37,9 @@ export function classifyHeaderLine(line: string): 'complemento' | 'funcao' | 'un
  */
 const BARE_MM_RE = /(\d+(?:[.,]\d+)?)\s*mm\b/i;
 
+/** "de" abreviado para "d" e sem unidade (ex: "MDF branco d 15") — último recurso de extractHeaderInfo. */
+const SHORT_D_THICKNESS_RE = /\bd\s+(\d+(?:[.,]\d+)?)\b/i;
+
 /**
  * Extrai de uma linha de material (contém "MDF"): o nome do material sem
  * a espessura/fitamento embutidos, o tipo de fitamento padrão do bloco
@@ -47,12 +50,14 @@ const BARE_MM_RE = /(\d+(?:[.,]\d+)?)\s*mm\b/i;
 export function extractHeaderInfo(rawLine: string): HeaderInfo {
   const withoutParens = rawLine.replace(/[()]/g, ' ').trim();
   const fitamento = parseFitamentoPhrase(withoutParens);
-  const thicknessMatch = withoutParens.match(THICKNESS_SUFFIX_RE) || withoutParens.match(BARE_MM_RE);
+  const thicknessMatch =
+    withoutParens.match(THICKNESS_SUFFIX_RE) || withoutParens.match(BARE_MM_RE) || withoutParens.match(SHORT_D_THICKNESS_RE);
   const thickness = thicknessMatch ? toNumber(thicknessMatch[1]!) : null;
   const material = withoutParens
     .replace(/fitad[oa]\w*.*$/i, '') // remove a frase de fitamento e tudo depois dela
     .replace(THICKNESS_SUFFIX_RE, '') // remove "de Nmm"
     .replace(BARE_MM_RE, '') // remove "Nmm" colado, sem "de" (ex: "15mm" solto)
+    .replace(SHORT_D_THICKNESS_RE, '') // remove "d N" (ex: "d 15")
     .replace(/\s{2,}/g, ' ')
     .trim();
   return { material, fitamento, thickness };

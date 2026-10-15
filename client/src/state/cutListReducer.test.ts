@@ -588,3 +588,85 @@ describe('createNextId', () => {
     expect(getIdCounter()).toBe(5);
   });
 });
+
+describe('modal de cor do material "só MDF" (ex: "MDF 6mm")', () => {
+  const colorless = (id: string, material = 'MDF 6mm') => makePiece({ id, material, fitaType: 'none-explicit' });
+
+  it('depois das outras perguntas, abre o modal de cor quando há material sem cor', () => {
+    const state: CutListState = {
+      ...createInitialState(),
+      pieces: [makePiece({ id: 'a' }), colorless('b')],
+      materialAsked: true,
+      fitaAsked: true,
+    };
+
+    const next = cutListReducer(state, { type: 'MM_ANSWERED', factor: 1 });
+
+    expect(next.activeModal).toBe('materialColor');
+    expect(next.previewVisible).toBe(false);
+  });
+
+  it('não abre o modal quando todos os materiais já têm cor', () => {
+    const state: CutListState = {
+      ...createInitialState(),
+      pieces: [makePiece({ id: 'a' })],
+      materialAsked: true,
+    };
+
+    expect(cutListReducer(state, { type: 'MM_ANSWERED', factor: 1 }).activeModal).toBe('none');
+  });
+
+  it('MATERIAL_COLOR_ANSWERED aplica a cor só às peças daquele material e fecha o modal', () => {
+    const state: CutListState = {
+      ...createInitialState(),
+      pieces: [makePiece({ id: 'a', material: 'MDF branco 15mm' }), colorless('b'), colorless('c')],
+      activeModal: 'materialColor',
+    };
+
+    const next = cutListReducer(state, { type: 'MATERIAL_COLOR_ANSWERED', material: 'MDF 6mm', color: 'Branco' });
+
+    expect(next.pieces.map((p) => p.material)).toEqual(['MDF branco 15mm', 'MDF Branco 6mm', 'MDF Branco 6mm']);
+    expect(next.activeModal).toBe('none');
+    expect(next.previewVisible).toBe(true);
+  });
+
+  it('pergunta um material sem cor por vez: continua aberto enquanto sobrar outro material sem cor', () => {
+    const state: CutListState = {
+      ...createInitialState(),
+      pieces: [colorless('a', 'MDF 6mm'), colorless('b', 'MDF 15mm')],
+      activeModal: 'materialColor',
+    };
+
+    const next = cutListReducer(state, { type: 'MATERIAL_COLOR_ANSWERED', material: 'MDF 6mm', color: 'Cinza' });
+
+    expect(next.pieces.map((p) => p.material)).toEqual(['MDF Cinza 6mm', 'MDF 15mm']);
+    expect(next.activeModal).toBe('materialColor');
+  });
+
+  it('"deixar sem cor" não muda as peças e não pergunta esse material de novo', () => {
+    const state: CutListState = {
+      ...createInitialState(),
+      pieces: [colorless('a')],
+      activeModal: 'materialColor',
+    };
+
+    const next = cutListReducer(state, { type: 'MATERIAL_COLOR_ANSWERED', material: 'MDF 6mm', color: '' });
+
+    expect(next.pieces[0]!.material).toBe('MDF 6mm');
+    expect(next.activeModal).toBe('none');
+    expect(next.colorAskedMaterials).toEqual(['MDF 6mm']);
+  });
+
+  it('responder o modal de material da lista também encadeia a pergunta de cor', () => {
+    const state: CutListState = {
+      ...createInitialState(),
+      pieces: [makePiece({ id: 'a', material: '' }), colorless('b')],
+      activeModal: 'material',
+    };
+
+    const next = cutListReducer(state, { type: 'MATERIAL_CONFIRMED', material: 'MDF branco' });
+
+    expect(next.pieces[0]!.material).toBe('MDF branco');
+    expect(next.activeModal).toBe('materialColor');
+  });
+});

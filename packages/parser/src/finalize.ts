@@ -47,6 +47,16 @@ export function looksLikeNoMaterial(material: string): boolean {
 }
 
 /**
+ * Verdadeiro quando o rótulo de material é só "MDF" (com ou sem a espessura:
+ * "MDF 6mm", "MDF") — um material reconhecido, mas sem cor. Serve para a
+ * interface perguntar a cor desse material específico (ver MaterialColorModal
+ * no client), em vez de perguntar o material da lista inteira.
+ */
+export function isMaterialWithoutColor(material: string): boolean {
+  return /^mdf(?:\s+\d+(?:[.,]\d+)?mm)?$/i.test(material.trim());
+}
+
+/**
  * Calcula os booleanos finais de fita (c1/c2/l1/l2) e junta a espessura
  * ao nome do material (ex: "MDF branco" + 15 → "MDF branco 15mm").
  * Deve ser chamada uma única vez por peça, depois que todo contexto

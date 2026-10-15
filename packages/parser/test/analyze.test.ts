@@ -28,6 +28,7 @@ import {
   DIMENSION_FIRST_EQUALS_MESSAGE,
   WHATSAPP_EXPORT_SPLIT_LINES_MESSAGE,
   WHATSAPP_EXPORT_IRREGULAR_MESSAGE,
+  WHATSAPP_EXPORT_SHUFFLED_MESSAGE,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -704,13 +705,15 @@ describe('analyzeText — conversa do WhatsApp copiada, quantidade e medida em l
     expect(result.pieces.slice(0, 11).every((p) => p.material === 'MDF branco 15mm')).toBe(true);
   });
 
-  it('peça de MDF de 6mm fica sem fita e não dispara a pergunta de fita', () => {
+  it('peça de MDF de 6mm fica sem fita e nunca é "fita desconhecida"; as de 15mm sem nenhuma informação de fita são', () => {
     const result = analyzeText(WHATSAPP_EXPORT_IRREGULAR_MESSAGE, makeNextId());
     const thin = result.pieces[11]!;
 
     expect(thin.thicknessMm).toBe(6);
     expect(thin.fita).toEqual({ c1: false, c2: false, l1: false, l2: false });
-    expect(result.pieces.some((p) => p.fitaUnknown)).toBe(false);
+    expect(thin.fitaUnknown).toBeUndefined();
+    // O cabeçalho "MDF 6" não pode apagar o fato de que nada foi dito sobre a fita das de 15mm.
+    expect(result.pieces.slice(0, 11).every((p) => p.fitaUnknown === true)).toBe(true);
   });
 
   it('"MDF 6" sem cor depois vira material "MDF 6mm" (reconhecido, sem cor) só para as peças que vêm abaixo dele', () => {
@@ -726,5 +729,24 @@ describe('analyzeText — conversa do WhatsApp copiada, quantidade e medida em l
       '1x83x40 MDF 6mm',
       '2x85x260 MDF 6mm',
     ]);
+  });
+});
+
+describe('analyzeText — lista embaralhada do WhatsApp, sem nenhuma informação de fita (real user list)', () => {
+  it('as peças de 15mm ficam "fita desconhecida" (a pergunta aparece) mesmo com outro cabeçalho de material depois; as de 6mm não', () => {
+    const result = analyzeText(WHATSAPP_EXPORT_SHUFFLED_MESSAGE, makeNextId());
+
+    expect(result.discarded).toEqual([]);
+    const thick = result.pieces.filter((p) => p.thicknessMm === 15);
+    const thin = result.pieces.filter((p) => p.thicknessMm === 6);
+    expect(thick.length).toBeGreaterThan(0);
+    expect(thin.length).toBeGreaterThan(0);
+    expect(thick.every((p) => p.fitaUnknown === true)).toBe(true);
+    expect(thin.every((p) => p.fitaUnknown === undefined)).toBe(true);
+  });
+
+  it('um cabeçalho de material que traz fita própria NÃO deixa as peças anteriores "desconhecidas" (comportamento anterior)', () => {
+    const result = analyzeText('2=47/47\nMDF branco 15mm fitado os 4 lados', makeNextId());
+    expect(result.pieces[0]!.fitaUnknown).toBeUndefined();
   });
 });

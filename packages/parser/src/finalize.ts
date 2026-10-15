@@ -86,7 +86,11 @@ export function finalizePiece(piece: RawPiece): Piece {
     ? piece.customFita || resolveFitaFromType(piece.fitaType, piece.compr, piece.larg)
     : { c1: false, c2: false, l1: false, l2: false };
   // Código "3L" numa peça fina não tem o que perguntar: ela não leva fita.
-  if (!canHaveFita) piece.pendingThreeLados = false;
+  if (!canHaveFita) {
+    piece.pendingThreeLados = false;
+    // A espessura pode só ter sido conhecida depois de a peça já ter sido marcada.
+    delete piece.fitaUnknown;
+  }
   let label = piece.material || '';
   if (piece.thicknessMm != null) label += (label ? ' ' : '') + piece.thicknessMm + 'mm';
 

@@ -143,6 +143,11 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     });
     pendingMaterial = [];
     pendingFitamento.forEach((entry) => {
+      // Um novo cabeçalho SEM fita própria encerra o bloco anterior: as peças
+      // dele que nunca tiveram informação de fita continuam "desconhecidas"
+      // (a interface pergunta), em vez de virarem "sem fita" em silêncio.
+      // Só peças (contextos da conferência não têm fitaUnknown).
+      if (fitType == null && 'qtd' in entry) markFitaUnknownIfNeeded(entry);
       entry.fitaType = entry.fitaType || 'none-explicit';
     });
     pendingFitamento = [];

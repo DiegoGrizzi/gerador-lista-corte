@@ -31,6 +31,7 @@ import {
   normalizeTypos,
   expandPcSeparatedPieces,
   stripWhatsAppExportPrefixes,
+  normalizeDotAfterQuantity,
   joinSplitQuantityLines,
   mergeMdfThicknessAndColorLines,
 } from './text-normalize.js';
@@ -236,7 +237,9 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
   // separada por ponto) em uma linha por peça, antes de mais nada — o resto
   // da função processa cada peça normalmente a partir daqui.
   const expandedText = expandPcSeparatedPieces(
-    joinSplitQuantityLines(mergeMdfThicknessAndColorLines(stripWhatsAppExportPrefixes(text))),
+    joinSplitQuantityLines(
+      mergeMdfThicknessAndColorLines(normalizeDotAfterQuantity(stripWhatsAppExportPrefixes(text))),
+    ),
   );
 
   expandedText.split('\n').forEach((rawLine) => {

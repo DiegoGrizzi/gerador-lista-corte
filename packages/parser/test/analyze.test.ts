@@ -27,6 +27,7 @@ import {
   PECAS_DASH_WITH_FITA_SECTION_MESSAGE,
   DIMENSION_FIRST_EQUALS_MESSAGE,
   WHATSAPP_EXPORT_SPLIT_LINES_MESSAGE,
+  WHATSAPP_EXPORT_IRREGULAR_MESSAGE,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -691,6 +692,16 @@ describe('analyzeText — conversa do WhatsApp copiada, quantidade e medida em l
       '2x85x260 MDF Branco 6mm',
       '6x75x50 MDF Branco 6mm',
     ]);
+  });
+
+  it('lê "2.peca 83.0x40.0" na mesma linha e uma medida sem quantidade depois de "MDF 6" (quantidade 1)', () => {
+    const result = analyzeText(WHATSAPP_EXPORT_IRREGULAR_MESSAGE, makeNextId());
+
+    expect(result.discarded).toEqual([]);
+    expect(result.pieces).toHaveLength(12);
+    expect(result.pieces[1]).toMatchObject({ qtd: 2, compr: 83, larg: 40, funcao: '' });
+    expect(result.pieces[11]).toMatchObject({ qtd: 1, compr: 75, larg: 50, material: 'MDF 6mm' });
+    expect(result.pieces.slice(0, 11).every((p) => p.material === 'MDF branco 15mm')).toBe(true);
   });
 
   it('"MDF 6" sem cor depois vira material "MDF 6mm" (reconhecido, sem cor) só para as peças que vêm abaixo dele', () => {

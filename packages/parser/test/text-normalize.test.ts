@@ -7,6 +7,7 @@ import {
   stripGreetingPrefix,
   normalizeLeadingNumberWord,
   stripWhatsAppExportPrefixes,
+  normalizeDotAfterQuantity,
   joinSplitQuantityLines,
   mergeMdfThicknessAndColorLines,
 } from '../src/text-normalize.js';
@@ -39,7 +40,23 @@ describe('joinSplitQuantityLines', () => {
   });
 
   it('não altera linhas que já trazem quantidade e medida juntas', () => {
-    expect(joinSplitQuantityLines('2=47/47\n35x20')).toBe('2=47/47\n35x20');
+    expect(joinSplitQuantityLines('2=47/47\n2=35x20')).toBe('2=47/47\n2=35x20');
+  });
+
+  it('medida sozinha, sem nenhuma quantidade por perto, vira quantidade 1 (evita ler "75" de "75.0x50.0" como quantidade)', () => {
+    expect(joinSplitQuantityLines('MDF 6mm\n75.0x50.0')).toBe('MDF 6mm\n1=75.0x50.0');
+  });
+});
+
+describe('normalizeDotAfterQuantity', () => {
+  it('troca o ponto digitado depois da quantidade por espaço', () => {
+    expect(normalizeDotAfterQuantity('2.peca 83.0x40.0')).toBe('2 peca 83.0x40.0');
+    expect(normalizeDotAfterQuantity('10.peças 50x20')).toBe('10 peças 50x20');
+  });
+
+  it('não mexe em decimais nem em outras linhas', () => {
+    expect(normalizeDotAfterQuantity('2.5 x 30')).toBe('2.5 x 30');
+    expect(normalizeDotAfterQuantity('15.x35.')).toBe('15.x35.');
   });
 });
 

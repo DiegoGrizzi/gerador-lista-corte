@@ -2,14 +2,13 @@ import { Router, type NextFunction, type Request, type Response } from 'express'
 
 import { config } from '../config/index.js';
 import { resolveProjectRoot } from '../services/update/project-root.js';
-import { getLatestCommitInfo, getLocalSha, hasUncommittedChanges } from '../services/update/version.js';
+import { getLatestCommitInfo, getLocalSha } from '../services/update/version.js';
 import { restartServer, runUpdateSteps } from '../services/update/run-update.js';
 
 export interface UpdateRouteDeps {
   resolveProjectRoot: typeof resolveProjectRoot;
   getLocalSha: typeof getLocalSha;
   getLatestCommitInfo: typeof getLatestCommitInfo;
-  hasUncommittedChanges: typeof hasUncommittedChanges;
   runUpdateSteps: typeof runUpdateSteps;
   restartServer: typeof restartServer;
 }
@@ -18,7 +17,6 @@ const defaultDeps: UpdateRouteDeps = {
   resolveProjectRoot,
   getLocalSha,
   getLatestCommitInfo,
-  hasUncommittedChanges,
   runUpdateSteps,
   restartServer,
 };
@@ -86,14 +84,10 @@ export function createUpdateRouter(deps: UpdateRouteDeps = defaultDeps): Router 
         return;
       }
 
-      if (await deps.hasUncommittedChanges(projectRoot)) {
-        res.status(200).json({
-          ok: false,
-          error: 'Há alterações não salvas na instalação local — atualização cancelada por segurança.',
-        });
-        return;
-      }
-
+      // Sem checar alterações locais de propósito: runUpdateSteps faz
+      // "git reset --hard", que descarta qualquer uma (ex: o npm reescrevendo
+      // package-lock.json nas máquinas da loja). Recusar aqui deixava a
+      // atualização travada para sempre nessas máquinas.
       const result = await deps.runUpdateSteps(projectRoot);
       if (!result.ok) {
         res.status(200).json(result);

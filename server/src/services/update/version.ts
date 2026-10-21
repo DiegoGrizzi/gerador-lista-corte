@@ -45,19 +45,6 @@ export async function getLocalSha(projectRoot: string): Promise<string> {
   return result.output.trim();
 }
 
-/**
- * Verdadeiro se a pasta de instalação tem qualquer alteração não commitada
- * — usado para recusar a atualização automática nesse caso (ver
- * routes/update.ts), em vez de arriscar um "git pull" por cima de algo que
- * não devia. Em caso de dúvida (git status falhou por algum motivo), trata
- * como "tem alteração" — o lado seguro é sempre recusar, não atualizar.
- */
-export async function hasUncommittedChanges(projectRoot: string): Promise<boolean> {
-  const result = await runCapture('git', ['status', '--porcelain'], projectRoot);
-  if (result.code !== 0) return true;
-  return result.output.trim().length > 0;
-}
-
 /** Consulta a API pública do GitHub pelo commit mais recente da branch principal. */
 export async function getLatestCommitInfo(): Promise<LatestCommitInfo> {
   const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/commits/${REPO_BRANCH}`;

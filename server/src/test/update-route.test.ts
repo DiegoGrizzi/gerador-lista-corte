@@ -11,7 +11,6 @@ function makeDeps(overrides: Partial<UpdateRouteDeps> = {}): UpdateRouteDeps {
     resolveProjectRoot: vi.fn().mockReturnValue(FAKE_PROJECT_ROOT),
     getLocalSha: vi.fn().mockResolvedValue('aaaa'),
     getLatestCommitInfo: vi.fn().mockResolvedValue({ sha: 'aaaa' }),
-    hasUncommittedChanges: vi.fn().mockResolvedValue(false),
     runUpdateSteps: vi.fn().mockResolvedValue({ ok: true }),
     restartServer: vi.fn(),
     ...overrides,
@@ -82,24 +81,8 @@ describe('POST /api/update/apply', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ ok: true, restarting: true });
-    expect(deps.hasUncommittedChanges).toHaveBeenCalledWith(FAKE_PROJECT_ROOT);
     expect(deps.runUpdateSteps).toHaveBeenCalledWith(FAKE_PROJECT_ROOT);
     expect(deps.restartServer).toHaveBeenCalledWith(FAKE_PROJECT_ROOT);
-  });
-
-  it('recusa e não reinicia quando há alterações locais não commitadas', async () => {
-    const deps = makeDeps({ hasUncommittedChanges: vi.fn().mockResolvedValue(true) });
-    const app = createApp(undefined, deps);
-
-    const response = await request(app).post('/api/update/apply');
-
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual({
-      ok: false,
-      error: 'Há alterações não salvas na instalação local — atualização cancelada por segurança.',
-    });
-    expect(deps.runUpdateSteps).not.toHaveBeenCalled();
-    expect(deps.restartServer).not.toHaveBeenCalled();
   });
 
   it('devolve o erro do passo que falhou e não reinicia', async () => {
@@ -127,6 +110,6 @@ describe('POST /api/update/apply', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ ok: false, error: 'sem git' });
-    expect(deps.hasUncommittedChanges).not.toHaveBeenCalled();
+    expect(deps.runUpdateSteps).not.toHaveBeenCalled();
   });
 });

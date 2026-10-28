@@ -54,6 +54,27 @@ const LINE_TOLERANCE_PX = 4;
 /** Espaço horizontal máximo entre os dois números da "espinha" (C e L) pra contar como o mesmo par — evita casar um "C" de uma peça com o "L" de outra por coincidência de altura. */
 const MAX_ANCHOR_GAP_PX = 150;
 
+/**
+ * Variante do Cortecloud em que os cabeçalhos C1/C2/L1/L2 são ÍCONES (sem
+ * texto) e cada lado fitado é um ícone de "check" — um caractere de fonte
+ * de ícones (U+E013), não o "●" da outra variante. Confirmado com um PDF
+ * real (marceneiro.cortecloud.com.br): o check cai sempre nas mesmas
+ * posições horizontais, a partir do cabeçalho "Fita" (texto): C1 a ~75pt
+ * dele, depois C2, L1 e L2 a cada ~18pt.
+ */
+const ICON_CHECK_GLYPH = '';
+const ICON_FIRST_SLOT_OFFSET_FROM_FITA_PX = 75;
+const ICON_SLOT_PITCH_PX = 18;
+const ICON_SLOT_HALF_WIDTH_PX = 9;
+/**
+ * Nessa variante o texto de cada linha de peça fica centralizado na
+ * vertical na célula, então há linhas ANTES e DEPOIS da linha com o par C L
+ * — o agrupamento "da espinha até a próxima" não serve. Aqui as linhas de
+ * uma mesma peça ficam a ~7-8pt uma da outra, e peças diferentes a mais de
+ * ~15pt: um salto maior que isto separa uma peça da seguinte.
+ */
+const ROW_BLOCK_GAP_PX = 12;
+
 const FUNCAO_LABELS = new Set(['peça', 'peca', 'função', 'funcao']);
 const QTDE_LABELS = new Set(['qtde', 'qtd', 'quantidade']);
 const CLIENTE_LABELS = new Set(['cliente']);
@@ -109,11 +130,47 @@ function findAnchorInLine(line: Line): AnchorMatch | null {
   return null;
 }
 
+/**
+ * Agrupa as linhas em blocos separados por saltos verticais grandes (ver
+ * ROW_BLOCK_GAP_PX) e entrega cada bloco à peça cuja "espinha" (linha com o
+ * par C L) está nele — blocos sem espinha (cabeçalho, totais, rodapé) são
+ * descartados. Se um bloco tiver mais de uma espinha, cada linha vai para a
+ * espinha mais próxima na vertical.
+ */
+function groupLinesByAnchorBlocks(lines: Line[], anchorByLineIndex: Map<number, AnchorMatch>): Map<number, Line[]> {
+  const result = new Map<number, Line[]>();
+  const flush = (from: number, to: number): void => {
+    const anchors: number[] = [];
+    for (let i = from; i < to; i++) if (anchorByLineIndex.has(i)) anchors.push(i);
+    if (anchors.length === 0) return;
+    for (const anchorIdx of anchors) result.set(anchorIdx, []);
+    for (let i = from; i < to; i++) {
+      const nearest = anchors.reduce((best, a) =>
+        Math.abs(lines[a]!.top - lines[i]!.top) < Math.abs(lines[best]!.top - lines[i]!.top) ? a : best,
+      );
+      result.get(nearest)!.push(lines[i]!);
+    }
+  };
+
+  let blockStart = 0;
+  for (let i = 1; i <= lines.length; i++) {
+    if (i === lines.length || lines[i]!.top - lines[i - 1]!.top > ROW_BLOCK_GAP_PX) {
+      flush(blockStart, i);
+      blockStart = i;
+    }
+  }
+  return result;
+}
+
 function findLabelPosition(words: OcrWord[], labels: Set<string>): OcrWord | null {
   return words.find((w) => labels.has(normalizeWord(w.text))) ?? null;
 }
 
 interface ColumnBounds {
+  /** Caractere que marca um lado fitado nesta variante do PDF. */
+  checkGlyph: string;
+  /** Cabeçalhos C1/C2/L1/L2 em ícone (ver ICON_CHECK_GLYPH) — muda como as linhas de uma peça são agrupadas. */
+  iconVariant: boolean;
   funcaoEnd: number;
   qtdeStart: number;
   qtdeEnd: number;
@@ -149,9 +206,37 @@ function findColumnBounds(headerWords: OcrWord[]): ColumnBounds | null {
   const l2 = findLabelPosition(headerWords, L2_LABELS);
   const usinar = findLabelPosition(headerWords, USINAR_LABELS);
 
+  if (qtde && cliente && chapa && girar && fita && !(c1 && c2 && l1 && l2)) {
+    const slot = (index: number): number =>
+      fita.left + ICON_FIRST_SLOT_OFFSET_FROM_FITA_PX + index * ICON_SLOT_PITCH_PX;
+    const start = (index: number): number => slot(index) - ICON_SLOT_HALF_WIDTH_PX;
+    const end = (index: number): number => slot(index) + ICON_SLOT_HALF_WIDTH_PX;
+    return {
+      checkGlyph: ICON_CHECK_GLYPH,
+      iconVariant: true,
+      funcaoEnd: qtde.left,
+      qtdeStart: qtde.left,
+      qtdeEnd: cliente.left,
+      chapaStart: chapa.left,
+      chapaEnd: girar.left,
+      fitaStart: fita.left,
+      fitaEnd: start(0),
+      c1Start: start(0),
+      c1End: end(0),
+      c2Start: start(1),
+      c2End: end(1),
+      l1Start: start(2),
+      l1End: end(2),
+      l2Start: start(3),
+      l2End: end(3),
+    };
+  }
+
   if (!qtde || !cliente || !chapa || !girar || !fita || !c1 || !c2 || !l1 || !l2) return null;
 
   return {
+    checkGlyph: '●',
+    iconVariant: false,
     funcaoEnd: qtde.left,
     qtdeStart: qtde.left,
     qtdeEnd: cliente.left,
@@ -183,8 +268,8 @@ function joinText(words: OcrWord[]): string {
 }
 
 /** Verdadeiro se houver pelo menos um "●" na faixa — ver comentário no topo sobre os dois círculos empilhados por coluna (só o de cima importa, mas basta achar qualquer um marcado). */
-function hasFilledCircle(words: OcrWord[]): boolean {
-  return words.some((w) => w.text.includes('●'));
+function hasFilledCircle(words: OcrWord[], glyph: string): boolean {
+  return words.some((w) => w.text.includes(glyph));
 }
 
 export interface NativeTableRow {
@@ -224,11 +309,13 @@ export function reconstructNativeTableRows(rawWords: OcrWord[]): NativeTableRow[
   const columns = findColumnBounds(headerWords);
   if (!columns) return null;
 
+  const blockLines = columns.iconVariant ? groupLinesByAnchorBlocks(lines, anchorByLineIndex) : null;
+
   const rows: NativeTableRow[] = [];
   for (let i = 0; i < spineIndexes.length; i++) {
     const startIdx = spineIndexes[i]!;
     const endIdx = i + 1 < spineIndexes.length ? spineIndexes[i + 1]! : lines.length;
-    const rowLines = lines.slice(startIdx, endIdx);
+    const rowLines = blockLines ? (blockLines.get(startIdx) ?? [lines[startIdx]!]) : lines.slice(startIdx, endIdx);
     const anchor = anchorByLineIndex.get(startIdx)!;
 
     // Todas as palavras da peça, MENOS as duas da própria "espinha" (C e L
@@ -252,10 +339,10 @@ export function reconstructNativeTableRows(rawWords: OcrWord[]): NativeTableRow[
       compr: anchor.compr.text,
       larg: anchor.larg.text,
       fita: joinText(fitaWords),
-      c1: hasFilledCircle(c1Words),
-      c2: hasFilledCircle(c2Words),
-      l1: hasFilledCircle(l1Words),
-      l2: hasFilledCircle(l2Words),
+      c1: hasFilledCircle(c1Words, columns.checkGlyph),
+      c2: hasFilledCircle(c2Words, columns.checkGlyph),
+      l1: hasFilledCircle(l1Words, columns.checkGlyph),
+      l2: hasFilledCircle(l2Words, columns.checkGlyph),
     });
   }
 

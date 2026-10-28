@@ -162,3 +162,114 @@ describe('nativeTableRowsToText', () => {
     expect(lines[1]).toBe('Lateral direita\t1\tBranco 15mm\t2200.0\t550.0\tFita Branco\t✓\t✓\t\t');
   });
 });
+
+/**
+ * Variante real do Cortecloud (marceneiro.cortecloud.com.br): cabeçalhos
+ * C1/C2/L1/L2 são ÍCONES (sem texto), cada lado fitado é um check "U+E013"
+ * e o texto de cada peça fica centralizado na vertical (há linhas antes E
+ * depois da linha com o par C L). Posições copiadas de um PDF real.
+ */
+describe('reconstructNativeTableRows — cabeçalhos C1/C2/L1/L2 em ícone e texto centralizado na vertical', () => {
+  const CHECK = '';
+  const w = (text: string, left: number, top: number): OcrWord => ({ text, left, top, width: text.length * 4, height: 7 });
+  const at = (top: number, ...items: [string, number][]): OcrWord[] => items.map(([text, left]) => w(text, left, top));
+
+  const HEADER: OcrWord[] = [
+    ...at(163, ['Função', 60], ['da', 89]),
+    ...at(169, ['Qtde.', 133], ['Cliente', 169], ['Chapa', 203], ['C', 274], ['L', 305], ['Girar', 336], ['Fita', 371], ['Usinar', 522]),
+    ...at(174, ['peça', 60]),
+  ];
+
+  const PIECE_1: OcrWord[] = [
+    ...at(196, ['Mdf', 203], ['15', 220], ['Mm', 232]),
+    ...at(199, ['Fita', 371], ['1', 389], ['X', 396], ['22', 404], ['Mm', 415]),
+    ...at(203, ['tampo', 60], ['canto', 82], ['gabriel', 169], ['-', 193], ['Carvalho', 203]),
+    ...at(207, ['1', 44], ['1', 140], ['2480.0', 265], ['206.0', 298], ['Carvalho', 371], ['Hanover', 405], [CHECK, 482]),
+    ...at(211, ['leitura', 60], ['sala', 169], ['Hanover', 203], ['Design', 234]),
+    ...at(214, ['Rehau', 371], ['®', 396]),
+    ...at(218, ['2f', 203], ['Duratex', 214], ['®', 242]),
+  ];
+  const PIECE_2: OcrWord[] = [
+    ...at(234, ['Mdf', 203], ['15', 220], ['Mm', 232]),
+    ...at(238, ['lateral', 60], ['Fita', 371], ['1', 389], ['X', 396], ['22', 404], ['Mm', 415]),
+    ...at(241, ['gabriel', 169], ['-', 193], ['Carvalho', 203]),
+    ...at(245, ['2', 44], ['tamponamento', 60], ['1', 140], ['815.0', 267], ['206.0', 298], ['Carvalho', 371], ['Hanover', 405], [CHECK, 446]),
+    ...at(249, ['sala', 169], ['Hanover', 203], ['Design', 234]),
+    ...at(253, ['sala', 60], ['Rehau', 371], ['®', 396]),
+    ...at(256, ['2f', 203], ['Duratex', 214], ['®', 242]),
+  ];
+  // Peça sem fita nenhuma, com o botão "Girar" marcado (não deve virar fita).
+  const PIECE_3: OcrWord[] = [
+    ...at(272, ['Mdf', 203], ['15', 220], ['Mm', 232]),
+    ...at(280, ['gabriel', 169], ['-', 193], ['Carvalho', 203]),
+    ...at(283, ['3', 44], ['painel', 60], ['sala', 83], ['1', 140], ['1320.0', 265], ['1460.0', 295], [CHECK, 343]),
+    ...at(287, ['sala', 169], ['Hanover', 203], ['Design', 234]),
+    ...at(295, ['2f', 203], ['Duratex', 214], ['®', 242]),
+  ];
+  // Total da lista (caixa "116" sob a coluna Qtde) e rodapé da página.
+  const FOOTER: OcrWord[] = [...at(335, ['116', 140]), ...at(580, ['https://marceneiro.cortecloud.com.br/#/plans/1/view', 26], ['2/6', 560])];
+
+  it('reconstrói cada peça com as linhas de cima e de baixo da espinha, e a fita pelos ícones de check', () => {
+    const rows = reconstructNativeTableRows([...HEADER, ...PIECE_1, ...PIECE_2, ...PIECE_3, ...FOOTER]);
+
+    expect(rows).toEqual([
+      {
+        funcao: 'tampo canto leitura',
+        qtde: '1',
+        chapa: 'Mdf 15 Mm Carvalho Hanover Design 2f Duratex ®',
+        compr: '2480.0',
+        larg: '206.0',
+        fita: 'Fita 1 X 22 Mm Carvalho Hanover Rehau ®',
+        c1: false,
+        c2: false,
+        l1: true,
+        l2: false,
+      },
+      {
+        funcao: 'lateral tamponamento sala',
+        qtde: '1',
+        chapa: 'Mdf 15 Mm Carvalho Hanover Design 2f Duratex ®',
+        compr: '815.0',
+        larg: '206.0',
+        fita: 'Fita 1 X 22 Mm Carvalho Hanover Rehau ®',
+        c1: true,
+        c2: false,
+        l1: false,
+        l2: false,
+      },
+      {
+        funcao: 'painel sala',
+        qtde: '1',
+        chapa: 'Mdf 15 Mm Carvalho Hanover Design 2f Duratex ®',
+        compr: '1320.0',
+        larg: '1460.0',
+        fita: '',
+        c1: false,
+        c2: false,
+        l1: false,
+        l2: false,
+      },
+    ]);
+  });
+
+  it('o total sob a coluna Qtde ("116") e o rodapé não vazam para a última peça', () => {
+    const rows = reconstructNativeTableRows([...HEADER, ...PIECE_1, ...PIECE_3, ...FOOTER])!;
+    expect(rows[rows.length - 1]!.qtde).toBe('1');
+    expect(rows[rows.length - 1]!.funcao).toBe('painel sala');
+  });
+
+  it('cada um dos 4 ícones cai na sua coluna (C1, C2, L1, L2)', () => {
+    const rowWith = (checkLeft: number): OcrWord[] => [
+      ...HEADER,
+      ...at(207, ['1', 44], ['x', 60], ['1', 140], ['100.0', 265], ['50.0', 298], [CHECK, checkLeft]),
+    ];
+    const sides = (left: number) => {
+      const row = reconstructNativeTableRows(rowWith(left))![0]!;
+      return [row.c1, row.c2, row.l1, row.l2];
+    };
+    expect(sides(446)).toEqual([true, false, false, false]);
+    expect(sides(464)).toEqual([false, true, false, false]);
+    expect(sides(482)).toEqual([false, false, true, false]);
+    expect(sides(500)).toEqual([false, false, false, true]);
+  });
+});

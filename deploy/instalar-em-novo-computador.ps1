@@ -66,12 +66,28 @@ function Stop-RunningServer {
         }
 }
 
+function Get-GitExe {
+    # Caminho do git.exe de verdade. NUNCA chamar "git" pelo nome puro: caso
+    # real reportado - existia um ARQUIVO chamado "git" (sem extensao) em
+    # C:WindowsSystem32, que o PowerShell achava antes do git.exe e tentava
+    # abrir como documento ("Nao e possivel executar um documento no meio de
+    # um pipeline"), derrubando toda chamada ao git. Pedir "git.exe" so
+    # encontra o programa.
+    $cmd = Get-Command 'git.exe' -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($cmd) { return $cmd.Source }
+    return $null
+}
+
 function Invoke-Git {
     # Roda o git mostrando a saida na tela (como antes) e devolve tambem o
     # codigo de saida e o texto - assim a mensagem de erro final pode dizer o
     # motivo REAL da falha, em vez de sempre culpar a internet.
     param([string[]]$GitArgs)
-    $text = (& git @GitArgs 2>&1 | ForEach-Object {
+    $gitExe = Get-GitExe
+    if (-not $gitExe) {
+        return [pscustomobject]@{ Code = 1; Output = 'git.exe nao encontrado neste computador.' }
+    }
+    $text = (& $gitExe @GitArgs 2>&1 | ForEach-Object {
             # No PowerShell 5.1 cada linha de stderr vira um ErrorRecord; uma
             # linha vazia apareceria como "System.Management.Automation.RemoteException".
             if ($_ -is [System.Management.Automation.ErrorRecord]) { $_.Exception.Message } else { "$_" }
@@ -102,9 +118,10 @@ function Update-ExistingRepo {
     }
 
     $safePath = $Dir -replace '\\', '/'
-    $known = @(& git config --global --get-all safe.directory 2>$null)
+    $gitExe = Get-GitExe
+    $known = @(& $gitExe config --global --get-all safe.directory 2>$null)
     if ($known -notcontains $safePath) {
-        & git config --global --add safe.directory $safePath 2>$null | Out-Null
+        & $gitExe config --global --add safe.directory $safePath 2>$null | Out-Null
     }
 
     Push-Location $Dir
@@ -203,11 +220,11 @@ if (-not (Test-CommandExists 'node')) {
 # na hora mas nao vira um repositorio git de verdade, deixando essas duas
 # coisas quebradas dali pra frente (caso real: maquina nova sem git,
 # rodapé do site sem nenhuma versao aparecendo).
-if (-not (Test-CommandExists 'git')) {
+if (-not (Get-GitExe)) {
     Write-Host 'Instalando Git...'
     winget install --id Git.Git -e --silent --accept-source-agreements --accept-package-agreements
     Update-SessionPath
-    if (-not (Test-CommandExists 'git')) {
+    if (-not (Get-GitExe)) {
         Write-Host 'AVISO: nao consegui instalar o Git automaticamente.' -ForegroundColor Yellow
         Write-Host 'A instalacao vai continuar mesmo assim (baixando um .zip do projeto), mas a versao instalada nao vai aparecer no rodape do site, e a atualizacao automatica pelo balao nao vai funcionar. Instale o Git manualmente em https://git-scm.com/download/win e rode este instalador de novo para corrigir isso.' -ForegroundColor Yellow
     }
@@ -292,10 +309,10 @@ if ($isGitRepo) {
     if ($update.Code -ne 0) {
         Stop-OnFailure ("Nao consegui atualizar o projeto. Detalhe do Git: $($update.Output)`nSe falar de rede, SSL, proxy ou 'unable to access', confira a internet e o antivirus/firewall deste computador (o GitHub precisa abrir). A instalacao anterior, se existia, continua como estava.")
     }
-} elseif (Test-CommandExists 'git') {
+} elseif (Get-GitExe) {
     Write-Host 'Baixando projeto (git clone)...'
-    git clone $RepoUrl $InstallDir
-    if ($LASTEXITCODE -ne 0) {
+    $clone = Invoke-Git @('clone', $RepoUrl, $InstallDir)
+    if ($clone.Code -ne 0) {
         Stop-OnFailure 'git clone falhou (veja a mensagem do Git logo acima). Se falar de rede, SSL ou "unable to access", confira a internet e o antivirus/firewall deste computador e tente de novo.'
     }
 } else {

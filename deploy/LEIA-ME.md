@@ -32,6 +32,18 @@ Rodar o mesmo instalador de novo no futuro **atualiza** o sistema para a
 versão mais recente (baixa o código novo, recompila, reinicia) — é o mesmo
 processo pra instalar pela primeira vez ou pra atualizar depois.
 
+### Se o instalador falhar em "Atualizando projeto existente"
+
+O instalador tenta resolver sozinho as causas comuns numa pasta que já existe:
+pasta registrada com outro usuário do Windows ("dubious ownership"), trava
+`.git\index.lock` sobrando, branch ou "upstream" errado, e alterações locais.
+Se mesmo assim não der para atualizar, ele baixa uma cópia limpa ao lado e só
+troca depois que o download deu certo (mantendo o `server\.env`); se esse
+download também falhar, a instalação antiga continua como estava. A mensagem
+final mostra o erro real do Git — se falar de rede, SSL, proxy ou "unable to
+access", o problema é a internet/antivírus/firewall daquele computador (o
+GitHub precisa abrir).
+
 ## Configuração manual (alternativa, se preferir passo a passo)
 
 1. Instale as dependências e compile o projeto, na raiz:

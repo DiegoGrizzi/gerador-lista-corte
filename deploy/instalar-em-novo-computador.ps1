@@ -66,6 +66,97 @@ function Stop-RunningServer {
         }
 }
 
+function Invoke-Git {
+    # Roda o git mostrando a saida na tela (como antes) e devolve tambem o
+    # codigo de saida e o texto - assim a mensagem de erro final pode dizer o
+    # motivo REAL da falha, em vez de sempre culpar a internet.
+    param([string[]]$GitArgs)
+    $text = (& git @GitArgs 2>&1 | ForEach-Object {
+            # No PowerShell 5.1 cada linha de stderr vira um ErrorRecord; uma
+            # linha vazia apareceria como "System.Management.Automation.RemoteException".
+            if ($_ -is [System.Management.Automation.ErrorRecord]) { $_.Exception.Message } else { "$_" }
+        } | Out-String).Trim()
+    $code = $LASTEXITCODE
+    if ($text) { Write-Host $text }
+    return [pscustomobject]@{ Code = $code; Output = $text }
+}
+
+function Update-ExistingRepo {
+    # Atualiza uma instalacao ja existente para a versao mais recente do
+    # GitHub, descartando qualquer alteracao local (esta pasta e controlada
+    # so pelo instalador - ver o comentario no passo 3). Corrige sozinho as
+    # causas comuns de falha numa pasta que ja existe:
+    #  - "dubious ownership": a pasta pertence a outro usuario do Windows
+    #    (comum quando uma instalacao anterior rodou como administrador) e o
+    #    git se recusa a mexer nela - registra a pasta como confiavel;
+    #  - .git\index.lock sobrando de um git que foi interrompido;
+    #  - branch errada, "detached HEAD" ou sem upstream configurado - "git
+    #    checkout -f -B main origin/main" resolve os tres de uma vez e ainda
+    #    configura o upstream que a atualizacao pelo site (git reset --hard
+    #    @{u}) precisa.
+    param([string]$Dir)
+
+    $lock = Join-Path $Dir '.git\index.lock'
+    if ((Test-Path $lock) -and -not (Get-Process -Name git -ErrorAction SilentlyContinue)) {
+        Remove-Item $lock -Force -ErrorAction SilentlyContinue
+    }
+
+    $safePath = $Dir -replace '\\', '/'
+    $known = @(& git config --global --get-all safe.directory 2>$null)
+    if ($known -notcontains $safePath) {
+        & git config --global --add safe.directory $safePath 2>$null | Out-Null
+    }
+
+    Push-Location $Dir
+    try {
+        $fetch = Invoke-Git @('fetch', 'origin')
+        if ($fetch.Code -ne 0) {
+            # Uma segunda tentativa cobre falha momentanea de rede/antivirus.
+            Start-Sleep -Seconds 3
+            $fetch = Invoke-Git @('fetch', 'origin')
+        }
+        if ($fetch.Code -ne 0) { return $fetch }
+        return (Invoke-Git @('checkout', '-f', '-B', 'main', 'origin/main'))
+    } finally {
+        Pop-Location
+    }
+}
+
+function Reinstall-FromScratch {
+    # Ultimo recurso quando a pasta existente nao consegue ser atualizada
+    # (ex: repositorio corrompido): baixa uma copia limpa AO LADO da antiga e
+    # so troca depois que o download deu certo - se falhar (sem internet,
+    # por exemplo), a instalacao antiga continua intacta e funcionando.
+    # Preserva server\.env (chave do OCR.space etc.) da instalacao antiga.
+    param([string]$Dir, [string]$Url)
+
+    $newDir = "$Dir-novo"
+    $oldDir = "$Dir-antigo"
+    if (Test-Path $newDir) { Remove-Item $newDir -Recurse -Force -ErrorAction SilentlyContinue }
+    if (Test-Path $oldDir) { Remove-Item $oldDir -Recurse -Force -ErrorAction SilentlyContinue }
+
+    $clone = Invoke-Git @('clone', $Url, $newDir)
+    if ($clone.Code -ne 0) { return $clone }
+
+    Stop-RunningServer
+    Start-Sleep -Seconds 1
+    try {
+        Rename-Item -Path $Dir -NewName (Split-Path $oldDir -Leaf) -ErrorAction Stop
+    } catch {
+        Remove-Item $newDir -Recurse -Force -ErrorAction SilentlyContinue
+        return [pscustomobject]@{ Code = 1; Output = "Nao consegui mover a pasta antiga ($($_.Exception.Message)). Feche programas que estejam usando a pasta $Dir (terminal, Explorer, antivirus) e tente de novo." }
+    }
+    Rename-Item -Path $newDir -NewName (Split-Path $Dir -Leaf)
+
+    $oldEnv = Join-Path $oldDir 'server\.env'
+    if (Test-Path $oldEnv) {
+        New-Item -ItemType Directory -Force -Path (Join-Path $Dir 'server') | Out-Null
+        Copy-Item $oldEnv (Join-Path $Dir 'server\.env') -Force
+    }
+    Remove-Item $oldDir -Recurse -Force -ErrorAction SilentlyContinue
+    return [pscustomobject]@{ Code = 0; Output = '' }
+}
+
 function Test-OcrSpaceKey {
     # Confere se a chave funciona de verdade, chamando a API com uma
     # imagem minima (1x1 pixel) embutida no proprio script.
@@ -192,22 +283,20 @@ if ($isGitRepo) {
     # mudanca local antes de atualizar e o comportamento certo, nao uma
     # perda de trabalho de verdade.
     Write-Host 'Atualizando projeto existente...'
-    Push-Location $InstallDir
-    git fetch origin
-    $gitExitCode = $LASTEXITCODE
-    if ($gitExitCode -eq 0) {
-        git reset --hard '@{u}'
-        $gitExitCode = $LASTEXITCODE
+    $update = Update-ExistingRepo -Dir $InstallDir
+    if ($update.Code -ne 0) {
+        Write-Host ''
+        Write-Host 'Nao consegui atualizar a pasta existente (motivo acima). Tentando baixar uma copia limpa, mantendo a configuracao (server\.env)...' -ForegroundColor Yellow
+        $update = Reinstall-FromScratch -Dir $InstallDir -Url $RepoUrl
     }
-    Pop-Location
-    if ($gitExitCode -ne 0) {
-        Stop-OnFailure 'git pull falhou. Confira a conexao com a internet e tente de novo.'
+    if ($update.Code -ne 0) {
+        Stop-OnFailure ("Nao consegui atualizar o projeto. Detalhe do Git: $($update.Output)`nSe falar de rede, SSL, proxy ou 'unable to access', confira a internet e o antivirus/firewall deste computador (o GitHub precisa abrir). A instalacao anterior, se existia, continua como estava.")
     }
 } elseif (Test-CommandExists 'git') {
     Write-Host 'Baixando projeto (git clone)...'
     git clone $RepoUrl $InstallDir
     if ($LASTEXITCODE -ne 0) {
-        Stop-OnFailure 'git clone falhou. Confira a conexao com a internet e tente de novo.'
+        Stop-OnFailure 'git clone falhou (veja a mensagem do Git logo acima). Se falar de rede, SSL ou "unable to access", confira a internet e o antivirus/firewall deste computador e tente de novo.'
     }
 } else {
     Write-Host 'Baixando projeto (zip)...'

@@ -36,7 +36,7 @@ import {
   mergeMdfThicknessAndColorLines,
 } from './text-normalize.js';
 import { parseFitamentoPhrase } from './fitamento.js';
-import { extractTrailingFitaCodes, applyFitaCodesToPiece } from './fita-codes.js';
+import { extractTrailingFitaCodes, extractTrailingFitaSigns, applyFitaCodesToPiece } from './fita-codes.js';
 import { parseFitaByDimensionLine, applyFitaByDimensionRules } from './fita-by-dimension.js';
 import type { FitaByDimensionRule } from './fita-by-dimension.js';
 import { classifyHeaderLine, extractHeaderInfo } from './header.js';
@@ -111,6 +111,14 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
 
   /** Linhas "1200 × 700: nos 4 lados" (ver fita-by-dimension.ts), aplicadas às peças só no fim — a fita pode vir antes OU depois da peça na mensagem. */
   const fitaByDimensionRules: FitaByDimensionRule[] = [];
+
+  /**
+   * Verdadeiro quando alguma peça trouxe fita pelos sinais "+"/"-" no fim da
+   * linha. Nessa notação a ausência de sinal significa "sem fita" (é o jeito
+   * de quem escreve assim marcar só as peças que levam fita) — ver o fim da
+   * análise.
+   */
+  let signNotationSeen = false;
 
   function snapshotContext(): ParseContext {
     return {
@@ -353,6 +361,13 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
       if (stripped.codes.length > 0) {
         line = stripped.line;
         fitaCodes = stripped.codes;
+      } else {
+        const signs = extractTrailingFitaSigns(line);
+        if (signs.codes.length > 0) {
+          line = signs.line;
+          fitaCodes = signs.codes;
+          signNotationSeen = true;
+        }
       }
       // Formato "quantidade X comprimento X largura" (ex: "3 X 0,80 X
       // 0,505") repete o separador "X" também entre a quantidade e o
@@ -590,6 +605,17 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
   // abaixo - só nesse momento "fitaType == null" significa de verdade que
   // nada foi dito sobre fita em lugar nenhum da mensagem (ver
   // RawPiece.fitaUnknown e markFitaUnknownIfNeeded em finalize.ts).
+  if (signNotationSeen) {
+    pieces.forEach((piece) => {
+      // fitaUnknown também entra: um cabeçalho de material seguinte pode já
+      // ter marcado a peça como "desconhecida" (e dado fitaType) antes daqui.
+      if (!piece.customFita && (piece.fitaType == null || piece.fitaUnknown)) {
+        piece.fitaType = 'none-explicit';
+        delete piece.fitaUnknown;
+      }
+    });
+  }
+
   pieces.forEach(markFitaUnknownIfNeeded);
 
   pendingFitamento.forEach((entry) => {

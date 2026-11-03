@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   extractTrailingFitaCodes,
+  extractTrailingFitaSigns,
   computeFitaFromCodes,
   computeFitaFromCounts,
   resolveThreeLadosFita,
@@ -49,6 +50,28 @@ describe('extractTrailingFitaCodes', () => {
     // "0,505" não é um código válido (não é um único dígito 1-4 + letra).
     const result = extractTrailingFitaCodes('3 X 0,80 X 0,505');
     expect(result.codes).toEqual([]);
+  });
+});
+
+describe('extractTrailingFitaSigns', () => {
+  it.each([
+    ['2 peças c/ 75x1800 +', '2 peças c/ 75x1800', ['1M']],
+    ['4 peças c/ 446x970 ++--', '4 peças c/ 446x970', ['2M', '2m']],
+    ['1 peça c/ 100x50 +--', '1 peça c/ 100x50', ['1M', '2m']],
+    ['1 peça c/ 100x50 -', '1 peça c/ 100x50', ['1m']],
+    ['1 peça c/ 100x50 ++', '1 peça c/ 100x50', ['2M']],
+    ['1 peça c/ 100x50++--', '1 peça c/ 100x50', ['2M', '2m']],
+  ])('"%s"', (line, rest, codes) => {
+    expect(extractTrailingFitaSigns(line)).toEqual({ line: rest, codes });
+  });
+
+  it('sinais além de 2 de cada tipo contam como 2 (a peça só tem 2 lados por par)', () => {
+    expect(extractTrailingFitaSigns('1 peça 100x50 +++').codes).toEqual(['2M']);
+  });
+
+  it('não mexe em linha sem sinal no fim, nem em separador no meio da linha', () => {
+    expect(extractTrailingFitaSigns('2 peças c/ 80x1770')).toEqual({ line: '2 peças c/ 80x1770', codes: [] });
+    expect(extractTrailingFitaSigns('1900 X 350 - 2')).toEqual({ line: '1900 X 350 - 2', codes: [] });
   });
 });
 

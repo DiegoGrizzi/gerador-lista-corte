@@ -104,13 +104,17 @@ export function joinSplitQuantityLines(text: string): string {
   return out.join('\n');
 }
 
-const MDF_THICKNESS_ONLY_RE = /^mdf\s+(\d+(?:[.,]\d+)?)\s*(?:mm)?$/i;
+// "MDF 6", "Fundo em MDF 6", "MDF 15, duas face naval" — espessura sem unidade,
+// opcionalmente com um descritor depois da vírgula.
+const MDF_THICKNESS_ONLY_RE = /^(?:fundo\s+em\s+)?mdf\s+(\d+(?:[.,]\d+)?)\s*(?:mm)?(?:\s*,\s*(.+))?$/i;
 const COLOR_ONLY_RE = /^[a-zà-öø-ÿ][a-zà-öø-ÿ\s]{1,29}$/i;
 
 /**
  * "MDF 6" (espessura sem unidade) seguido da cor numa linha própria
- * ("Branco") vira "MDF Branco 6mm" — a forma que o resto do parser já
- * entende. Sem cor na linha seguinte, vira só "MDF 6mm".
+ * ("Branco", ou "Cor Louro Freijó") vira "MDF Branco 6mm" — a forma que o
+ * resto do parser já entende. Um descritor depois da vírgula ("MDF 15, duas
+ * face naval") é mantido depois da cor. Sem cor na linha seguinte, vira só
+ * "MDF 6mm".
  */
 export function mergeMdfThicknessAndColorLines(text: string): string {
   const lines = text.split('\n');
@@ -121,15 +125,13 @@ export function mergeMdfThicknessAndColorLines(text: string): string {
       out.push(lines[i]!);
       continue;
     }
+    const descriptor = (match[2] ?? '').trim();
     let next = i + 1;
     while (next < lines.length && !lines[next]!.trim()) next++;
-    const color = next < lines.length ? lines[next]!.trim() : '';
-    if (COLOR_ONLY_RE.test(color)) {
-      out.push('MDF ' + color + ' ' + match[1] + 'mm');
-      i = next;
-    } else {
-      out.push('MDF ' + match[1] + 'mm');
-    }
+    const color = next < lines.length ? lines[next]!.trim().replace(/^cor\s*:?\s+/i, '') : '';
+    const hasColor = COLOR_ONLY_RE.test(color);
+    out.push(['MDF', hasColor ? color : '', descriptor, match[1] + 'mm'].filter(Boolean).join(' '));
+    if (hasColor) i = next;
   }
   return out.join('\n');
 }
@@ -241,6 +243,7 @@ export function normalizeLeadingNumberWord(line: string): string {
 export function stripFillers(text: string): string {
   const cleaned = text
     .replace(/\b(de|pro)\b/gi, '')
+    .replace(/(^|\s)c\/(?=\s|$)/gi, ' ') // "c/" = "com" (ex: "2 peças c/ 75x1800")
     .replace(/\s+/g, ' ')
     .trim();
   if (UNIT_ONLY_RE.test(cleaned)) return '';

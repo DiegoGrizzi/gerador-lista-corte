@@ -29,6 +29,7 @@ import {
   WHATSAPP_EXPORT_SPLIT_LINES_MESSAGE,
   WHATSAPP_EXPORT_IRREGULAR_MESSAGE,
   WHATSAPP_EXPORT_SHUFFLED_MESSAGE,
+  PECAS_COM_SINAIS_FITA_MESSAGE,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -748,5 +749,55 @@ describe('analyzeText — lista embaralhada do WhatsApp, sem nenhuma informaçã
   it('um cabeçalho de material que traz fita própria NÃO deixa as peças anteriores "desconhecidas" (comportamento anterior)', () => {
     const result = analyzeText('2=47/47\nMDF branco 15mm fitado os 4 lados', makeNextId());
     expect(result.pieces[0]!.fitaUnknown).toBeUndefined();
+  });
+});
+
+describe('analyzeText — "N peças c/ CxL" com sinais de fita "+"/"-" no fim da linha (real user list)', () => {
+  const sides = (p: { fita: { c1: boolean; c2: boolean; l1: boolean; l2: boolean } }) =>
+    (['c1', 'c2', 'l1', 'l2'] as const).filter((k) => p.fita[k]).join('+') || '-';
+
+  it('lê as 12 peças, ignora o "c/" (não vira Função) e junta material, descritor e cor das duas linhas', () => {
+    const result = analyzeText(PECAS_COM_SINAIS_FITA_MESSAGE, makeNextId());
+
+    expect(result.discarded).toEqual([]);
+    expect(result.materialMentioned).toBe(true);
+    expect(result.pieces).toHaveLength(12);
+    expect(result.pieces.every((p) => p.funcao === '')).toBe(true);
+    expect(result.pieces.slice(0, 10).every((p) => p.material === 'MDF Louro Freijó duas face naval 15mm')).toBe(true);
+    expect(result.pieces.slice(10).every((p) => p.material === 'MDF Louro Freijó 6mm')).toBe(true);
+  });
+
+  it('"+" = 1 lado maior, "++--" = os 4 lados; o lado maior depende de comprimento x largura', () => {
+    const result = analyzeText(PECAS_COM_SINAIS_FITA_MESSAGE, makeNextId());
+    const bySize = (compr: number, larg: number, qtd: number) =>
+      result.pieces.find((p) => p.compr === compr && p.larg === larg && p.qtd === qtd)!;
+
+    expect(sides(bySize(75, 1800, 2))).toBe('l1'); // largura é o lado maior
+    expect(sides(bySize(240, 100, 2))).toBe('c1'); // comprimento é o lado maior
+    expect(sides(bySize(320, 80, 6))).toBe('c1');
+    expect(sides(bySize(446, 970, 4))).toBe('c1+c2+l1+l2');
+  });
+
+  it('peça sem sinal fica sem fita e NÃO vira "fita desconhecida" (quem escreve assim só marca as que levam fita)', () => {
+    const result = analyzeText(PECAS_COM_SINAIS_FITA_MESSAGE, makeNextId());
+    const unsigned = result.pieces.find((p) => p.compr === 80 && p.larg === 1770 && p.qtd === 2)!;
+
+    expect(sides(unsigned)).toBe('-');
+    expect(result.pieces.some((p) => p.fitaUnknown)).toBe(false);
+  });
+
+  it('as peças de MDF 6 ficam sem fita', () => {
+    const result = analyzeText(PECAS_COM_SINAIS_FITA_MESSAGE, makeNextId());
+    expect(result.pieces.slice(10).map(sides)).toEqual(['-', '-']);
+  });
+
+  it('"+--" = 1 lado maior e 2 menores', () => {
+    const result = analyzeText('MDF branco 15mm\n1 peça c/ 100x50 +--', makeNextId());
+    expect(sides(result.pieces[0]!)).toBe('c1+l1+l2');
+  });
+
+  it('sem sinais, uma peça sem nenhuma informação de fita continua "fita desconhecida" (a pergunta continua valendo)', () => {
+    const result = analyzeText('MDF branco 15mm\n1 peça c/ 100x50', makeNextId());
+    expect(result.pieces[0]!.fitaUnknown).toBe(true);
   });
 });

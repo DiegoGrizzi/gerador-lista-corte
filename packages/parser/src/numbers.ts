@@ -27,3 +27,15 @@ export function toNumber(str: string | number): number {
   }
   return parseFloat(text.replace(/'/g, '.').replace(',', '.'));
 }
+
+/**
+ * Verdadeiro quando o texto da medida tem um ponto decimal DE VERDADE
+ * ("44.3", "55.5") — e não um número inteiro escrito com ".0" ("2480.0",
+ * comum em listas exportadas) nem um separador de milhar ("1.200").
+ * Quem escreve em mm costuma usar o ponto para marcar cm ("2450 x 44.3" =
+ * 2450 x 443 mm) — ver convertPieceToMm.
+ */
+export function isDecimalDotMeasure(text: string): boolean {
+  if (!/^\d+\.\d+$/.test(text)) return false;
+  return !Number.isInteger(toNumber(text));
+}

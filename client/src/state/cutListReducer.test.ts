@@ -186,6 +186,18 @@ describe('CLEAR_INPUT', () => {
 });
 
 describe('MM_ANSWERED', () => {
+  it('fator 1 (já em mm): medida escrita com ponto decimal é tratada como cm (2450 x 44.3 → 2450 x 443)', () => {
+    const state: CutListState = {
+      ...createInitialState(),
+      pieces: [makePiece({ compr: 2450, larg: 44.3, cmDecimals: { compr: false, larg: true } })],
+      materialAsked: true,
+    };
+
+    const next = cutListReducer(state, { type: 'MM_ANSWERED', factor: 1 });
+
+    expect(next.pieces[0]).toMatchObject({ compr: 2450, larg: 443 });
+  });
+
   it('fator 1 (já em mm): não altera as medidas, revela a conferência quando material já foi perguntado', () => {
     const state: CutListState = {
       ...createInitialState(),

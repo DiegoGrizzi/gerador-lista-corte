@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { analyzeText } from '../src/analyze.js';
+import { convertPieceToMm } from '../src/finalize.js';
 import {
   HEADER_THEN_PIECES,
   MATERIAL_DECLARED_AFTER_PIECES,
@@ -31,6 +32,7 @@ import {
   WHATSAPP_EXPORT_SHUFFLED_MESSAGE,
   PECAS_COM_SINAIS_FITA_MESSAGE,
   BEIGE_HANDWRITTEN_MESSAGE,
+  BEIGE_DECIMALS_ARE_CM_MESSAGE,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -898,5 +900,62 @@ describe('analyzeText — lista escrita à mão com fita entre parênteses, rót
   it('rótulo de seção sem peças fora do esperado não vira Função: "Obs:" e "Fita de borda:" continuam ignorados', () => {
     const result = analyzeText('MDF branco 15mm\nObs:\nFita de borda:\n1 = 100x50', makeNextId());
     expect(result.pieces[0]!.funcao).toBe('');
+  });
+});
+
+describe('analyzeText + convertPieceToMm — em mm, medida com ponto decimal é cm (real user list)', () => {
+  const converted = () => {
+    const { pieces } = analyzeText(BEIGE_DECIMALS_ARE_CM_MESSAGE, makeNextId());
+    pieces.forEach((p) => convertPieceToMm(p, 1)); // "Sim, já em mm"
+    return pieces;
+  };
+  const find = (pieces: ReturnType<typeof converted>, compr: number, larg: number) =>
+    pieces.find((p) => p.compr === compr && p.larg === larg);
+
+  it('2450 x 44.3 vira 2450 x 443 e 55.5 vira 555 (só as medidas com ponto)', () => {
+    const pieces = converted();
+    expect(find(pieces, 2450, 443)).toBeDefined(); // porta
+    expect(find(pieces, 2600, 555)).toBeDefined(); // lateral roupeiro
+    expect(find(pieces, 450, 555)).toBeDefined(); // teto criado (compr 450 inteiro, larg 55.5 → 555)
+    expect(find(pieces, 1910, 535)).toBeDefined(); // piso do armário aéreo (53.5 → 535)
+    expect(find(pieces, 2450, 689)).toBeDefined(); // fundo 68.9 → 689
+    expect(find(pieces, 2450, 894)).toBeDefined(); // fundo 89.4 → 894
+  });
+
+  it('medidas inteiras continuam em mm (2450 x 450, 1460 x 300, 255 x 428...)', () => {
+    const pieces = converted();
+    expect(find(pieces, 2450, 450)).toBeDefined();
+    expect(find(pieces, 1460, 300)).toBeDefined();
+    expect(find(pieces, 255, 428)).toBeDefined();
+    expect(find(pieces, 1429, 270)).toBeDefined();
+  });
+
+  it('nenhuma peça fica com decimal depois de converter (a lista toda usa ponto só para cm)', () => {
+    const pieces = converted();
+    expect(pieces.every((p) => Number.isInteger(p.compr) && Number.isInteger(p.larg))).toBe(true);
+  });
+
+  it('"fundo 6mm" dentro de outra seção usa o material de 6mm já declarado ("Branco comum 6mm"), sem fita', () => {
+    const { pieces } = analyzeText(BEIGE_DECIMALS_ARE_CM_MESSAGE, makeNextId());
+    for (const [compr, larg] of [
+      [1429, 270],
+      [470, 419],
+    ] as const) {
+      const piece = pieces.find((p) => p.compr === compr && p.larg === larg)!;
+      expect(piece.material).toBe('Branco comum 6mm');
+      expect(piece.thicknessMm).toBe(6);
+      expect(piece.fita).toEqual({ c1: false, c2: false, l1: false, l2: false });
+    }
+  });
+
+  it('sem material declarado com aquela espessura, a peça só leva a espessura citada', () => {
+    const { pieces } = analyzeText('MDF beige matt 15mm\n1 = 100x50 fundo 6mm', makeNextId());
+    expect(pieces[0]).toMatchObject({ thicknessMm: 6, material: 'MDF beige matt 6mm' });
+  });
+
+  it('a regra do ponto não vale quando o usuário responde cm (a conversão normal x10 já cobre tudo)', () => {
+    const { pieces } = analyzeText('MDF branco 15mm\n1 = 245x44.3 teste', makeNextId());
+    pieces.forEach((p) => convertPieceToMm(p, 10));
+    expect(pieces[0]).toMatchObject({ compr: 2450, larg: 443 });
   });
 });

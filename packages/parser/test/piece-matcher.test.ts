@@ -232,7 +232,14 @@ describe('tryMatchDimensionFirstLine — "comprimento x largura=quantidade" (rea
     ['66.6x273=2', 2, 66.6, 273],
     ['183 x 29,5 = 2', 2, 183, 29.5],
   ])('parses "%s"', (line, qty, compr, larg) => {
-    expect(tryMatchDimensionFirstLine(line)).toEqual({ qty, compr, larg });
+    expect(tryMatchDimensionFirstLine(line)).toMatchObject({ qty, compr, larg });
+  });
+
+  it('marca só a medida escrita com ponto decimal de verdade (66.6), não a com vírgula nem inteira', () => {
+    expect(tryMatchDimensionFirstLine('66.6x273=2')!.cmDecimals).toEqual({ compr: true, larg: false });
+    expect(tryMatchDimensionFirstLine('183 x 29,5 = 2')!.cmDecimals).toBeUndefined();
+    expect(tryMatchDimensionFirstLine('240x35=8')!.cmDecimals).toBeUndefined();
+    expect(tryMatchDimensionFirstLine('2480.0x206.0=1')!.cmDecimals).toBeUndefined();
   });
 
   it('não confunde com o formato principal "quantidade=comprimento/largura"', () => {

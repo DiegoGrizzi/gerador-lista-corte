@@ -61,6 +61,36 @@ describe('convertPieceToMm — precisão de 0,1mm', () => {
   });
 });
 
+describe('convertPieceToMm — medida com ponto decimal em mm é tratada como cm', () => {
+  it('em mm (fator 1), só a medida marcada com ponto vira cm: 2450 x 44.3 → 2450 x 443', () => {
+    const piece = makePiece({ compr: 2450, larg: 44.3, cmDecimals: { compr: false, larg: true } });
+    convertPieceToMm(piece, 1);
+    expect(piece.compr).toBe(2450);
+    expect(piece.larg).toBe(443);
+    expect(piece.cmDecimals).toBeUndefined();
+  });
+
+  it('as duas medidas com ponto viram cm (55.5 x 68.9 → 555 x 689)', () => {
+    const piece = makePiece({ compr: 55.5, larg: 68.9, cmDecimals: { compr: true, larg: true } });
+    convertPieceToMm(piece, 1);
+    expect(piece.compr).toBe(555);
+    expect(piece.larg).toBe(689);
+  });
+
+  it('em cm ou m (fator 10/1000), a marca não muda nada: a conversão normal já vale para todas', () => {
+    const piece = makePiece({ compr: 245, larg: 44.3, cmDecimals: { compr: false, larg: true } });
+    convertPieceToMm(piece, 10);
+    expect(piece.compr).toBe(2450);
+    expect(piece.larg).toBe(443);
+  });
+
+  it('sem marca (ex: peça de tabela), decimal em mm continua em mm', () => {
+    const piece = makePiece({ compr: 1146.5, larg: 500 });
+    convertPieceToMm(piece, 1);
+    expect(piece.compr).toBe(1146.5);
+  });
+});
+
 describe('convertPieceToMm — aviso de medida implausível', () => {
   it('é uma constante fixa de 30mm', () => {
     expect(MIN_PLAUSIBLE_PIECE_MM).toBe(30);

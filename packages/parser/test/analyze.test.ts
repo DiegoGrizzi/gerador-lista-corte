@@ -841,10 +841,14 @@ describe('analyzeText — lista escrita à mão com fita entre parênteses, rót
     expect(sides(find(pieces, 450, 300))).toBe('c1+c2+l1+l2'); // "(Fitado 4 lados" sem fechar
   });
 
-  it('"(Fitado um lado" (sem dizer maior ou menor) não é adivinhado: fica "fita desconhecida"', () => {
+  it('"(Fitado um lado" (sem dizer maior ou menor) vale 1 lado maior, sem perguntar de novo', () => {
     const { pieces } = analyzeText(BEIGE_HANDWRITTEN_MESSAGE, makeNextId());
-    expect(find(pieces, 270, 270).fitaUnknown).toBe(true);
-    expect(find(pieces, 270, 270).funcao).toBe('Nichos');
+    const piece = find(pieces, 270, 270);
+    expect(sides(piece)).toBe('c1');
+    expect(piece.fitaUnknown).toBeUndefined();
+    expect(piece.funcao).toBe('Nichos');
+    // com maior/menor dito, continua valendo o que foi dito
+    expect(sides(find(pieces, 270, 300))).toBe('c1');
   });
 
   it('"Branco 6mm comum" é um material; os fundos "6mm" ficam nele, sem fita', () => {
@@ -869,9 +873,26 @@ describe('analyzeText — lista escrita à mão com fita entre parênteses, rót
   it('"Portas: (todas fitado 4 lados )" vale só para as peças DEPOIS dele, não para as que estavam sem fita antes', () => {
     const { pieces } = analyzeText(BEIGE_HANDWRITTEN_MESSAGE, makeNextId());
     expect(pieces.slice(-6).every((p) => sides(p) === 'c1+c2+l1+l2')).toBe(true);
-    // peças de antes, sem nenhuma informação de fita: continuam perguntando
-    expect(find(pieces, 1429, 270).fitaUnknown).toBe(true);
-    expect(find(pieces, 470, 419).fitaUnknown).toBe(true);
+    // peças de antes, sem nada dito sobre fita: ficam sem fita (a nota "Portas" não retroage)
+    expect(sides(find(pieces, 1429, 270))).toBe('-');
+    expect(sides(find(pieces, 470, 419))).toBe('-');
+  });
+
+  it('a lista informa a fita peça a peça: nenhuma peça fica "fita desconhecida" (não pergunta "vai ter fita?")', () => {
+    const { pieces } = analyzeText(BEIGE_HANDWRITTEN_MESSAGE, makeNextId());
+    expect(pieces.some((p) => p.fitaUnknown)).toBe(false);
+  });
+
+  it('sem NENHUMA fita dita na lista, a pergunta continua valendo para peças de 15mm', () => {
+    const { pieces } = analyzeText('MDF beige matt 15mm\n1 = 100x50 lateral\n1 = 200x50 fundo', makeNextId());
+    expect(pieces.every((p) => p.fitaUnknown === true)).toBe(true);
+  });
+
+  it('uma só peça com fita na própria linha já basta: as outras sem nada ficam sem fita', () => {
+    const { pieces } = analyzeText('MDF beige matt 15mm\n1 = 100x50 lateral (Fitado 4 lados)\n1 = 200x50 fundo', makeNextId());
+    expect(sides(pieces[0]!)).toBe('c1+c2+l1+l2');
+    expect(sides(pieces[1]!)).toBe('-');
+    expect(pieces[1]!.fitaUnknown).toBeUndefined();
   });
 
   it('rótulo de seção sem peças fora do esperado não vira Função: "Obs:" e "Fita de borda:" continuam ignorados', () => {

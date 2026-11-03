@@ -151,12 +151,13 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
   const fitaByDimensionRules: FitaByDimensionRule[] = [];
 
   /**
-   * Verdadeiro quando alguma peça trouxe fita pelos sinais "+"/"-" no fim da
-   * linha. Nessa notação a ausência de sinal significa "sem fita" (é o jeito
-   * de quem escreve assim marcar só as peças que levam fita) — ver o fim da
+   * Verdadeiro quando alguma peça trouxe fita na PRÓPRIA linha (frase entre
+   * parênteses, códigos 1M/2m, sinais "+"/"-"...). Quem escreve assim informa
+   * a fita peça a peça, então uma peça sem nada dito é "sem fita" — não
+   * "fita desconhecida" (que faria a interface perguntar) — ver o fim da
    * análise.
    */
-  let signNotationSeen = false;
+  let perPieceFitaSeen = false;
 
   function snapshotContext(): ParseContext {
     return {
@@ -213,6 +214,7 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     const built = buildPieceFromMatch(match.qty, match.prefix, match.dimensionMatch, match.suffix, ctx);
     built.piece.id = nextId();
     pieces.push(built.piece);
+    if (built.explicitFita) perPieceFitaSeen = true;
 
     if (built.newMaterialInfo) {
       setNewMaterial(built.newMaterialInfo.material, built.newMaterialInfo.fitamento, built.newMaterialInfo.thickness);
@@ -402,12 +404,13 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
       if (stripped.codes.length > 0) {
         line = stripped.line;
         fitaCodes = stripped.codes;
+        perPieceFitaSeen = true;
       } else {
         const signs = extractTrailingFitaSigns(line);
         if (signs.codes.length > 0) {
           line = signs.line;
           fitaCodes = signs.codes;
-          signNotationSeen = true;
+          perPieceFitaSeen = true;
         }
       }
       // Formato "quantidade X comprimento X largura" (ex: "3 X 0,80 X
@@ -686,7 +689,7 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
   // abaixo - só nesse momento "fitaType == null" significa de verdade que
   // nada foi dito sobre fita em lugar nenhum da mensagem (ver
   // RawPiece.fitaUnknown e markFitaUnknownIfNeeded em finalize.ts).
-  if (signNotationSeen) {
+  if (perPieceFitaSeen) {
     pieces.forEach((piece) => {
       // fitaUnknown também entra: um cabeçalho de material seguinte pode já
       // ter marcado a peça como "desconhecida" (e dado fitaType) antes daqui.

@@ -244,6 +244,8 @@ export interface BuildPieceResult {
   newMaterialInfo: HeaderInfo | null;
   fitaPending: boolean;
   thicknessPending: boolean;
+  /** A própria linha trouxe informação de fita (frase, nota entre parênteses ou "fita" colada a uma medida). */
+  explicitFita: boolean;
 }
 
 /**
@@ -332,7 +334,11 @@ export function buildPieceFromMatch(
   // Se havia "fita" colada ao 2º número, reconstrói a frase para checar se
   // na verdade era o início de algo maior, como "fita os 4 lados".
   const tailPhrase = (fitaNaLargura ? 'fita ' : '') + (fitaNote || suffix);
-  const tailPhraseType = tailPhrase.trim() ? parseFitamentoPhrase(tailPhrase) : null;
+  let tailPhraseType = tailPhrase.trim() ? parseFitamentoPhrase(tailPhrase) : null;
+  // "(Fitado um lado" sem dizer maior ou menor: quem escreve assim quase
+  // sempre fala do lado maior — melhor do que perguntar de novo sobre uma
+  // peça cuja linha já diz que tem fita.
+  if (!tailPhraseType && fitaNote && /\b(?:um|1)\s+lado\b/i.test(fitaNote)) tailPhraseType = 'maior-um';
 
   let fitaType = null as RawPiece['fitaType'];
   let customFita = null as RawPiece['customFita'];
@@ -402,6 +408,7 @@ export function buildPieceFromMatch(
     newMaterialInfo,
     fitaPending: fitaType == null && !customFita,
     thicknessPending: pieceThickness == null,
+    explicitFita: !!tailPhraseType || !!fitaNote || fitaNoComprimento || fitaNaLargura,
   };
 }
 

@@ -84,7 +84,8 @@ export function useAutoUpdate(): UseAutoUpdateResult {
       const result = await applyUpdate();
       if (!result.ok) {
         setStatus('error');
-        setErrorMessage(result.error || 'Não consegui atualizar.');
+        const detail = result.error || 'Não consegui atualizar.';
+        setErrorMessage(result.step ? 'Passo que falhou: ' + result.step + '\n' + detail : detail);
         return;
       }
 

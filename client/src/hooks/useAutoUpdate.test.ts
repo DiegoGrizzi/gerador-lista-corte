@@ -136,6 +136,25 @@ describe('useAutoUpdate', () => {
     expect(updateApi.pingUntilBackOnline).not.toHaveBeenCalled();
   });
 
+  it('applyNow: erro com o passo que falhou -> a mensagem diz o passo e traz a saída do comando', async () => {
+    vi.mocked(updateApi.checkForUpdate).mockResolvedValue({ updateAvailable: false });
+    vi.mocked(updateApi.applyUpdate).mockResolvedValue({
+      ok: false,
+      step: 'git pull',
+      error: 'fatal: unable to access',
+    });
+
+    const { result } = renderHook(() => useAutoUpdate());
+    await waitFor(() => expect(updateApi.checkForUpdate).toHaveBeenCalled());
+
+    act(() => {
+      result.current.applyNow();
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.errorMessage).toBe('Passo que falhou: git pull\nfatal: unable to access');
+  });
+
   it('applyNow: aplicado mas o servidor não volta a responder -> "error"', async () => {
     vi.mocked(updateApi.checkForUpdate).mockResolvedValue({ updateAvailable: false });
     vi.mocked(updateApi.applyUpdate).mockResolvedValue({ ok: true, restarting: true });

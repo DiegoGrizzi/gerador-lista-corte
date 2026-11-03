@@ -25,7 +25,12 @@ import sharp from 'sharp';
 
 import { cleanupTempFile, writeTempImage } from '../temp-file.js';
 import { extractNativePdfWords, type NativePdfPage } from './native-pdf-words.js';
-import { nativeTableRowsToText, reconstructNativeTableRows, type NativeTableRow } from './native-table-reconstruct.js';
+import {
+  findNativeTableStatedTotal,
+  nativeTableRowsToText,
+  reconstructNativeTableRows,
+  type NativeTableRow,
+} from './native-table-reconstruct.js';
 import { renderPdfPages, type RenderedPage } from './pdf-renderer.js';
 import { detectRotation, recognizeWords } from './table-ocr.js';
 import { reconstructTableText, type OcrWord } from './table-reconstruct.js';
@@ -34,6 +39,8 @@ export interface PdfTableExtractorDeps {
   extractNativePdfWords: (pdfBuffer: Buffer) => Promise<NativePdfPage[]>;
   reconstructNativeTableRows: (words: OcrWord[]) => NativeTableRow[] | null;
   nativeTableRowsToText: (rows: NativeTableRow[]) => string;
+  /** Total impresso na página (caixa sob a coluna Qtde), se houver. Opcional: dublês de teste podem omitir. */
+  findNativeTableStatedTotal?: (words: OcrWord[]) => number | null;
   renderPdfPages: (pdfBuffer: Buffer) => Promise<RenderedPage[]>;
   detectRotation: (tesseractPath: string, imagePath: string) => Promise<number>;
   recognizeWords: (tesseractPath: string, lang: string, imagePath: string, psm: number) => Promise<OcrWord[]>;
@@ -63,6 +70,7 @@ export function createDefaultPdfTableExtractorDeps(tesseractPath: string, lang: 
     extractNativePdfWords,
     reconstructNativeTableRows,
     nativeTableRowsToText,
+    findNativeTableStatedTotal,
     renderPdfPages,
     detectRotation,
     recognizeWords,
@@ -84,6 +92,7 @@ export async function extractPdfTableText(pdfBuffer: Buffer, deps: PdfTableExtra
   const nativePages = await deps.extractNativePdfWords(pdfBuffer);
   const renderedPages = await deps.renderPdfPages(pdfBuffer);
   const tableBlocks: string[] = [];
+  let statedTotal: number | null = null;
 
   for (let i = 0; i < renderedPages.length; i++) {
     const page = renderedPages[i]!;
@@ -93,6 +102,7 @@ export async function extractPdfTableText(pdfBuffer: Buffer, deps: PdfTableExtra
       const nativeRows = deps.reconstructNativeTableRows(nativeWords);
       if (nativeRows) {
         tableBlocks.push(deps.nativeTableRowsToText(nativeRows));
+        statedTotal = deps.findNativeTableStatedTotal?.(nativeWords) ?? statedTotal;
         continue; // texto nativo bastou - não precisa renderizar/OCR essa página.
       }
     }
@@ -118,5 +128,8 @@ export async function extractPdfTableText(pdfBuffer: Buffer, deps: PdfTableExtra
     }
   }
 
+  // A linha do total vai no fim do texto: o parser a reconhece (extractStatedTotal)
+  // e a interface confere a soma das quantidades lidas contra ela.
+  if (statedTotal != null && tableBlocks.length > 0) tableBlocks.push('Total de peças: ' + statedTotal);
   return tableBlocks.join('\n\n');
 }

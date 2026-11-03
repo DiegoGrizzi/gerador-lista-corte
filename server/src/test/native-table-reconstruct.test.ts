@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { reconstructNativeTableRows, nativeTableRowsToText } from '../services/pdf/native-table-reconstruct.js';
+import {
+  findNativeTableStatedTotal,
+  reconstructNativeTableRows,
+  nativeTableRowsToText,
+} from '../services/pdf/native-table-reconstruct.js';
 import type { OcrWord } from '../services/pdf/table-reconstruct.js';
 
 /** Atalho pra criar uma palavra nativa de teste sem repetir os 4 campos toda vez. */
@@ -256,6 +260,15 @@ describe('reconstructNativeTableRows — cabeçalhos C1/C2/L1/L2 em ícone e tex
     const rows = reconstructNativeTableRows([...HEADER, ...PIECE_1, ...PIECE_3, ...FOOTER])!;
     expect(rows[rows.length - 1]!.qtde).toBe('1');
     expect(rows[rows.length - 1]!.funcao).toBe('painel sala');
+  });
+
+  it('findNativeTableStatedTotal lê o total ("116") sob a coluna Qtde, depois da última peça', () => {
+    expect(findNativeTableStatedTotal([...HEADER, ...PIECE_1, ...PIECE_3, ...FOOTER])).toBe(116);
+  });
+
+  it('findNativeTableStatedTotal devolve null sem a caixa do total (a quantidade da última peça não conta)', () => {
+    expect(findNativeTableStatedTotal([...HEADER, ...PIECE_1, ...PIECE_3])).toBeNull();
+    expect(findNativeTableStatedTotal([])).toBeNull();
   });
 
   it('cada um dos 4 ícones cai na sua coluna (C1, C2, L1, L2)', () => {

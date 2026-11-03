@@ -350,6 +350,43 @@ export function reconstructNativeTableRows(rawWords: OcrWord[]): NativeTableRow[
 }
 
 /**
+ * Total de peças impresso sob a coluna Qtde (a caixa "116" depois da última
+ * peça), ou null se a página não tiver. Só vale uma linha ISOLADA — um único
+ * número inteiro dentro da coluna Qtde, abaixo da última peça e separada dela
+ * por um salto vertical de bloco — para nunca confundir com a quantidade de
+ * uma peça nem com um número solto de outra coluna.
+ */
+export function findNativeTableStatedTotal(rawWords: OcrWord[]): number | null {
+  const words = rawWords.filter((w) => !PAGE_FOOTER_NOISE_RE.test(w.text));
+  if (words.length === 0) return null;
+
+  const lines = clusterIntoLines(words);
+  let lastAnchorIndex = -1;
+  const headerWords: OcrWord[] = [];
+  let firstAnchorIndex = -1;
+  lines.forEach((line, index) => {
+    if (findAnchorInLine(line)) {
+      if (firstAnchorIndex < 0) firstAnchorIndex = index;
+      lastAnchorIndex = index;
+    }
+  });
+  if (firstAnchorIndex < 0) return null;
+  lines.slice(0, firstAnchorIndex).forEach((line) => headerWords.push(...line.words));
+  const columns = findColumnBounds(headerWords);
+  if (!columns) return null;
+
+  for (let i = lastAnchorIndex + 1; i < lines.length; i++) {
+    const line = lines[i]!;
+    const startsNewBlock = line.top - lines[i - 1]!.top > ROW_BLOCK_GAP_PX;
+    if (!startsNewBlock || line.words.length !== 1) continue;
+    const word = line.words[0]!;
+    if (!/^\d+$/.test(word.text) || wordsInRange([word], columns.qtdeStart, columns.qtdeEnd).length === 0) continue;
+    return Number(word.text);
+  }
+  return null;
+}
+
+/**
  * Converte as linhas reconstruídas num bloco de texto separado por
  * tabulação, com cabeçalho, pronto pro parser interpretar (mesmo caminho
  * já usado pela reconstrução via OCR — ver table-columns.ts do lado do

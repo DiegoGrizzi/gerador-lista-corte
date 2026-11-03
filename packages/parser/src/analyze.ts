@@ -35,6 +35,7 @@ import {
   joinSplitQuantityLines,
   mergeMdfThicknessAndColorLines,
   detectStatedUnitFactor,
+  extractStatedTotal,
 } from './text-normalize.js';
 import { parseFitamentoPhrase } from './fitamento.js';
 import { extractTrailingFitaCodes, extractTrailingFitaSigns, applyFitaCodesToPiece } from './fita-codes.js';
@@ -315,9 +316,10 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
   // Expande uma lista "1pc96*65. 1pc192*65. ..." (tudo numa única linha,
   // separada por ponto) em uma linha por peça, antes de mais nada — o resto
   // da função processa cada peça normalmente a partir daqui.
+  const { text: textWithoutTotal, total: statedTotal } = extractStatedTotal(text);
   const expandedText = expandPcSeparatedPieces(
     joinSplitQuantityLines(
-      mergeMdfThicknessAndColorLines(normalizeDotAfterQuantity(stripWhatsAppExportPrefixes(text))),
+      mergeMdfThicknessAndColorLines(normalizeDotAfterQuantity(stripWhatsAppExportPrefixes(textWithoutTotal))),
     ),
   );
 
@@ -748,7 +750,8 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
   }
 
   const unitFactor = detectStatedUnitFactor(text);
-  return unitFactor == null
-    ? { pieces: finalizedPieces, discarded, materialMentioned }
-    : { pieces: finalizedPieces, discarded, materialMentioned, unitFactor };
+  const result: AnalyzeResult = { pieces: finalizedPieces, discarded, materialMentioned };
+  if (unitFactor != null) result.unitFactor = unitFactor;
+  if (statedTotal != null) result.statedTotal = statedTotal;
+  return result;
 }

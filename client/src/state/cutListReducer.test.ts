@@ -100,6 +100,19 @@ describe('ANALYZE_SUCCEEDED', () => {
     expect(next.pendingRescuedPiece).toBeNull();
   });
 
+  it('guarda o total que a lista informou (statedTotal) e CLEAR_INPUT o apaga', () => {
+    const analyzed = cutListReducer(createInitialState(), {
+      type: 'ANALYZE_SUCCEEDED',
+      pieces: [makePiece({ compr: 50, larg: 30 })],
+      discarded: [],
+      materialMentioned: true,
+      idCounter: 1,
+      statedTotal: 116,
+    });
+    expect(analyzed.statedTotal).toBe(116);
+    expect(cutListReducer(analyzed, { type: 'CLEAR_INPUT' }).statedTotal).toBeNull();
+  });
+
   it('quando a mensagem já diz a unidade (unitFactor), pula o modal de mm e converte as medidas', () => {
     const next = cutListReducer(createInitialState(), {
       type: 'ANALYZE_SUCCEEDED',

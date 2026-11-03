@@ -992,3 +992,16 @@ describe('analyzeText — suposições anotadas na peça (Piece.assumptions)', (
     expect('assumptions' in pieces[0]!).toBe(false);
   });
 });
+
+describe('analyzeText — total de peças informado pela lista (statedTotal)', () => {
+  it('devolve statedTotal e a linha do total não vai para a conferência', () => {
+    const result = analyzeText('MDF branco 15mm\n2 = 100x50\n3 = 80x40\nTotal de peças: 5', makeNextId());
+    expect(result.statedTotal).toBe(5);
+    expect(result.pieces.reduce((sum, p) => sum + p.qtd, 0)).toBe(5);
+    expect(result.discarded).toHaveLength(0);
+  });
+
+  it('sem linha de total, a chave statedTotal não existe', () => {
+    expect('statedTotal' in analyzeText('MDF branco 15mm\n2 = 100x50', makeNextId())).toBe(false);
+  });
+});

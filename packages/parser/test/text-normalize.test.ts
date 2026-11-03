@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  extractStatedTotal,
   stripWhatsAppFormatting,
   normalizeTypos,
   stripFillers,
@@ -256,4 +257,28 @@ describe('normalizeLeadingNumberWord', () => {
   it('não altera uma linha sem quantidade por extenso nenhuma', () => {
     expect(normalizeLeadingNumberWord('MDF branco de 15mm')).toBe('MDF branco de 15mm');
   });
+});
+
+describe('extractStatedTotal', () => {
+  it.each([
+    ['Total de peças: 116', 116],
+    ['Total peças 116', 116],
+    ['TOTAL GERAL DE PEÇAS = 58', 58],
+    ['Total: 116 peças', 116],
+    ['total - 12 pç', 12],
+    ['116 peças no total', 116],
+  ])('"%s" informa o total %i e sai do texto', (line, total) => {
+    expect(extractStatedTotal('MDF branco 15mm\n2=100x50\n' + line)).toEqual({
+      text: 'MDF branco 15mm\n2=100x50',
+      total,
+    });
+  });
+
+  it.each(['Total: 116', 'Total R$ 116', '2 peças 100x50', 'Total de peças a cortar depois'])(
+    '"%s" não é linha de total',
+    (line) => {
+      const text = 'MDF branco 15mm\n' + line;
+      expect(extractStatedTotal(text)).toEqual({ text, total: null });
+    },
+  );
 });

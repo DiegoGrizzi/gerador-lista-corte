@@ -207,6 +207,7 @@ export function App(): JSX.Element {
         isError={autoUpdate.status === 'error'}
         updating={autoUpdate.status === 'updating'}
         errorMessage={autoUpdate.errorMessage}
+        version={currentVersion ?? undefined}
         onRetry={autoUpdate.applyNow}
         onClose={autoUpdate.dismissError}
       />

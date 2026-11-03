@@ -171,7 +171,7 @@ export function App(): JSX.Element {
 
       <MmUnitModal
         isOpen={state.activeModal === 'mm'}
-        onAnswered={(factor) => dispatch({ type: 'MM_ANSWERED', factor })}
+        onAnswered={(factor, decimalAsCm) => dispatch({ type: 'MM_ANSWERED', factor, decimalAsCm })}
       />
       <ThreeLadosModal
         isOpen={state.activeModal === 'threeLados'}

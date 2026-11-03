@@ -198,6 +198,19 @@ describe('MM_ANSWERED', () => {
     expect(next.pieces[0]).toMatchObject({ compr: 2450, larg: 443 });
   });
 
+  it('decimalAsCm false (caixa desmarcada no modal): o decimal em mm continua em mm', () => {
+    const state: CutListState = {
+      ...createInitialState(),
+      pieces: [makePiece({ compr: 2450, larg: 44.3, cmDecimals: { compr: false, larg: true } })],
+      materialAsked: true,
+    };
+
+    const next = cutListReducer(state, { type: 'MM_ANSWERED', factor: 1, decimalAsCm: false });
+
+    expect(next.pieces[0]).toMatchObject({ compr: 2450, larg: 44.3 });
+    expect(state.pieces[0]!.cmDecimals).toBeDefined(); // estado anterior não é mutado
+  });
+
   it('fator 1 (já em mm): não altera as medidas, revela a conferência quando material já foi perguntado', () => {
     const state: CutListState = {
       ...createInitialState(),

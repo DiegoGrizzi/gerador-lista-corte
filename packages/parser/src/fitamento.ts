@@ -44,8 +44,8 @@ export function parseFitamentoPhrase(text: string): FitamentoType | null {
   const lower = text.toLowerCase();
   if (/n[aã]o\s+precisa|sem\s+fita|s[oó]\s+cortar/.test(lower) || BARE_SEM_RE.test(lower)) return 'none-explicit';
   if (/4\s*lados?|fita\s*tudo|tudo\s*fita/.test(lower)) return 'all';
-  if (/dois?\s+lados?\s+(maior|grande)/.test(lower) || DOIS_MAIOR_SHORTHAND_RE.test(lower)) return 'maior-dois';
-  if (/dois?\s+lados?\s+(menor|pequen[oa])/.test(lower) || DOIS_MENOR_SHORTHAND_RE.test(lower)) return 'menor-dois';
+  if (/\b(?:dois?|2)\s+lados?\s+(maior|grande)/.test(lower) || DOIS_MAIOR_SHORTHAND_RE.test(lower)) return 'maior-dois';
+  if (/\b(?:dois?|2)\s+lados?\s+(menor|pequen[oa])/.test(lower) || DOIS_MENOR_SHORTHAND_RE.test(lower)) return 'menor-dois';
   if (/lado\s+(maior|grande)|parte\s+(maior|grande)/.test(lower) || UM_MAIOR_SHORTHAND_RE.test(lower)) return 'maior-um';
   if (/lado\s+(menor|pequen[oa])|parte\s+(menor|pequen[oa])/.test(lower) || UM_MENOR_SHORTHAND_RE.test(lower)) return 'menor-um';
   return null;

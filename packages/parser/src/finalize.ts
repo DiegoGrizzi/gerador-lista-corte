@@ -112,6 +112,10 @@ export function finalizePiece(piece: RawPiece): Piece {
  */
 export const MIN_PLAUSIBLE_PIECE_MM = 30;
 
+function roundToTenthOfMm(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
 /**
  * Converte uma peça já finalizada para milímetros (multiplicando pelo
  * fator escolhido pelo usuário: 1 se já estava em mm, 10 para cm→mm,
@@ -119,10 +123,15 @@ export const MIN_PLAUSIBLE_PIECE_MM = 30;
  * exige a medida real em mm para funcionar corretamente (chapas de MDF
  * têm um limite físico de largura; medir em cm ou m confundiria essa
  * checagem se aplicada antes da conversão).
+ *
+ * Mantém 0,1mm de precisão (55,5 continua 55,5) — arredondar para
+ * milímetro inteiro mudava a medida de corte de verdade (55,5 virava 56). O
+ * arredondamento em décimos só limpa o ruído de ponto flutuante da
+ * multiplicação (25,2 * 10 = 252.00000000000003).
  */
 export function convertPieceToMm(piece: Piece, factor: number): void {
-  piece.compr = Math.round(piece.compr * factor);
-  piece.larg = Math.round(piece.larg * factor);
+  piece.compr = roundToTenthOfMm(piece.compr * factor);
+  piece.larg = roundToTenthOfMm(piece.larg * factor);
   applyGrainOrientationRule(piece);
   piece.suspiciouslySmall = piece.compr < MIN_PLAUSIBLE_PIECE_MM || piece.larg < MIN_PLAUSIBLE_PIECE_MM;
 }

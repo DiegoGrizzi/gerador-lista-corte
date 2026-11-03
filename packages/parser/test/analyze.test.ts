@@ -30,6 +30,7 @@ import {
   WHATSAPP_EXPORT_IRREGULAR_MESSAGE,
   WHATSAPP_EXPORT_SHUFFLED_MESSAGE,
   PECAS_COM_SINAIS_FITA_MESSAGE,
+  BEIGE_HANDWRITTEN_MESSAGE,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -808,5 +809,73 @@ describe('analyzeText — "N peças c/ CxL" com sinais de fita "+"/"-" no fim da
   it('sem frase de unidade, unitFactor não existe no resultado', () => {
     const result = analyzeText('MDF branco 15mm\n1 peça c/ 100x50', makeNextId());
     expect('unitFactor' in result).toBe(false);
+  });
+});
+
+describe('analyzeText — lista escrita à mão com fita entre parênteses, rótulos de seção e material fino (real user list)', () => {
+  const sides = (p: { fita: { c1: boolean; c2: boolean; l1: boolean; l2: boolean } }) =>
+    (['c1', 'c2', 'l1', 'l2'] as const).filter((k) => p.fita[k]).join('+') || '-';
+  const find = (pieces: ReturnType<typeof analyzeText>['pieces'], compr: number, larg: number) =>
+    pieces.find((p) => p.compr === compr && p.larg === larg)!;
+
+  it('lê as 23 peças sem mandar nada para a conferência', () => {
+    const result = analyzeText(BEIGE_HANDWRITTEN_MESSAGE, makeNextId());
+    expect(result.discarded).toEqual([]);
+    expect(result.pieces).toHaveLength(23);
+  });
+
+  it('a descrição da linha vira a Função (não o rótulo "Tamponamento") e a nota de fita sai de dentro dela', () => {
+    const { pieces } = analyzeText(BEIGE_HANDWRITTEN_MESSAGE, makeNextId());
+    expect(find(pieces, 2600, 55.5).funcao).toBe('lateral roupeiro');
+    expect(find(pieces, 450, 55.5).funcao).toBe('Teto criado');
+    expect(find(pieces, 1910, 53.5).funcao).toBe('Piso do armário aéreo');
+    expect(find(pieces, 1460, 300).funcao).toBe('piso / teto');
+    expect(pieces.some((p) => /fitado/i.test(p.funcao))).toBe(false);
+  });
+
+  it('"(Fitado 2 lados maior)", "(Fitado 1 lado menor)" e parênteses sem fechar são lidos', () => {
+    const { pieces } = analyzeText(BEIGE_HANDWRITTEN_MESSAGE, makeNextId());
+    expect(sides(find(pieces, 1910, 53.5))).toBe('c1+c2'); // comprimento é o lado maior
+    expect(sides(find(pieces, 270, 300))).toBe('c1'); // comprimento é o lado menor
+    expect(sides(find(pieces, 2500, 100))).toBe('c1');
+    expect(sides(find(pieces, 450, 300))).toBe('c1+c2+l1+l2'); // "(Fitado 4 lados" sem fechar
+  });
+
+  it('"(Fitado um lado" (sem dizer maior ou menor) não é adivinhado: fica "fita desconhecida"', () => {
+    const { pieces } = analyzeText(BEIGE_HANDWRITTEN_MESSAGE, makeNextId());
+    expect(find(pieces, 270, 270).fitaUnknown).toBe(true);
+    expect(find(pieces, 270, 270).funcao).toBe('Nichos');
+  });
+
+  it('"Branco 6mm comum" é um material; os fundos "6mm" ficam nele, sem fita', () => {
+    const { pieces } = analyzeText(BEIGE_HANDWRITTEN_MESSAGE, makeNextId());
+    for (const p of [find(pieces, 245, 450), find(pieces, 245, 68.9), find(pieces, 245, 89.4)]) {
+      expect(p.material).toBe('Branco comum 6mm');
+      expect(p.funcao).toBe('fundo');
+      expect(p.thicknessMm).toBe(6);
+      expect(sides(p)).toBe('-');
+      expect(p.fitaUnknown).toBeUndefined();
+    }
+  });
+
+  it('depois do bloco fino, "Nichos:" volta ao material anterior (beige 15mm)', () => {
+    const { pieces } = analyzeText(BEIGE_HANDWRITTEN_MESSAGE, makeNextId());
+    for (const p of pieces.slice(9)) {
+      expect(p.material).toBe('MDF beige matt 15mm');
+      expect(p.thicknessMm).toBe(15);
+    }
+  });
+
+  it('"Portas: (todas fitado 4 lados )" vale só para as peças DEPOIS dele, não para as que estavam sem fita antes', () => {
+    const { pieces } = analyzeText(BEIGE_HANDWRITTEN_MESSAGE, makeNextId());
+    expect(pieces.slice(-6).every((p) => sides(p) === 'c1+c2+l1+l2')).toBe(true);
+    // peças de antes, sem nenhuma informação de fita: continuam perguntando
+    expect(find(pieces, 1429, 270).fitaUnknown).toBe(true);
+    expect(find(pieces, 470, 419).fitaUnknown).toBe(true);
+  });
+
+  it('rótulo de seção sem peças fora do esperado não vira Função: "Obs:" e "Fita de borda:" continuam ignorados', () => {
+    const result = analyzeText('MDF branco 15mm\nObs:\nFita de borda:\n1 = 100x50', makeNextId());
+    expect(result.pieces[0]!.funcao).toBe('');
   });
 });

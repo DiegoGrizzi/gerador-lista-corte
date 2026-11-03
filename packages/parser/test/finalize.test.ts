@@ -41,6 +41,26 @@ function makePiece(overrides: Partial<Piece>): Piece {
   };
 }
 
+describe('convertPieceToMm — precisão de 0,1mm', () => {
+  it('mantém decimais de milímetro quando a medida já está em mm (55,5 não vira 56)', () => {
+    const piece = makePiece({ compr: 2600, larg: 55.5 });
+    convertPieceToMm(piece, 1);
+    expect(piece.compr).toBe(2600);
+    expect(piece.larg).toBe(55.5);
+  });
+
+  it('mantém o décimo (68,9 e 44,3) e não acumula ruído de ponto flutuante na conversão de cm', () => {
+    const a = makePiece({ compr: 245, larg: 68.9 });
+    convertPieceToMm(a, 1);
+    expect(a.larg).toBe(68.9);
+
+    const b = makePiece({ compr: 25.2, larg: 4.43 });
+    convertPieceToMm(b, 10);
+    expect(b.compr).toBe(252);
+    expect(b.larg).toBe(44.3);
+  });
+});
+
 describe('convertPieceToMm — aviso de medida implausível', () => {
   it('é uma constante fixa de 30mm', () => {
     expect(MIN_PLAUSIBLE_PIECE_MM).toBe(30);

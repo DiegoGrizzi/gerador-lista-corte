@@ -54,8 +54,32 @@ import {
   buildPieceFromDimensionFirstMatch,
 } from './piece-matcher.js';
 import type { PieceMatch, DimensionFirstMatch } from './piece-matcher.js';
-import { finalizePiece, looksLikeNoMaterial, markFitaUnknownIfNeeded } from './finalize.js';
+import { finalizePiece, looksLikeNoMaterial, markFitaUnknownIfNeeded, MIN_EDGE_BANDING_THICKNESS_MM } from './finalize.js';
 import type { AnalyzeResult, DiscardedItem, FitamentoType, NextIdFn, ParseContext, Piece, RawPiece } from './types.js';
+
+/**
+ * Rótulo de seção numa linha própria, terminado em dois-pontos e opcionalmente
+ * seguido de uma nota de fita entre parênteses: "Nichos:", "Portas:  (todas
+ * fitado 4 lados )".
+ */
+const SECTION_LABEL_RE = /^([a-zà-öø-ÿ][a-zà-öø-ÿ ]{0,28}?)\s*:\s*(?:\(\s*([^()]*?)\s*\)?)?\s*$/i;
+
+/** Rótulos com dois-pontos que NÃO são seção de peças (observação, total...) — continuam sendo ignorados como antes. */
+const NON_SECTION_LABELS = [
+  'obs',
+  'observacao',
+  'observação',
+  'observacoes',
+  'observações',
+  'nota',
+  'notas',
+  'total',
+  'material',
+  'materiais',
+  'cliente',
+  'data',
+  'medidas',
+];
 
 /**
  * Uma entrada de pendência é ou o contexto capturado de um item de
@@ -82,6 +106,19 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
   let currentComplemento = '';
   let currentFuncao = '';
   let materialMentioned = false;
+
+  /**
+   * Contexto de material em vigor ANTES do último cabeçalho de material, e
+   * quantas peças já existiam nesse momento — usado para voltar ao material
+   * anterior quando um bloco de material FINO (ex: "Branco 6mm comum", só
+   * para fundos) termina num novo rótulo de seção ("Nichos:").
+   */
+  let materialBeforeHeader: {
+    material: string;
+    fitaType: FitamentoType | null;
+    thickness: number | null;
+    pieceCount: number;
+  } | null = null;
 
   /**
    * Candidato a nome de material declarado numa linha própria, sem
@@ -146,6 +183,9 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
   /** Atualiza o contexto corrente ao encontrar um novo cabeçalho de material,
    * propagando o valor retroativamente para tudo que estava pendente. */
   function setNewMaterial(materialText: string, fitType: FitamentoType | null, thicknessVal: number | null): void {
+    materialBeforeHeader = currentMaterial
+      ? { material: currentMaterial, fitaType: currentFitamentoType, thickness: currentThickness, pieceCount: pieces.length }
+      : null;
     pendingMaterialName = null;
     pendingMaterial.forEach((entry) => {
       entry.material = materialText;
@@ -517,6 +557,43 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
       }
     }
 
+    // Rótulo de seção ("Nichos:", "Portas:  (todas fitado 4 lados )"): vira a
+    // Função padrão das peças seguintes, e a nota de fita entre parênteses
+    // vale só DAQUI PARA FRENTE (diferente de uma frase de fita solta, que
+    // também vale para as peças já lidas sem fita). Fica de fora tudo que é
+    // ambiente/móvel (Complemento, tratado mais abaixo), "Ferragens:" e
+    // companhia, e "Fita de borda:".
+    const sectionLabelMatch = line.match(SECTION_LABEL_RE);
+    if (sectionLabelMatch && !/mdf/i.test(line)) {
+      const label = sectionLabelMatch[1]!.trim();
+      const lowerLabel = label.toLowerCase();
+      if (
+        DISCARD_LABELS.indexOf(lowerLabel) === -1 &&
+        NON_SECTION_LABELS.indexOf(lowerLabel) === -1 &&
+        !/\bfita\b/i.test(label) &&
+        classifyHeaderLine(label) !== 'complemento'
+      ) {
+        // Um bloco de material fino (ex: fundos de 6mm) acabou: volta ao
+        // material de antes dele.
+        if (
+          materialBeforeHeader &&
+          currentThickness != null &&
+          currentThickness < MIN_EDGE_BANDING_THICKNESS_MM &&
+          pieces.length > materialBeforeHeader.pieceCount
+        ) {
+          currentMaterial = materialBeforeHeader.material;
+          currentFitamentoType = materialBeforeHeader.fitaType;
+          currentThickness = materialBeforeHeader.thickness;
+          materialBeforeHeader = null;
+        }
+        pendingMaterialName = null;
+        currentFuncao = label;
+        const noteType = sectionLabelMatch[2] ? parseFitamentoPhrase(sectionLabelMatch[2]) : null;
+        if (noteType) currentFitamentoType = noteType;
+        return;
+      }
+    }
+
     const fitamentoType = parseFitamentoPhrase(line);
     if (fitamentoType && !/mdf/i.test(line)) {
       currentFitamentoType = fitamentoType;
@@ -549,7 +626,10 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     // se ancorar, só o "Nmm" no final da linha.
     const genericHeaderMatch = line.match(GENERIC_THICKNESS_HEADER_RE);
     if (genericHeaderMatch) {
-      setNewMaterial(genericHeaderMatch[1]!.trim(), null, toNumber(genericHeaderMatch[2]!));
+      // A palavra de acabamento depois da espessura ("Branco 6mm comum") faz
+      // parte do nome do material.
+      const finish = genericHeaderMatch[3] ? ' ' + genericHeaderMatch[3] : '';
+      setNewMaterial(genericHeaderMatch[1]!.trim() + finish, null, toNumber(genericHeaderMatch[2]!));
       return;
     }
 

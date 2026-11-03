@@ -128,10 +128,18 @@ function roundToTenthOfMm(value: number): number {
  * milímetro inteiro mudava a medida de corte de verdade (55,5 virava 56). O
  * arredondamento em décimos só limpa o ruído de ponto flutuante da
  * multiplicação (25,2 * 10 = 252.00000000000003).
+ *
+ * Quando as medidas estão em mm (factor 1), uma medida escrita com ponto
+ * decimal de verdade numa linha de texto ("2450 x 44.3", ver
+ * Piece.cmDecimals) é tratada como cm: vira 443mm. Só a medida que tem o
+ * ponto — o resto da peça continua em mm.
  */
 export function convertPieceToMm(piece: Piece, factor: number): void {
-  piece.compr = roundToTenthOfMm(piece.compr * factor);
-  piece.larg = roundToTenthOfMm(piece.larg * factor);
+  const comprFactor = factor === 1 && piece.cmDecimals?.compr ? 10 : factor;
+  const largFactor = factor === 1 && piece.cmDecimals?.larg ? 10 : factor;
+  delete piece.cmDecimals;
+  piece.compr = roundToTenthOfMm(piece.compr * comprFactor);
+  piece.larg = roundToTenthOfMm(piece.larg * largFactor);
   applyGrainOrientationRule(piece);
   piece.suspiciouslySmall = piece.compr < MIN_PLAUSIBLE_PIECE_MM || piece.larg < MIN_PLAUSIBLE_PIECE_MM;
 }

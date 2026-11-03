@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { toNumber } from '../src/numbers.js';
+import { toNumber, isDecimalDotMeasure } from '../src/numbers.js';
+
+describe('isDecimalDotMeasure', () => {
+  it.each(['44.3', '55.5', '68.9', '0.5', '22.50'])('"%s" tem ponto decimal de verdade', (text) => {
+    expect(isDecimalDotMeasure(text)).toBe(true);
+  });
+
+  it.each(['2480.0', '206.00', '1.200', '2450', '55,5', "56'5", ''])('"%s" não conta', (text) => {
+    expect(isDecimalDotMeasure(text)).toBe(false);
+  });
+});
 
 describe('toNumber', () => {
   it('converts a comma decimal separator', () => {

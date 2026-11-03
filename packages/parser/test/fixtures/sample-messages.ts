@@ -669,3 +669,48 @@ export const BEIGE_HANDWRITTEN_MESSAGE = [
   '1 = 815x428 porta',
   '4 = 815x361 portas',
 ].join('\n');
+
+/**
+ * Versão da lista beige com os fundos "6mm" também em Nichos e medidas
+ * grandes nos fundos (2450x...), escrita em mm — mas com a convenção de que
+ * uma medida com ponto decimal está em cm: "2450 x 44.3" = 2450 x 443 mm.
+ */
+export const BEIGE_DECIMALS_ARE_CM_MESSAGE = [
+  'MDF beige matt 15mm',
+  'Tamponamento ',
+  '',
+  '2 = 2600x55.5 lateral roupeiro. (Fitado 4 lados)',
+  '1 = 2500x55.5 lateral roupeiro.  (Fitado 4 lados)',
+  '1 = 620x55.5 lateral criado. (Fitado 4 lados)',
+  '1 = 450x55.5. Teto criado.   (Fitado 4 lados)',
+  '1= 1910x 53.5. Piso do armário aéreo. (Fitado 2 lados maior)',
+  '1 = 2500x100  lateral roupeiro. (Fitado 1 lado maior)',
+  '',
+  'Branco 6mm comum',
+  '1 fundo 6mm 2450x450',
+  '1 fundo 6mm 2450x68.9',
+  '1 fundo 6mm 2450x89.4',
+  '',
+  '',
+  'Nichos: ',
+  '',
+  '1 = 1460x300 piso / teto. (Fitado 2 lados maior)',
+  '1 =. 1429x270 fundo 6mm',
+  '2 = 270x 300.  (Fitado 1 lado menor)',
+  '2 = 270x 270.  (Fitado um lado ',
+  '',
+  '2 = 470x300 lateral. (Fitado 1 lado maior)',
+  '1 = 470x419 fundo 6mm',
+  '2 = 450x300. Piso/ teto. (Fitado 4 lados ',
+  '1 = 1910x 1450. (Fitado 4 lados)',
+  '',
+  '',
+  '',
+  'Portas:  (todas fitado 4 lados )',
+  '2 = 2450x340 porta ',
+  '1 = 2450x 340 porta ',
+  '1 = 2450x44.3  porta ',
+  '2 = 255x428 tampas ',
+  '1 = 815x428 porta',
+  '4 = 815x361 portas',
+].join('\n');

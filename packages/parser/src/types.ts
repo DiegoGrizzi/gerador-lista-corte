@@ -97,6 +97,13 @@ export interface RawPiece {
   note: string;
   pendingThreeLados?: boolean;
   fitaUnknown?: boolean;
+  /**
+   * Quais medidas foram escritas com ponto decimal de verdade ("44.3") numa
+   * linha de texto livre. Quando o usuário diz que as medidas estão em mm,
+   * essas (e só essas) são tratadas como cm — ver convertPieceToMm. Ausente
+   * em peças vindas de tabela (PDF/planilha), onde o ponto é só formatação.
+   */
+  cmDecimals?: { compr: boolean; larg: boolean };
 }
 
 /**

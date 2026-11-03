@@ -159,6 +159,14 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
    */
   let perPieceFitaSeen = false;
 
+  /**
+   * Materiais já declarados em cabeçalhos, com a espessura de cada um — uma
+   * peça que cita a própria espessura ("fundo 6mm") usa o material
+   * declarado com essa espessura (ex: "Branco 6mm comum"), em vez de misturar
+   * a cor do bloco atual com a espessura citada.
+   */
+  const declaredMaterials: { material: string; thickness: number }[] = [];
+
   function snapshotContext(): ParseContext {
     return {
       material: currentMaterial,
@@ -187,6 +195,7 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     materialBeforeHeader = currentMaterial
       ? { material: currentMaterial, fitaType: currentFitamentoType, thickness: currentThickness, pieceCount: pieces.length }
       : null;
+    if (thicknessVal != null) declaredMaterials.push({ material: materialText, thickness: thicknessVal });
     pendingMaterialName = null;
     pendingMaterial.forEach((entry) => {
       entry.material = materialText;
@@ -215,6 +224,10 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     built.piece.id = nextId();
     pieces.push(built.piece);
     if (built.explicitFita) perPieceFitaSeen = true;
+    if (!built.newMaterialInfo && built.inlineThicknessMm != null && built.inlineThicknessMm !== ctx.thicknessMm) {
+      const declared = [...declaredMaterials].reverse().find((d) => d.thickness === built.inlineThicknessMm);
+      if (declared) built.piece.material = declared.material;
+    }
 
     if (built.newMaterialInfo) {
       setNewMaterial(built.newMaterialInfo.material, built.newMaterialInfo.fitamento, built.newMaterialInfo.thickness);

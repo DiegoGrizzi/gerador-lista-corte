@@ -49,6 +49,9 @@ export function MmUnitModal({ isOpen, onAnswered }: MmUnitModalProps): JSX.Eleme
       <div className="modal">
         <p className="title">As medidas já estão em milímetros (mm)?</p>
         <p className="sub">Confira antes de revisar as peças — evita peças cortadas na medida errada.</p>
+        <p className="sub">
+          Se responder que sim: uma medida com ponto decimal (ex: 44.3) é tratada como cm — vira 443 mm.
+        </p>
 
         <div id="mm-modal-step1" className={'choice-row' + (showUnitStep ? ' hidden' : '')}>
           <button className="primary" id="btn-mm-sim" onClick={() => onAnswered(1)}>

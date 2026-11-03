@@ -21,7 +21,7 @@ import {
   PIECE_SEPARATOR_RE,
   FITAMENTO_ADJECTIVE_AT_START_RE,
 } from './regex-patterns.js';
-import { toNumber } from './numbers.js';
+import { toNumber, isDecimalDotMeasure } from './numbers.js';
 import { stripFillers } from './text-normalize.js';
 import { parseFitamentoPhrase, resolveFitaFromType } from './fitamento.js';
 import { extractHeaderInfo } from './header.js';
@@ -109,6 +109,15 @@ export interface DimensionFirstMatch {
   qty: number;
   compr: number;
   larg: number;
+  /** Medidas escritas com ponto decimal de verdade (ver RawPiece.cmDecimals); ausente quando nenhuma. */
+  cmDecimals?: { compr: boolean; larg: boolean };
+}
+
+/** Marca de ponto decimal por medida, ou undefined quando nenhuma das duas tem. */
+function cmDecimalsOf(comprText: string, largText: string): { compr: boolean; larg: boolean } | undefined {
+  const compr = isDecimalDotMeasure(comprText);
+  const larg = isDecimalDotMeasure(largText);
+  return compr || larg ? { compr, larg } : undefined;
 }
 
 /**
@@ -128,6 +137,7 @@ export function tryMatchDimensionFirstLine(line: string): DimensionFirstMatch | 
       qty: match[3] ? parseInt(match[3], 10) : 1,
       compr: toNumber(match[1]!),
       larg: toNumber(match[2]!),
+      cmDecimals: cmDecimalsOf(match[1]!, match[2]!),
     };
   }
 
@@ -137,6 +147,7 @@ export function tryMatchDimensionFirstLine(line: string): DimensionFirstMatch | 
       qty: parseInt(parensMatch[3]!, 10),
       compr: toNumber(parensMatch[1]!),
       larg: toNumber(parensMatch[2]!),
+      cmDecimals: cmDecimalsOf(parensMatch[1]!, parensMatch[2]!),
     };
   }
 
@@ -146,6 +157,7 @@ export function tryMatchDimensionFirstLine(line: string): DimensionFirstMatch | 
       qty: parseInt(qtyParensMatch[1]!, 10),
       compr: toNumber(qtyParensMatch[2]!),
       larg: toNumber(qtyParensMatch[3]!),
+      cmDecimals: cmDecimalsOf(qtyParensMatch[2]!, qtyParensMatch[3]!),
     };
   }
 
@@ -155,6 +167,7 @@ export function tryMatchDimensionFirstLine(line: string): DimensionFirstMatch | 
       qty: parseInt(equalsMatch[3]!, 10),
       compr: toNumber(equalsMatch[1]!),
       larg: toNumber(equalsMatch[2]!),
+      cmDecimals: cmDecimalsOf(equalsMatch[1]!, equalsMatch[2]!),
     };
   }
 
@@ -164,6 +177,7 @@ export function tryMatchDimensionFirstLine(line: string): DimensionFirstMatch | 
       qty: parseInt(qtyDashMatch[1]!, 10),
       compr: toNumber(qtyDashMatch[2]!),
       larg: toNumber(qtyDashMatch[3]!),
+      cmDecimals: cmDecimalsOf(qtyDashMatch[2]!, qtyDashMatch[3]!),
     };
   }
 
@@ -187,6 +201,7 @@ export function tryMatchPcAsteriskLine(line: string): DimensionFirstMatch | null
     qty: parseInt(match[1]!, 10),
     compr: toNumber(match[2]!),
     larg: toNumber(match[3]!),
+    cmDecimals: cmDecimalsOf(match[2]!, match[3]!),
   };
 }
 
@@ -198,7 +213,7 @@ export function tryMatchPcAsteriskLine(line: string): DimensionFirstMatch | null
  * quantidade, então tudo o mais vem do contexto corrente.
  */
 export function buildPieceFromDimensionFirstMatch(match: DimensionFirstMatch, ctx: ParseContext): RawPiece {
-  return {
+  const piece: RawPiece = {
     id: '',
     material: ctx.material,
     complemento: ctx.complemento,
@@ -212,6 +227,8 @@ export function buildPieceFromDimensionFirstMatch(match: DimensionFirstMatch, ct
     isOverride: false,
     note: '',
   };
+  if (match.cmDecimals) piece.cmDecimals = match.cmDecimals;
+  return piece;
 }
 
 /** "6mm" solto no meio do texto da linha (ex: "fundo 6mm"). */
@@ -246,6 +263,8 @@ export interface BuildPieceResult {
   thicknessPending: boolean;
   /** A própria linha trouxe informação de fita (frase, nota entre parênteses ou "fita" colada a uma medida). */
   explicitFita: boolean;
+  /** Espessura citada no texto da própria linha ("fundo 6mm"), ou null. */
+  inlineThicknessMm: number | null;
 }
 
 /**
@@ -283,6 +302,7 @@ export function buildPieceFromMatch(
     inlineThickness = null;
   }
 
+  let inlineMentionedThickness: number | null = null;
   let funcao = '';
   let material = ctx.material;
   let fitamentoType = ctx.fitaType;
@@ -303,6 +323,7 @@ export function buildPieceFromMatch(
     const mmInPrefix = prefixText.match(BARE_MM_INLINE_RE);
     if (mmInPrefix) {
       thickness = toNumber(mmInPrefix[1]!);
+      inlineMentionedThickness = thickness;
       prefixText = prefixText.replace(mmInPrefix[0], ' ');
     }
     const funcaoFromPrefix = cleanFuncaoText(prefixText);
@@ -319,6 +340,7 @@ export function buildPieceFromMatch(
     const mmInSuffix = suffix.match(BARE_MM_INLINE_RE);
     if (mmInSuffix) {
       thickness = toNumber(mmInSuffix[1]!);
+      inlineMentionedThickness = thickness;
       suffix = suffix.replace(mmInSuffix[0], ' ').trim();
     }
   }
@@ -402,6 +424,8 @@ export function buildPieceFromMatch(
     isOverride,
     note: isOverride ? (fitaNote || suffix || tailPhrase).trim() : '',
   };
+  const cmDecimals = cmDecimalsOf(dimensionMatch[1]!, dimensionMatch[3]!);
+  if (cmDecimals) piece.cmDecimals = cmDecimals;
 
   return {
     piece,
@@ -409,6 +433,7 @@ export function buildPieceFromMatch(
     fitaPending: fitaType == null && !customFita,
     thicknessPending: pieceThickness == null,
     explicitFita: !!tailPhraseType || !!fitaNote || fitaNoComprimento || fitaNaLargura,
+    inlineThicknessMm: inlineMentionedThickness,
   };
 }
 

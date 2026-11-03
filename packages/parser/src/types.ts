@@ -149,6 +149,12 @@ export interface AnalyzeResult {
   discarded: DiscardedItem[];
   materialMentioned: boolean;
   /**
+   * Total de peças que a própria lista informa ("Total de peças: 116"). A
+   * interface compara com a soma das quantidades lidas e avisa se não bater.
+   * Ausente quando a lista não informa.
+   */
+  statedTotal?: number;
+  /**
    * Fator para converter as medidas em milímetros quando a própria mensagem
    * diz a unidade (ex: "As medidas seguem em milímetros" → 1; "em cm" → 10;
    * "em metros" → 1000). Ausente quando a mensagem não diz — aí a interface

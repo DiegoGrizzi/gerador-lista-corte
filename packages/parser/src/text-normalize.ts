@@ -275,3 +275,38 @@ export function detectStatedUnitFactor(text: string): number | null {
   const unit = match[1]!;
   return UNIT_FACTORS.find((entry) => entry.re.test(unit))?.factor ?? null;
 }
+
+
+/**
+ * Linha que informa o TOTAL de peças da lista ("Total de peças: 116",
+ * "Total: 116 peças", "116 peças no total"). Exige a palavra "peças"/"pç"
+ * (no rótulo ou depois do número) — "Total: 116" sozinho pode ser área ou
+ * valor, então não conta. A interface usa o número para conferir a soma das
+ * quantidades lidas.
+ */
+const PIECE_WORD = 'pe[çc]as?|pcs?|p[çc]s?';
+const STATED_TOTAL_LINE_RES: RegExp[] = [
+  new RegExp(`^\\s*total\\s+(?:geral\\s+)?(?:de\\s+)?(?:${PIECE_WORD})\\s*[:=\\-–]?\\s*(\\d+)\\s*$`, 'i'),
+  new RegExp(`^\\s*total\\s*(?:geral\\s*)?[:=\\-–]?\\s*(\\d+)\\s*(?:${PIECE_WORD})\\s*$`, 'i'),
+  new RegExp(`^\\s*(\\d+)\\s*(?:${PIECE_WORD})\\s+no\\s+total\\s*$`, 'i'),
+];
+
+/**
+ * Tira do texto a linha que informa o total de peças (para ela não ir parar
+ * na conferência como item não reconhecido) e devolve o número informado.
+ * Sem linha de total, devolve o texto como está e total null.
+ */
+export function extractStatedTotal(text: string): { text: string; total: number | null } {
+  let total: number | null = null;
+  const kept = text.split('\n').filter((line) => {
+    for (const re of STATED_TOTAL_LINE_RES) {
+      const match = line.match(re);
+      if (match) {
+        total = Number(match[1]);
+        return false;
+      }
+    }
+    return true;
+  });
+  return total == null ? { text, total: null } : { text: kept.join('\n'), total };
+}

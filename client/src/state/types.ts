@@ -59,6 +59,8 @@ export interface CutListState {
 
   /** Fator de conversão confirmado (1 = já em mm, 10 = cm→mm, 1000 = m→mm). */
   mmFactor: number;
+  /** Total de peças que a própria lista informou (AnalyzeResult.statedTotal), ou null. Conferido contra a soma das quantidades. */
+  statedTotal: number | null;
   /** Resposta da caixa "ponto decimal em mm é cm" do modal de mm (vale também p/ peças resgatadas depois). */
   mmDecimalAsCm: boolean;
 
@@ -121,6 +123,8 @@ export type CutListAction =
       discarded: DiscardedItem[];
       materialMentioned: boolean;
       idCounter: number;
+      /** Total de peças que a lista informou (ver AnalyzeResult.statedTotal). */
+      statedTotal?: number;
       /** Unidade que a própria mensagem informou (ver AnalyzeResult.unitFactor) — pula a pergunta de mm. */
       unitFactor?: number;
     }

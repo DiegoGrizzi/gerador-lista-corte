@@ -71,6 +71,7 @@ export function App(): JSX.Element {
       materialMentioned: result.materialMentioned,
       idCounter: getIdCounter(),
       unitFactor: result.unitFactor,
+      statedTotal: result.statedTotal,
     });
   }, [state.rawText, state.idCounter, dispatch]);
 
@@ -161,6 +162,7 @@ export function App(): JSX.Element {
           pieces={state.pieces}
           discardedItems={state.discardedItems}
           discardErrors={state.discardErrors}
+          statedTotal={state.statedTotal}
           onFieldChange={handleFieldChange}
           onFitaChange={handleFitaChange}
           onRemove={handleRemove}

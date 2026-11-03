@@ -130,7 +130,7 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
 
     case 'ANALYZE_SUCCEEDED': {
       const { pieces, discarded, materialMentioned } = action;
-      return {
+      const analyzed: CutListState = {
         ...state,
         pieces,
         discardedItems: discarded,
@@ -149,6 +149,12 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
         // quando não há peças (senão a pergunta de mm entra primeiro).
         previewVisible: pieces.length > 0 ? state.previewVisible : true,
       };
+      // A própria mensagem disse a unidade ("As medidas seguem em
+      // milímetros"): responde a pergunta de mm sozinho e segue direto para
+      // as próximas (fita, material...).
+      return action.unitFactor && pieces.length > 0
+        ? cutListReducer(analyzed, { type: 'MM_ANSWERED', factor: action.unitFactor })
+        : analyzed;
     }
 
     case 'CLEAR_INPUT':

@@ -135,4 +135,11 @@ export interface AnalyzeResult {
   pieces: Piece[];
   discarded: DiscardedItem[];
   materialMentioned: boolean;
+  /**
+   * Fator para converter as medidas em milímetros quando a própria mensagem
+   * diz a unidade (ex: "As medidas seguem em milímetros" → 1; "em cm" → 10;
+   * "em metros" → 1000). Ausente quando a mensagem não diz — aí a interface
+   * pergunta.
+   */
+  unitFactor?: number;
 }

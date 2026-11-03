@@ -1,6 +1,27 @@
 import { describe, expect, it } from 'vitest';
 import { parseFitamentoPhrase, resolveFitaFromType } from '../src/fitamento.js';
 
+describe('parseFitamentoPhrase — "2 lados maior/menor" em algarismo, dentro de uma frase', () => {
+  it.each([
+    ['Fitado 2 lados maior', 'maior-dois'],
+    ['(Fitado 2 lados maior)', 'maior-dois'],
+    ['fitado 2 lados menores', 'menor-dois'],
+    ['Fitado 1 lado menor', 'menor-um'],
+    ['Fitado 1 lado maior', 'maior-um'],
+    ['todas fitado 4 lados', 'all'],
+  ])('"%s" → %s', (phrase, type) => {
+    expect(parseFitamentoPhrase(phrase)).toBe(type);
+  });
+
+  it('"Fitado um lado" (sem maior/menor) continua ambíguo: nenhum tipo', () => {
+    expect(parseFitamentoPhrase('Fitado um lado')).toBeNull();
+  });
+
+  it('não confunde "12 lados maior" com "2 lados maior"', () => {
+    expect(parseFitamentoPhrase('12 lados maior')).toBeNull();
+  });
+});
+
 describe('parseFitamentoPhrase', () => {
   it.each(['não precisa fita', 'nao precisa', 'sem fita', 'só cortar', 'so cortar'])(
     'recognizes "%s" as none-explicit',

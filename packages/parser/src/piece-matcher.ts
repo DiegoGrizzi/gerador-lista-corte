@@ -214,6 +214,30 @@ export function buildPieceFromDimensionFirstMatch(match: DimensionFirstMatch, ct
   };
 }
 
+/** "6mm" solto no meio do texto da linha (ex: "fundo 6mm"). */
+const BARE_MM_INLINE_RE = /(?:^|\s)(\d+(?:[.,]\d+)?)\s*mm\b/i;
+/** Pontuação sobrando nas pontas de um texto de Função (ex: ". Piso do armário."). */
+const EDGE_PUNCTUATION_RE = /^[\s.,;:\-–—]+|[\s.,;:]+$/g;
+
+/** Texto de Função limpo: sem palavras de enchimento ("de", "pro", "c/") nem pontuação nas pontas. */
+function cleanFuncaoText(text: string): string {
+  return stripFillers(text).replace(EDGE_PUNCTUATION_RE, '').trim();
+}
+
+/**
+ * Nota de fita entre parênteses no fim do sufixo da linha, mesmo sem o
+ * fecha-parênteses ("(Fitado 4 lados)", "(Fitado um lado"). Devolve o resto
+ * do sufixo (a descrição da peça, ex: "lateral roupeiro.") separado da nota,
+ * ou null se o parêntese final não fala de fita.
+ */
+function extractParentheticalFitaNote(suffix: string): { rest: string; note: string } | null {
+  const match = suffix.match(/\(([^()]*)\)?\s*$/);
+  if (!match || match.index == null) return null;
+  const note = match[1]!.trim();
+  if (!/fita/i.test(note) && parseFitamentoPhrase(note) == null) return null;
+  return { rest: suffix.slice(0, match.index).trim(), note };
+}
+
 /** Resultado de buildPieceFromMatch. */
 export interface BuildPieceResult {
   piece: RawPiece;
@@ -271,7 +295,15 @@ export function buildPieceFromMatch(
     thickness = headerInfo.thickness;
     newMaterialInfo = headerInfo;
   } else if (prefix) {
-    const funcaoFromPrefix = stripFillers(prefix);
+    // "fundo 6mm": a espessura citada na linha vale para esta peça e não
+    // faz parte do nome dela.
+    let prefixText = prefix;
+    const mmInPrefix = prefixText.match(BARE_MM_INLINE_RE);
+    if (mmInPrefix) {
+      thickness = toNumber(mmInPrefix[1]!);
+      prefixText = prefixText.replace(mmInPrefix[0], ' ');
+    }
+    const funcaoFromPrefix = cleanFuncaoText(prefixText);
     if (funcaoFromPrefix) funcao = funcaoFromPrefix;
   }
 
@@ -281,23 +313,41 @@ export function buildPieceFromMatch(
     thickness = toNumber(thicknessInSuffix[1]!);
     suffix = suffix.replace(thicknessInSuffix[0], '').trim();
   }
+  if (!/fita/i.test(suffix)) {
+    const mmInSuffix = suffix.match(BARE_MM_INLINE_RE);
+    if (mmInSuffix) {
+      thickness = toNumber(mmInSuffix[1]!);
+      suffix = suffix.replace(mmInSuffix[0], ' ').trim();
+    }
+  }
   const pieceThickness = inlineThickness != null ? inlineThickness : thickness;
+
+  // "lateral roupeiro. (Fitado 4 lados)": a nota de fita entre parênteses é
+  // separada da descrição da peça, que vira a Função (senão a frase de
+  // fita "engolia" o sufixo inteiro e a descrição se perdia).
+  const parentheticalFita = extractParentheticalFitaNote(suffix);
+  const fitaNote = parentheticalFita ? parentheticalFita.note : '';
+  if (parentheticalFita) suffix = parentheticalFita.rest;
 
   // Se havia "fita" colada ao 2º número, reconstrói a frase para checar se
   // na verdade era o início de algo maior, como "fita os 4 lados".
-  const tailPhrase = (fitaNaLargura ? 'fita ' : '') + suffix;
+  const tailPhrase = (fitaNaLargura ? 'fita ' : '') + (fitaNote || suffix);
   const tailPhraseType = tailPhrase.trim() ? parseFitamentoPhrase(tailPhrase) : null;
 
   let fitaType = null as RawPiece['fitaType'];
   let customFita = null as RawPiece['customFita'];
   if (tailPhraseType) {
     fitaType = tailPhraseType;
+    if (fitaNote && !funcao) {
+      const funcaoFromRest = cleanFuncaoText(suffix);
+      if (funcaoFromRest) funcao = funcaoFromRest;
+    }
   } else if (fitaNoComprimento || fitaNaLargura) {
     customFita = { c1: fitaNoComprimento, c2: false, l1: fitaNaLargura, l2: false };
   } else {
     fitaType = fitamentoType;
     if (!funcao) {
-      const funcaoFromSuffix = stripFillers(suffix);
+      const funcaoFromSuffix = cleanFuncaoText(suffix);
       if (funcaoFromSuffix) funcao = funcaoFromSuffix;
     }
   }
@@ -344,7 +394,7 @@ export function buildPieceFromMatch(
     fitaType,
     customFita,
     isOverride,
-    note: isOverride ? (suffix || tailPhrase).trim() : '',
+    note: isOverride ? (fitaNote || suffix || tailPhrase).trim() : '',
   };
 
   return {

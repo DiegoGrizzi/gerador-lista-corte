@@ -621,3 +621,51 @@ export const PECAS_COM_SINAIS_FITA_MESSAGE = [
   '1 peça c/ 1770x970',
   '1 peça c/ 877x240',
 ].join('\n');
+
+/**
+ * Lista real de um usuário, escrita à mão: "N = CxL descrição. (Fitado ...)"
+ * com a fita entre parênteses (às vezes sem fechar, às vezes incompleta:
+ * "(Fitado um lado"), rótulos de seção ("Tamponamento", "Nichos:", "Portas:
+ * (todas fitado 4 lados )"), um segundo material fino ("Branco 6mm comum", só
+ * para os fundos que dizem "6mm" na própria linha) e peças sem nenhuma
+ * informação de fita.
+ */
+export const BEIGE_HANDWRITTEN_MESSAGE = [
+  'MDF beige matt 15mm',
+  'Tamponamento ',
+  '',
+  '2 = 2600x55.5 lateral roupeiro. (Fitado 4 lados)',
+  '1 = 2500x55.5 lateral roupeiro.  (Fitado 4 lados)',
+  '1 = 620x55.5 lateral criado. (Fitado 4 lados)',
+  '1 = 450x55.5. Teto criado.   (Fitado 4 lados)',
+  '1= 1910x 53.5. Piso do armário aéreo. (Fitado 2 lados maior)',
+  '1 = 2500x100  lateral roupeiro. (Fitado 1 lado maior)',
+  '',
+  'Branco 6mm comum',
+  '1 fundo 6mm 245x450',
+  '1 fundo 6mm 245x68.9',
+  '1 fundo 6mm 245x89.4',
+  '',
+  '',
+  'Nichos: ',
+  '',
+  '1 = 1460x300 piso / teto. (Fitado 2 lados maior)',
+  '1 =. 1429x270 fundo.  ',
+  '2 = 270x 300.  (Fitado 1 lado menor)',
+  '2 = 270x 270.  (Fitado um lado ',
+  '',
+  '2 = 470x300 lateral. (Fitado 1 lado maior)',
+  '1 = 470x419 fundo ',
+  '2 = 450x300. Piso/ teto. (Fitado 4 lados ',
+  '1 = 1910x 1450. (Fitado 4 lados)',
+  '',
+  '',
+  '',
+  'Portas:  (todas fitado 4 lados )',
+  '2 = 2450x340 porta ',
+  '1 = 2450x 340 porta ',
+  '1 = 2450x44.3  porta ',
+  '2 = 255x428 tampas ',
+  '1 = 815x428 porta',
+  '4 = 815x361 portas',
+].join('\n');

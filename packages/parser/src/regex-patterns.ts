@@ -237,7 +237,8 @@ export const PECAS_HEADER_RE = new RegExp('^(?:' + QUANTITY_MARKER_WORDS + ')\\s
  * peça, espessura solta, frase de fitamento e os outros formatos de
  * cabeçalho, evitando reinterpretar por engano o que já foi tratado antes.
  */
-export const GENERIC_THICKNESS_HEADER_RE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*mm\.?$/i;
+export const GENERIC_THICKNESS_HEADER_RE =
+  /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*mm(?:\s+(comum|liso|lisa|fosco|fosca|brilhante|texturizado|texturizada|acetinado|acetinada))?\.?$/i;
 
 /**
  * Indica que o começo do sufixo é uma palavra de fitamento (sem o número

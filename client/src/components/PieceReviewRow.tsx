@@ -21,6 +21,7 @@ export function PieceReviewRow({
   const fitaTitle = fitaDisabled ? 'MDF abaixo de 15mm não leva fita' : undefined;
   const notes: string[] = [];
   if (piece.note) notes.push(piece.note);
+  if (piece.assumptions) notes.push(...piece.assumptions.map((text) => 'suposição: ' + text));
   if (piece.wasInverted) notes.push('comprimento/largura invertidos (fitamento ajustado)');
   if (piece.suspiciouslySmall) notes.push('medida muito pequena — confira se não estava em metros');
 

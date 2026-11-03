@@ -104,6 +104,12 @@ export interface RawPiece {
    * em peças vindas de tabela (PDF/planilha), onde o ponto é só formatação.
    */
   cmDecimals?: { compr: boolean; larg: boolean };
+  /**
+   * Suposições que o parser fez nesta peça sem a lista dizer (ex: "um lado"
+   * lido como lado maior). A conferência mostra cada uma na coluna Obs., para
+   * quem revisa saber onde olhar com mais atenção.
+   */
+  assumptions?: string[];
 }
 
 /**

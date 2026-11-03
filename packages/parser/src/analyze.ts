@@ -54,7 +54,14 @@ import {
   buildPieceFromDimensionFirstMatch,
 } from './piece-matcher.js';
 import type { PieceMatch, DimensionFirstMatch } from './piece-matcher.js';
-import { finalizePiece, looksLikeNoMaterial, markFitaUnknownIfNeeded, MIN_EDGE_BANDING_THICKNESS_MM } from './finalize.js';
+import {
+  addAssumption,
+  ASSUMED_NO_FITA_NOTE,
+  finalizePiece,
+  looksLikeNoMaterial,
+  markFitaUnknownIfNeeded,
+  MIN_EDGE_BANDING_THICKNESS_MM,
+} from './finalize.js';
 import type { AnalyzeResult, DiscardedItem, FitamentoType, NextIdFn, ParseContext, Piece, RawPiece } from './types.js';
 
 /**
@@ -226,7 +233,10 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     if (built.explicitFita) perPieceFitaSeen = true;
     if (!built.newMaterialInfo && built.inlineThicknessMm != null && built.inlineThicknessMm !== ctx.thicknessMm) {
       const declared = [...declaredMaterials].reverse().find((d) => d.thickness === built.inlineThicknessMm);
-      if (declared) built.piece.material = declared.material;
+      if (declared) {
+        built.piece.material = declared.material;
+        addAssumption(built.piece, 'material do bloco de ' + built.inlineThicknessMm + 'mm declarado acima: ' + declared.material);
+      }
     }
 
     if (built.newMaterialInfo) {
@@ -709,6 +719,7 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
       if (!piece.customFita && (piece.fitaType == null || piece.fitaUnknown)) {
         piece.fitaType = 'none-explicit';
         delete piece.fitaUnknown;
+        addAssumption(piece, ASSUMED_NO_FITA_NOTE);
       }
     });
   }

@@ -59,6 +59,8 @@ export interface CutListState {
 
   /** Fator de conversão confirmado (1 = já em mm, 10 = cm→mm, 1000 = m→mm). */
   mmFactor: number;
+  /** Resposta da caixa "ponto decimal em mm é cm" do modal de mm (vale também p/ peças resgatadas depois). */
+  mmDecimalAsCm: boolean;
 
   /**
    * Se a pergunta sobre peças com código de fita ambíguo ("3L": 3 dos 4
@@ -125,7 +127,8 @@ export type CutListAction =
   | { type: 'SHOW_ERROR'; message: string }
   | { type: 'ERROR_MODAL_CLOSED' }
   | { type: 'CLEAR_INPUT' }
-  | { type: 'MM_ANSWERED'; factor: number }
+  /** decimalAsCm (padrão true): em mm, medida com ponto decimal (44.3) vale cm. */
+  | { type: 'MM_ANSWERED'; factor: number; decimalAsCm?: boolean }
   | { type: 'THREE_LADOS_ANSWERED'; choice: 'maior' | 'menor' }
   | { type: 'FITA_MISSING_ANSWERED'; fitaType: FitamentoType }
   | { type: 'MATERIAL_CONFIRMED'; material: string }

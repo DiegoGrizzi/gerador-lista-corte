@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 export interface MmUnitModalProps {
   isOpen: boolean;
-  onAnswered: (factor: number) => void;
+  onAnswered: (factor: number, decimalAsCm: boolean) => void;
 }
 
 const UNIT_OPTIONS = [
@@ -13,6 +13,7 @@ const UNIT_OPTIONS = [
 export function MmUnitModal({ isOpen, onAnswered }: MmUnitModalProps): JSX.Element {
   const [showUnitStep, setShowUnitStep] = useState(false);
   const [unit, setUnit] = useState(UNIT_OPTIONS[0]!.value);
+  const [decimalAsCm, setDecimalAsCm] = useState(true);
 
   // Toda vez que o modal (re)abre, volta pro passo 1 — mesmo comportamento
   // de openMmModal() no legado, que sempre reseta os passos ao abrir.
@@ -20,6 +21,7 @@ export function MmUnitModal({ isOpen, onAnswered }: MmUnitModalProps): JSX.Eleme
     if (isOpen) {
       setShowUnitStep(false);
       setUnit(UNIT_OPTIONS[0]!.value);
+      setDecimalAsCm(true);
     }
   }, [isOpen]);
 
@@ -35,26 +37,39 @@ export function MmUnitModal({ isOpen, onAnswered }: MmUnitModalProps): JSX.Eleme
       // "Converter para mm" (passo 2, se o usuário já escolheu "Não").
       if (e.key !== 'Enter') return;
       if (showUnitStep) {
-        onAnswered(unit);
+        onAnswered(unit, decimalAsCm);
       } else {
-        onAnswered(1);
+        onAnswered(1, decimalAsCm);
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, showUnitStep, unit, onAnswered]);
+  }, [isOpen, showUnitStep, unit, decimalAsCm, onAnswered]);
 
   return (
     <div className={'modal-overlay' + (isOpen ? ' open' : '')} id="mm-modal-wrap">
       <div className="modal">
         <p className="title">As medidas já estão em milímetros (mm)?</p>
         <p className="sub">Confira antes de revisar as peças — evita peças cortadas na medida errada.</p>
-        <p className="sub">
-          Se responder que sim: uma medida com ponto decimal (ex: 44.3) é tratada como cm — vira 443 mm.
-        </p>
+        <label
+          className="check-row"
+          htmlFor="mm-decimal-as-cm"
+          style={{ display: 'flex', gap: 8, alignItems: 'flex-start', margin: '8px 0' }}
+        >
+          <input
+            type="checkbox"
+            id="mm-decimal-as-cm"
+            checked={decimalAsCm}
+            onChange={(e) => setDecimalAsCm(e.target.checked)}
+          />
+          <span>
+            Se estiver em mm: medida com ponto decimal (ex: 44.3) é cm e vira 443 mm. Desmarque se esta lista usa
+            decimais em mm.
+          </span>
+        </label>
 
         <div id="mm-modal-step1" className={'choice-row' + (showUnitStep ? ' hidden' : '')}>
-          <button className="primary" id="btn-mm-sim" onClick={() => onAnswered(1)}>
+          <button className="primary" id="btn-mm-sim" onClick={() => onAnswered(1, decimalAsCm)}>
             Sim, já em mm
           </button>
           <button id="btn-mm-nao" onClick={() => setShowUnitStep(true)}>
@@ -76,7 +91,7 @@ export function MmUnitModal({ isOpen, onAnswered }: MmUnitModalProps): JSX.Eleme
               </option>
             ))}
           </select>
-          <button className="primary btn-block" id="btn-convert" onClick={() => onAnswered(unit)}>
+          <button className="primary btn-block" id="btn-convert" onClick={() => onAnswered(unit, decimalAsCm)}>
             Converter para mm e continuar
           </button>
         </div>

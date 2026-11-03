@@ -50,6 +50,7 @@ export function createInitialState(): CutListState {
     materialFallback: '',
     mmAsked: false,
     mmFactor: 1,
+    mmDecimalAsCm: true,
     threeLadosAsked: false,
     fitaAsked: false,
     colorAskedMaterials: [],
@@ -111,8 +112,11 @@ function applyMaterialFallback(piece: Piece, materialFallback: string): Piece {
 }
 
 /** Clona, converte para mm (mutando o clone) e devolve a peça já convertida. */
-function convertedClone(piece: Piece, factor: number): Piece {
+function convertedClone(piece: Piece, factor: number, decimalAsCm: boolean): Piece {
   const clone = clonePiece(piece);
+  // Usuário desmarcou "pontos decimais são cm": a marca do parser é ignorada
+  // e o decimal em mm fica em mm.
+  if (!decimalAsCm) delete clone.cmDecimals;
   convertPieceToMm(clone, factor);
   return clone;
 }
@@ -140,6 +144,7 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
         materialFallback: '',
         mmAsked: false,
         mmFactor: 1,
+        mmDecimalAsCm: true,
         threeLadosAsked: false,
         fitaAsked: false,
         colorAskedMaterials: [],
@@ -168,6 +173,7 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
         materialFallback: '',
         mmAsked: false,
         mmFactor: 1,
+        mmDecimalAsCm: true,
         threeLadosAsked: false,
         fitaAsked: false,
         colorAskedMaterials: [],
@@ -181,10 +187,11 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
 
     case 'MM_ANSWERED': {
       const factor = action.factor;
-      let pieces = state.pieces.map((piece) => convertedClone(piece, factor));
+      const decimalAsCm = action.decimalAsCm !== false;
+      let pieces = state.pieces.map((piece) => convertedClone(piece, factor, decimalAsCm));
 
       if (state.pendingRescuedPiece) {
-        const rescued = applyMaterialFallback(convertedClone(state.pendingRescuedPiece, factor), state.materialFallback);
+        const rescued = applyMaterialFallback(convertedClone(state.pendingRescuedPiece, factor, decimalAsCm), state.materialFallback);
         pieces = [...pieces, rescued];
       }
 
@@ -210,6 +217,7 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
         ...state,
         mmAsked: true,
         mmFactor: factor,
+        mmDecimalAsCm: decimalAsCm,
         pieces,
         pendingRescuedPiece: null,
         activeModal,
@@ -323,7 +331,7 @@ export function cutListReducer(state: CutListState, action: CutListAction): CutL
     case 'DISCARD_RETRY_SUCCEEDED': {
       const discardedItems = state.discardedItems.filter((_, i) => i !== action.index);
       const discardErrors = reindexDiscardErrors(state.discardErrors, action.index);
-      const rescued = applyMaterialFallback(convertedClone(action.rescued, state.mmFactor), state.materialFallback);
+      const rescued = applyMaterialFallback(convertedClone(action.rescued, state.mmFactor, state.mmDecimalAsCm), state.materialFallback);
       const pieces = [...state.pieces, rescued];
       const openMaterialModal = !state.materialAsked && looksLikeNoMaterial(rescued.material);
       return {

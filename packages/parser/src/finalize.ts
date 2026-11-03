@@ -80,6 +80,14 @@ export function isMaterialWithoutColor(material: string): boolean {
  * pendências de analyzeText) e devolve a mesma referência já tipada como
  * Piece, agora com `fita` presente.
  */
+/** Suposição: a lista informa fita em outras peças e nesta não disse nada, então ficou sem fita. */
+export const ASSUMED_NO_FITA_NOTE = 'sem fita: a lista informa a fita em outras peças e não nesta';
+
+export function addAssumption(piece: RawPiece, text: string): void {
+  if (!piece.assumptions) piece.assumptions = [];
+  if (!piece.assumptions.includes(text)) piece.assumptions.push(text);
+}
+
 export function finalizePiece(piece: RawPiece): Piece {
   const canHaveFita = allowsEdgeBanding(piece.thicknessMm);
   const fita = canHaveFita
@@ -90,6 +98,11 @@ export function finalizePiece(piece: RawPiece): Piece {
     piece.pendingThreeLados = false;
     // A espessura pode só ter sido conhecida depois de a peça já ter sido marcada.
     delete piece.fitaUnknown;
+    // Peça fina nunca leva fita: "ficou sem fita por suposição" não tem o que avisar.
+    if (piece.assumptions) {
+      piece.assumptions = piece.assumptions.filter((text) => text !== ASSUMED_NO_FITA_NOTE);
+      if (piece.assumptions.length === 0) delete piece.assumptions;
+    }
   }
   let label = piece.material || '';
   if (piece.thicknessMm != null) label += (label ? ' ' : '') + piece.thicknessMm + 'mm';
@@ -137,6 +150,12 @@ function roundToTenthOfMm(value: number): number {
 export function convertPieceToMm(piece: Piece, factor: number): void {
   const comprFactor = factor === 1 && piece.cmDecimals?.compr ? 10 : factor;
   const largFactor = factor === 1 && piece.cmDecimals?.larg ? 10 : factor;
+  const decimalAsCm: string[] = [];
+  if (comprFactor !== factor) decimalAsCm.push(piece.compr + ' → ' + roundToTenthOfMm(piece.compr * comprFactor));
+  if (largFactor !== factor) decimalAsCm.push(piece.larg + ' → ' + roundToTenthOfMm(piece.larg * largFactor));
+  if (decimalAsCm.length > 0) {
+    addAssumption(piece, 'ponto decimal tratado como cm (' + decimalAsCm.join(' e ') + ' mm)');
+  }
   delete piece.cmDecimals;
   piece.compr = roundToTenthOfMm(piece.compr * comprFactor);
   piece.larg = roundToTenthOfMm(piece.larg * largFactor);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { analyzeText } from '../src/analyze.js';
-import { convertPieceToMm } from '../src/finalize.js';
+import { ASSUMED_NO_FITA_NOTE, convertPieceToMm } from '../src/finalize.js';
 import {
   HEADER_THEN_PIECES,
   MATERIAL_DECLARED_AFTER_PIECES,
@@ -957,5 +957,38 @@ describe('analyzeText + convertPieceToMm — em mm, medida com ponto decimal é 
     const { pieces } = analyzeText('MDF branco 15mm\n1 = 245x44.3 teste', makeNextId());
     pieces.forEach((p) => convertPieceToMm(p, 10));
     expect(pieces[0]).toMatchObject({ compr: 2450, larg: 443 });
+  });
+});
+
+describe('analyzeText — suposições anotadas na peça (Piece.assumptions)', () => {
+  it('"(Fitado um lado)" sem maior/menor: anota que foi lido como 1 lado maior', () => {
+    const { pieces } = analyzeText('MDF branco 15mm\n1 = 100x50 (Fitado um lado)', makeNextId());
+    expect(pieces[0]!.assumptions).toEqual(['"um lado" lido como 1 lado maior']);
+  });
+
+  it('lista que informa fita só em algumas peças: as outras ficam sem fita e anotam a suposição', () => {
+    const { pieces } = analyzeText('MDF branco 15mm\n1 = 100x50 (Fitado 4 lados)\n1 = 80x40', makeNextId());
+    expect(pieces[0]!.assumptions).toBeUndefined();
+    expect(pieces[1]!.assumptions).toEqual([ASSUMED_NO_FITA_NOTE]);
+  });
+
+  it('peça fina (6mm) não leva fita, então não anota "sem fita por suposição"', () => {
+    const { pieces } = analyzeText(
+      'MDF branco 15mm\n1 = 100x50 (Fitado 4 lados)\nMDF branco 6mm\n1 = 80x40',
+      makeNextId(),
+    );
+    expect(pieces[1]!.thicknessMm).toBe(6);
+    expect(pieces[1]!.assumptions).toBeUndefined();
+  });
+
+  it('em mm, ponto decimal tratado como cm: a conversão anota de quanto para quanto', () => {
+    const { pieces } = analyzeText('MDF branco 15mm\n2450x44.3=2', makeNextId());
+    pieces.forEach((p) => convertPieceToMm(p, 1));
+    expect(pieces[0]!.assumptions).toEqual(['ponto decimal tratado como cm (44.3 → 443 mm)']);
+  });
+
+  it('sem nenhuma suposição, a peça não tem a chave assumptions', () => {
+    const { pieces } = analyzeText('MDF branco 15mm\n1 = 100x50', makeNextId());
+    expect('assumptions' in pieces[0]!).toBe(false);
   });
 });

@@ -360,7 +360,11 @@ export function buildPieceFromMatch(
   // "(Fitado um lado" sem dizer maior ou menor: quem escreve assim quase
   // sempre fala do lado maior — melhor do que perguntar de novo sobre uma
   // peça cuja linha já diz que tem fita.
-  if (!tailPhraseType && fitaNote && /\b(?:um|1)\s+lado\b/i.test(fitaNote)) tailPhraseType = 'maior-um';
+  let assumedOneSideMajor = false;
+  if (!tailPhraseType && fitaNote && /\b(?:um|1)\s+lado\b/i.test(fitaNote)) {
+    tailPhraseType = 'maior-um';
+    assumedOneSideMajor = true;
+  }
 
   let fitaType = null as RawPiece['fitaType'];
   let customFita = null as RawPiece['customFita'];
@@ -426,6 +430,7 @@ export function buildPieceFromMatch(
   };
   const cmDecimals = cmDecimalsOf(dimensionMatch[1]!, dimensionMatch[3]!);
   if (cmDecimals) piece.cmDecimals = cmDecimals;
+  if (assumedOneSideMajor) piece.assumptions = ['"um lado" lido como 1 lado maior'];
 
   return {
     piece,

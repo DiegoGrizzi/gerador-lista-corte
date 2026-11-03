@@ -250,3 +250,28 @@ export function stripFillers(text: string): string {
   if (/^[.,;:]*$/.test(cleaned)) return '';
   return cleaned;
 }
+
+const UNIT_FACTORS: { re: RegExp; factor: number }[] = [
+  { re: /^(?:mil[ií]metros?|mm)$/i, factor: 1 },
+  { re: /^(?:cent[ií]metros?|cm)$/i, factor: 10 },
+  { re: /^metros?$/i, factor: 1000 },
+];
+
+/**
+ * Frase que diz a unidade das medidas, numa linha própria ou no meio de um
+ * texto: "As medidas seguem em milímetros", "medidas em cm", "tudo em
+ * centímetros", "as medidas estão em metros". Exige "medidas"/"tudo"/
+ * "valores" E um conector ("em", "são", "estão", "seguem") antes da unidade —
+ * "Medidas MDF 15mm" (cabeçalho de material) não conta. Linhas que começam
+ * com número (peças) nunca contam.
+ */
+const STATED_UNIT_RE =
+  /^(?!\s*\d)[^\n]*?\b(?:medidas?|tudo|valores)\b[^\n]*?\b(?:em|s[ãa]o|est[ãa]o|seguem)\s+(?:em\s+)?(mil[ií]metros?|mm|cent[ií]metros?|cm|metros?)\b/im;
+
+/** Fator mm da unidade que a mensagem diz usar (1, 10 ou 1000), ou null quando não diz nenhuma. */
+export function detectStatedUnitFactor(text: string): number | null {
+  const match = text.match(STATED_UNIT_RE);
+  if (!match) return null;
+  const unit = match[1]!;
+  return UNIT_FACTORS.find((entry) => entry.re.test(unit))?.factor ?? null;
+}

@@ -800,4 +800,13 @@ describe('analyzeText — "N peças c/ CxL" com sinais de fita "+"/"-" no fim da
     const result = analyzeText('MDF branco 15mm\n1 peça c/ 100x50', makeNextId());
     expect(result.pieces[0]!.fitaUnknown).toBe(true);
   });
+
+  it('"As medidas seguem em milímetros" na mensagem devolve unitFactor 1 (a interface não pergunta a unidade)', () => {
+    expect(analyzeText(PECAS_COM_SINAIS_FITA_MESSAGE, makeNextId()).unitFactor).toBe(1);
+  });
+
+  it('sem frase de unidade, unitFactor não existe no resultado', () => {
+    const result = analyzeText('MDF branco 15mm\n1 peça c/ 100x50', makeNextId());
+    expect('unitFactor' in result).toBe(false);
+  });
 });

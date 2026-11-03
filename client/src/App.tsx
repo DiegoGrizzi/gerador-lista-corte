@@ -70,6 +70,7 @@ export function App(): JSX.Element {
       discarded: result.discarded,
       materialMentioned: result.materialMentioned,
       idCounter: getIdCounter(),
+      unitFactor: result.unitFactor,
     });
   }, [state.rawText, state.idCounter, dispatch]);
 

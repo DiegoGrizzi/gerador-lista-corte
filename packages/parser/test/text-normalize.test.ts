@@ -10,7 +10,34 @@ import {
   normalizeDotAfterQuantity,
   joinSplitQuantityLines,
   mergeMdfThicknessAndColorLines,
+  detectStatedUnitFactor,
 } from '../src/text-normalize.js';
+
+describe('detectStatedUnitFactor', () => {
+  it.each([
+    ['As medidas seguem em milímetros', 1],
+    ['As medidas seguem em milímetros \n\nMDF 15', 1],
+    ['medidas em mm', 1],
+    ['Medidas em cm', 10],
+    ['as medidas estão em centímetros', 10],
+    ['tudo em cm', 10],
+    ['As medidas são em metros', 1000],
+    ['Bom dia\nMedidas em mm\n2=47/47', 1],
+  ])('"%s" → %s', (text, factor) => {
+    expect(detectStatedUnitFactor(text)).toBe(factor);
+  });
+
+  it.each([
+    ['2=47/47'],
+    ['Medidas MDF 15mm'],
+    ['MDF branco de 15mm'],
+    ['2 peças c/ 100x50 em cm'],
+    ['Quarto em metros quadrados'],
+    [''],
+  ])('"%s" → nenhuma unidade informada', (text) => {
+    expect(detectStatedUnitFactor(text)).toBeNull();
+  });
+});
 
 describe('stripWhatsAppExportPrefixes', () => {
   it('remove o prefixo do iPhone e do Android', () => {

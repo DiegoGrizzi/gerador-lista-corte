@@ -100,6 +100,37 @@ describe('ANALYZE_SUCCEEDED', () => {
     expect(next.pendingRescuedPiece).toBeNull();
   });
 
+  it('quando a mensagem já diz a unidade (unitFactor), pula o modal de mm e converte as medidas', () => {
+    const next = cutListReducer(createInitialState(), {
+      type: 'ANALYZE_SUCCEEDED',
+      pieces: [makePiece({ compr: 50, larg: 30 })],
+      discarded: [],
+      materialMentioned: true,
+      idCounter: 1,
+      unitFactor: 10,
+    });
+
+    expect(next.mmAsked).toBe(true);
+    expect(next.mmFactor).toBe(10);
+    expect(next.pieces[0]).toMatchObject({ compr: 500, larg: 300 });
+    expect(next.activeModal).toBe('none');
+    expect(next.previewVisible).toBe(true);
+  });
+
+  it('com unitFactor, ainda encadeia as outras perguntas (ex: fita desconhecida)', () => {
+    const next = cutListReducer(createInitialState(), {
+      type: 'ANALYZE_SUCCEEDED',
+      pieces: [makePiece({ fitaUnknown: true })],
+      discarded: [],
+      materialMentioned: true,
+      idCounter: 1,
+      unitFactor: 1,
+    });
+
+    expect(next.mmAsked).toBe(true);
+    expect(next.activeModal).toBe('fitaMissing');
+  });
+
   it('quando não há peças (só descartes), vai direto para a conferência sem passar pelo modal de mm', () => {
     const state = createInitialState();
     const discarded = [makeDiscarded()];

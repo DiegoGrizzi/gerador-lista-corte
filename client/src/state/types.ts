@@ -119,6 +119,8 @@ export type CutListAction =
       discarded: DiscardedItem[];
       materialMentioned: boolean;
       idCounter: number;
+      /** Unidade que a própria mensagem informou (ver AnalyzeResult.unitFactor) — pula a pergunta de mm. */
+      unitFactor?: number;
     }
   | { type: 'SHOW_ERROR'; message: string }
   | { type: 'ERROR_MODAL_CLOSED' }

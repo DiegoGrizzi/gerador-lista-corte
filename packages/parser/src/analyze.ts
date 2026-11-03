@@ -34,6 +34,7 @@ import {
   normalizeDotAfterQuantity,
   joinSplitQuantityLines,
   mergeMdfThicknessAndColorLines,
+  detectStatedUnitFactor,
 } from './text-normalize.js';
 import { parseFitamentoPhrase } from './fitamento.js';
 import { extractTrailingFitaCodes, extractTrailingFitaSigns, applyFitaCodesToPiece } from './fita-codes.js';
@@ -639,5 +640,8 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     materialMentioned = finalizedPieces.every((p) => !looksLikeNoMaterial(p.material));
   }
 
-  return { pieces: finalizedPieces, discarded, materialMentioned };
+  const unitFactor = detectStatedUnitFactor(text);
+  return unitFactor == null
+    ? { pieces: finalizedPieces, discarded, materialMentioned }
+    : { pieces: finalizedPieces, discarded, materialMentioned, unitFactor };
 }

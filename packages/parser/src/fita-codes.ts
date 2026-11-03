@@ -38,6 +38,29 @@ export function extractTrailingFitaCodes(line: string): { line: string; codes: s
   return { line: parts.join(' ').trim(), codes };
 }
 
+/**
+ * Sinais "+" e "-" no fim da linha (ex: "4 peças c/ 446x970 ++--"): cada "+"
+ * é 1 lado do par MAIOR e cada "-" é 1 lado do par MENOR — "++--" = os 4
+ * lados, "+--" = 1 maior + 2 menores, "+" = 1 lado maior. Equivale aos
+ * códigos "2M"/"1M"/"2m"/"1m" acima (devolve esses mesmos códigos, para
+ * reaproveitar computeFitaFromCodes). Só vale colado a um número (a medida)
+ * no fim da linha, e no máximo 2 de cada sinal (a peça só tem 2 lados por
+ * par).
+ */
+const TRAILING_FITA_SIGNS_RE = /(\d)\s*([+-]{1,4})$/;
+
+export function extractTrailingFitaSigns(line: string): { line: string; codes: string[] } {
+  const match = line.match(TRAILING_FITA_SIGNS_RE);
+  if (!match) return { line, codes: [] };
+  const signs = match[2]!;
+  const maior = Math.min(2, signs.split('+').length - 1);
+  const menor = Math.min(2, signs.split('-').length - 1);
+  const codes: string[] = [];
+  if (maior > 0) codes.push(maior + 'M');
+  if (menor > 0) codes.push(menor + 'm');
+  return { line: line.slice(0, match.index! + 1).trim(), codes };
+}
+
 /** Booleans de um par de bordas (ex: c1/c2) a partir de quantos lados desse par estão fitados (0, 1 ou 2). Quando só 1, é sempre o primeiro (mesma convenção de resolveFitaFromType em fitamento.ts). */
 function pairFromCount(count: number): [boolean, boolean] {
   return [count >= 1, count >= 2];

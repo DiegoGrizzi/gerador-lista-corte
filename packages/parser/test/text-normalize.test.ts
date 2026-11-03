@@ -68,6 +68,16 @@ describe('mergeMdfThicknessAndColorLines', () => {
   it('sem cor na linha seguinte, só acrescenta a unidade', () => {
     expect(mergeMdfThicknessAndColorLines('MDF 18\n2=47/47')).toBe('MDF 18mm\n2=47/47');
   });
+
+  it('aceita a cor como "Cor X" e mantém o descritor depois da vírgula', () => {
+    expect(mergeMdfThicknessAndColorLines('MDF 15, duas face naval \nCor Louro Freijó \n\n2=47/47')).toBe(
+      'MDF Louro Freijó duas face naval 15mm\n\n2=47/47',
+    );
+  });
+
+  it('aceita "Fundo em MDF 6" + "Cor X"', () => {
+    expect(mergeMdfThicknessAndColorLines('Fundo em MDF 6 \nCor Louro Freijó')).toBe('MDF Louro Freijó 6mm');
+  });
 });
 
 describe('stripWhatsAppFormatting', () => {
@@ -116,6 +126,12 @@ describe('normalizeTypos', () => {
 });
 
 describe('stripFillers', () => {
+  it('removes "c/" (abreviação de "com") como palavra solta', () => {
+    expect(stripFillers('c/')).toBe('');
+    expect(stripFillers('c/ gaveta')).toBe('gaveta');
+    expect(stripFillers('abc/def')).toBe('abc/def');
+  });
+
   it('removes the "de" filler word', () => {
     expect(stripFillers('de gaveta')).toBe('gaveta');
   });

@@ -589,3 +589,35 @@ export const WHATSAPP_EXPORT_SHUFFLED_MESSAGE = [
 ]
   .map((line) => '[15:29, 15/10/2026] Taciana Araujo Madeiras: ' + line)
   .join('\n');
+
+/**
+ * Lista real de um usuário: "N peças c/ CxL" com sinais no fim da linha para a
+ * fita ("+" = 1 lado maior, "-" = 1 lado menor: "++--" = os 4 lados, "+--" =
+ * 1 maior e 2 menores), sem sinal = sem fita. O material vem em duas linhas
+ * ("MDF 15, duas face naval" / "Cor Louro Freijó") e o fundo em outro bloco
+ * ("Fundo em MDF 6" / "Cor Louro Freijó"). A primeira linha informa a unidade.
+ */
+export const PECAS_COM_SINAIS_FITA_MESSAGE = [
+  'As medidas seguem em milímetros ',
+  '',
+  'MDF 15, duas face naval ',
+  'Cor Louro Freijó ',
+  '',
+  '2 peças c/ 75x1800 +',
+  '1 peça c/ 240x1770 +',
+  '2 peças c/ 240x100 +',
+  '1 peça c/ 230x985 +',
+  '4 peças c/ 220x877 +',
+  '3 peças c/ 80x1770 +',
+  '2 peças c/ 80x1770',
+  '4 peças c/ 446x970 ++--',
+  '6 peças c/ 320x80 +',
+  '2 peças c/ 877x80 +',
+  '    ',
+  '',
+  'Fundo em MDF 6 ',
+  'Cor Louro Freijó ',
+  '',
+  '1 peça c/ 1770x970',
+  '1 peça c/ 877x240',
+].join('\n');

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   extractStatedTotal,
+  stripMeasureUnits,
   stripWhatsAppFormatting,
   normalizeTypos,
   stripFillers,
@@ -281,4 +282,30 @@ describe('extractStatedTotal', () => {
       expect(extractStatedTotal(text)).toEqual({ text, total: null });
     },
   );
+});
+
+describe('stripMeasureUnits', () => {
+  it('tira o mm colado nas duas medidas ou em uma só e devolve o fator 1', () => {
+    expect(stripMeasureUnits('1- 1630mm x 65mm Mdf de 15mm')).toEqual({ text: '1- 1630 x 65 Mdf de 15mm', unitFactor: 1 });
+    expect(stripMeasureUnits('1- 1670mm x 135 em titânio')).toEqual({ text: '1- 1670 x 135 em titânio', unitFactor: 1 });
+    expect(stripMeasureUnits('2 pç 1200 mm × 600')).toEqual({ text: '2 pç 1200 x 600', unitFactor: 1 });
+  });
+
+  it('cm devolve o fator 10', () => {
+    expect(stripMeasureUnits('2- 50cm x 30cm')).toEqual({ text: '2- 50 x 30', unitFactor: 10 });
+  });
+
+  it('linhas que dizem mm e linhas que dizem cm se contradizem: sem fator', () => {
+    expect(stripMeasureUnits('1- 100mm x 50mm\n1- 10cm x 5cm').unitFactor).toBeNull();
+  });
+
+  it('mm numa medida e cm na outra: deixa a linha como está', () => {
+    expect(stripMeasureUnits('1- 100mm x 50cm')).toEqual({ text: '1- 100mm x 50cm', unitFactor: null });
+  });
+
+  it('não mexe em linha sem unidade, em linha que não começa com número nem na espessura (terceira medida)', () => {
+    expect(stripMeasureUnits('1- 1000 x 500 x 15mm')).toEqual({ text: '1- 1000 x 500 x 15mm', unitFactor: null });
+    expect(stripMeasureUnits('MDF 15mm x 2750')).toEqual({ text: 'MDF 15mm x 2750', unitFactor: null });
+    expect(stripMeasureUnits('2 = 100x50')).toEqual({ text: '2 = 100x50', unitFactor: null });
+  });
 });

@@ -18,6 +18,7 @@ import {
   BARE_THICKNESS_HEADER_RE,
   NAME_ONLY_LINE_RE,
   DISCARD_LABELS,
+  HARDWARE_ITEM_RE,
   SEPARATOR_LINE_RE,
   LOOKS_LIKE_PIECE_RE,
   SUSPICIOUS_ADJACENT_RE,
@@ -36,6 +37,7 @@ import {
   mergeMdfThicknessAndColorLines,
   detectStatedUnitFactor,
   extractStatedTotal,
+  stripMeasureUnits,
 } from './text-normalize.js';
 import { parseFitamentoPhrase } from './fitamento.js';
 import { extractTrailingFitaCodes, extractTrailingFitaSigns, applyFitaCodesToPiece } from './fita-codes.js';
@@ -317,11 +319,10 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
   // separada por ponto) em uma linha por peça, antes de mais nada — o resto
   // da função processa cada peça normalmente a partir daqui.
   const { text: textWithoutTotal, total: statedTotal } = extractStatedTotal(text);
-  const expandedText = expandPcSeparatedPieces(
-    joinSplitQuantityLines(
-      mergeMdfThicknessAndColorLines(normalizeDotAfterQuantity(stripWhatsAppExportPrefixes(textWithoutTotal))),
-    ),
+  const { text: textWithoutUnits, unitFactor: measureUnitFactor } = stripMeasureUnits(
+    normalizeDotAfterQuantity(stripWhatsAppExportPrefixes(textWithoutTotal)),
   );
+  const expandedText = expandPcSeparatedPieces(joinSplitQuantityLines(mergeMdfThicknessAndColorLines(textWithoutUnits)));
 
   expandedText.split('\n').forEach((rawLine) => {
     // Marcador de lista ("* 4 peças ...", "• ...", "- ...") — só quando
@@ -534,6 +535,8 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
         if (fitaCodes.length > 0) applyFitaCodesToPiece(pieces[pieces.length - 1]!, fitaCodes);
         return;
       }
+      // Ferragem com quantidade e sem medidas: ignorada, não é cabeçalho.
+      if (HARDWARE_ITEM_RE.test(quantityMatch[3]!)) return;
       // Tinha formato de quantidade, mas não achou medidas depois dela —
       // segue analisando o restante da linha como possível cabeçalho.
       line = quantityMatch[3]!;
@@ -749,7 +752,7 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     materialMentioned = finalizedPieces.every((p) => !looksLikeNoMaterial(p.material));
   }
 
-  const unitFactor = detectStatedUnitFactor(text);
+  const unitFactor = detectStatedUnitFactor(text) ?? measureUnitFactor;
   const result: AnalyzeResult = { pieces: finalizedPieces, discarded, materialMentioned };
   if (unitFactor != null) result.unitFactor = unitFactor;
   if (statedTotal != null) result.statedTotal = statedTotal;

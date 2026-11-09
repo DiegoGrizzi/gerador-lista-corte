@@ -42,7 +42,7 @@ const UM_MENOR_SHORTHAND_RE = new RegExp('^' + JUNK + '1\\s*(?:lados?\\s+)?(?:me
  */
 export function parseFitamentoPhrase(text: string): FitamentoType | null {
   const lower = text.toLowerCase();
-  if (/n[aã]o\s+precisa|sem\s+fita|s[oó]\s+cortar/.test(lower) || BARE_SEM_RE.test(lower)) return 'none-explicit';
+  if (/n[aã]o\s+precisa|sem\s+(?:fita|revestimento)|s[oó]\s+cortar/.test(lower) || BARE_SEM_RE.test(lower)) return 'none-explicit';
   if (/4\s*lados?|fita\s*tudo|tudo\s*fita/.test(lower)) return 'all';
   if (/\b(?:dois?|2)\s+lados?\s+(maior|grande)/.test(lower) || DOIS_MAIOR_SHORTHAND_RE.test(lower)) return 'maior-dois';
   if (/\b(?:dois?|2)\s+lados?\s+(menor|pequen[oa])/.test(lower) || DOIS_MENOR_SHORTHAND_RE.test(lower)) return 'menor-dois';

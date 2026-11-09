@@ -310,3 +310,40 @@ export function extractStatedTotal(text: string): { text: string; total: number 
   });
   return total == null ? { text, total: null } : { text: kept.join('\n'), total };
 }
+
+/**
+ * Par de medidas da peça com unidade colada em uma delas ou nas duas
+ * ("1630mm x 65mm", "1670mm x 135", "50cm x 30cm"). O primeiro par da linha
+ * é sempre o comprimento x largura; um terceiro número depois dele (espessura)
+ * deixa a linha como está, para não confundir com "15mm x 400 x 300".
+ */
+const MEASURE_UNIT_PAIR_RE =
+  /(\d+(?:[.,]\d+)?)\s*(mm|cm)?\s*(?:x|×|\*)\s*(\d+(?:[.,]\d+)?)\s*(mm|cm)?(?![a-zà-öø-ÿ])(?!\s*(?:x|×|\*)\s*\d)/i;
+
+/**
+ * Tira a unidade colada nas medidas das linhas de peça ("1630mm x 65mm" →
+ * "1630 x 65") e devolve a unidade que elas dizem usar (1 = mm, 10 = cm), ou
+ * null quando nenhuma linha traz unidade ou as linhas se contradizem. Só mexe
+ * em linhas que começam com número (a quantidade); uma linha com mm numa
+ * medida e cm na outra fica como está.
+ */
+export function stripMeasureUnits(text: string): { text: string; unitFactor: number | null } {
+  const units = new Set<string>();
+  const out = text
+    .split('\n')
+    .map((line) => {
+      if (!/^\s*\d/.test(line)) return line;
+      const match = MEASURE_UNIT_PAIR_RE.exec(line);
+      if (!match) return line;
+      const first = match[2]?.toLowerCase();
+      const second = match[4]?.toLowerCase();
+      if (!first && !second) return line;
+      if (first && second && first !== second) return line;
+      units.add((first || second)!);
+      const pair = match[1] + ' x ' + match[3];
+      return line.slice(0, match.index) + pair + line.slice(match.index + match[0].length);
+    })
+    .join('\n');
+  const unitFactor = units.size === 1 ? (units.has('mm') ? 1 : 10) : null;
+  return { text: out, unitFactor };
+}

@@ -714,3 +714,21 @@ export const BEIGE_DECIMALS_ARE_CM_MESSAGE = [
   '1 = 815x428 porta',
   '4 = 815x361 portas',
 ].join('\n');
+
+/**
+ * Lista de marceneiro: cada linha traz o próprio MDF DEPOIS das medidas
+ * (com "mm" colado nas medidas), "revestimento" no lugar de "fita" e
+ * ferragens misturadas, com quantidade e sem medidas de corte.
+ */
+export const MDF_POR_LINHA_COM_FERRAGEM_MESSAGE = [
+  '1- 1630mm x 65mm Mdf de 15mm titânio trama ',
+  '1-680mm x 705mm Mdf titânio trama de 15mm, revestimento nos 4 lados ',
+  '1- 580mm x 725mm Mdf branco de 15mm, revestimento nos 4 lados ',
+  '1- piston a gaz força normal 60n branco ',
+  '1- 1670mm x 135 em titânio trama comum de 15mm, revestimento nos 4 lados ',
+  '2- 370mm x 110mm em mdf branco comum de 15mm, revestimento em 1 lado grande de cada peça ',
+  '4- rodízio de silicone de 35mm ',
+  '1- 1415mm x 395mm Mdf de 6mm  branco comum ',
+  '1kit de rodanas com mola para porta de correr ',
+  '2- peças de 400mm x 100mm Mdf branco comum de 15mm revestimento nos 4 lados ',
+].join('\n');

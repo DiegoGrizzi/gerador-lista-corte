@@ -254,6 +254,16 @@ export const FITAMENTO_ADJECTIVE_AT_START_RE = /^(?:lados?|maior(?:es)?|menor(?:
 /** Rótulos de seção que devem ir para conferência, mas nunca virar peça ou ambiente. */
 export const DISCARD_LABELS = ['ferragens', 'acessórios', 'acessorios', 'hardware', 'acabamentos'];
 
+/**
+ * Ferragem/acessório listado com quantidade mas sem medidas de corte ("4-
+ * rodízio de silicone de 35mm", "1kit de rodanas com mola"). Só é consultada
+ * em linha que começa com quantidade e NÃO tem par de medidas — esses itens
+ * não são peças e não podem virar cabeçalho de material ou de Função (a "35mm"
+ * do rodízio não é a espessura de nenhum MDF).
+ */
+export const HARDWARE_ITEM_RE =
+  /\b(?:kit|ferragens?|pist(?:[aã]o|[oõ]es|on)|rod[ií]zios?|rodanas?|roldanas?|dobradi[çc]as?|corredi[çc]as?|puxador(?:es)?|parafusos?|cavilhas?|minifix|cabideiros?|trilhos?|suportes?|fechaduras?|amortecedor(?:es)?|sapatas?|ganchos?|pregos?|buchas?|perfil|perfis|l[âa]mpadas?|tomadas?|ventosas?)\b/i;
+
 /** Linha puramente decorativa, ex: "----------x-------------". */
 export const SEPARATOR_LINE_RE = /^[-=_*]{2,}[xX]?[-=_*]{0,}$/;
 

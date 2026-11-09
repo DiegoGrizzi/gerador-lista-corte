@@ -54,11 +54,12 @@ export function extractHeaderInfo(rawLine: string): HeaderInfo {
     withoutParens.match(THICKNESS_SUFFIX_RE) || withoutParens.match(BARE_MM_RE) || withoutParens.match(SHORT_D_THICKNESS_RE);
   const thickness = thicknessMatch ? toNumber(thicknessMatch[1]!) : null;
   const material = withoutParens
-    .replace(/fitad[oa]\w*.*$/i, '') // remove a frase de fitamento e tudo depois dela
+    .replace(/(?:fitad[oa]|revestiment)\w*.*$/i, '') // remove a frase de fitamento ("revestimento" é o mesmo) e tudo depois dela
     .replace(THICKNESS_SUFFIX_RE, '') // remove "de Nmm"
     .replace(BARE_MM_RE, '') // remove "Nmm" colado, sem "de" (ex: "15mm" solto)
     .replace(SHORT_D_THICKNESS_RE, '') // remove "d N" (ex: "d 15")
     .replace(/\s{2,}/g, ' ')
+    .replace(/[\s,;]+$/, '')
     .trim();
   return { material, fitamento, thickness };
 }

@@ -255,6 +255,25 @@ function extractParentheticalFitaNote(suffix: string): { rest: string; note: str
   return { rest: suffix.slice(0, match.index).trim(), note };
 }
 
+/**
+ * Material declarado DEPOIS das medidas, na própria linha ("... Mdf titânio
+ * trama de 15mm, revestimento nos 4 lados", "... em titânio trama comum de
+ * 15mm"). Devolve o material/espessura e o que sobra do sufixo (a frase de
+ * fita, que segue o caminho normal), ou null quando o sufixo não começa com
+ * "mdf" nem com "em <material> ... Nmm".
+ */
+function splitSuffixMaterial(suffix: string): { info: HeaderInfo; rest: string } | null {
+  const startsWithMdf = /^(?:em\s+)?mdf\b/i.test(suffix);
+  const startsWithEmMaterial = /^em\s+(?!fita\b)[^,]*?\d+(?:[.,]\d+)?\s*mm\b/i.test(suffix);
+  if (!startsWithMdf && !startsWithEmMaterial) return null;
+  const fitaStart = suffix.search(/(?:fitad[oa]|revestiment)/i);
+  const materialPart = (fitaStart >= 0 ? suffix.slice(0, fitaStart) : suffix).replace(/^em\s+/i, '');
+  const info = extractHeaderInfo(materialPart);
+  if (!info.material) return null;
+  info.material = /mdf/i.test(info.material) ? info.material.replace(/\bmdf\b/i, 'MDF') : 'MDF ' + info.material;
+  return { info, rest: fitaStart >= 0 ? suffix.slice(fitaStart) : '' };
+}
+
 /** Resultado de buildPieceFromMatch. */
 export interface BuildPieceResult {
   piece: RawPiece;
@@ -319,7 +338,8 @@ export function buildPieceFromMatch(
   } else if (prefix) {
     // "fundo 6mm": a espessura citada na linha vale para esta peça e não
     // faz parte do nome dela.
-    let prefixText = prefix;
+    // "2- peças de 400 x 100": "peças de" é só o marcador de quantidade.
+    let prefixText = prefix.replace(/^(?:pe[çc]as?|p[çc]s?|pcs?)\b\s*(?:de\s+)?/i, '');
     const mmInPrefix = prefixText.match(BARE_MM_INLINE_RE);
     if (mmInPrefix) {
       thickness = toNumber(mmInPrefix[1]!);
@@ -328,6 +348,17 @@ export function buildPieceFromMatch(
     }
     const funcaoFromPrefix = cleanFuncaoText(prefixText);
     if (funcaoFromPrefix) funcao = funcaoFromPrefix;
+  }
+
+  // Cada linha pode trazer o próprio material depois das medidas; vale só para
+  // esta peça (não vira o material das seguintes).
+  if (!newMaterialInfo) {
+    const suffixMaterial = splitSuffixMaterial(suffix);
+    if (suffixMaterial) {
+      material = suffixMaterial.info.material;
+      if (suffixMaterial.info.thickness != null) thickness = suffixMaterial.info.thickness;
+      suffix = suffixMaterial.rest;
+    }
   }
 
   // Espessura mencionada no restante da linha (ex: "... de 6mm").

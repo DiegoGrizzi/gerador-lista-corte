@@ -189,3 +189,14 @@ describe('resolveFitaFromType', () => {
     });
   });
 });
+
+describe('parseFitamentoPhrase — "revestimento" é fitamento', () => {
+  it.each([
+    ['revestimento nos 4 lados', 'all'],
+    ['revestimento dos 4 lados', 'all'],
+    ['revestimento em 1 lado grande de cada peça', 'maior-um'],
+    ['sem revestimento', 'none-explicit'],
+  ])('%s', (text, expected) => {
+    expect(parseFitamentoPhrase(text)).toBe(expected);
+  });
+});

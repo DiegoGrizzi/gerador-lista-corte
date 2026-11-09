@@ -33,6 +33,7 @@ import {
   PECAS_COM_SINAIS_FITA_MESSAGE,
   BEIGE_HANDWRITTEN_MESSAGE,
   BEIGE_DECIMALS_ARE_CM_MESSAGE,
+  MDF_POR_LINHA_COM_FERRAGEM_MESSAGE,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -1003,5 +1004,47 @@ describe('analyzeText — total de peças informado pela lista (statedTotal)', (
 
   it('sem linha de total, a chave statedTotal não existe', () => {
     expect('statedTotal' in analyzeText('MDF branco 15mm\n2 = 100x50', makeNextId())).toBe(false);
+  });
+});
+
+describe('analyzeText — MDF em cada linha, "mm" nas medidas, "revestimento" e ferragens', () => {
+  const result = analyzeText(MDF_POR_LINHA_COM_FERRAGEM_MESSAGE, makeNextId());
+  const summary = result.pieces.map((p) => [p.qtd, p.compr, p.larg, p.material, p.fitaType, p.funcao]);
+
+  it('lê as 7 peças, cada uma com o MDF e a espessura da própria linha', () => {
+    expect(summary).toEqual([
+      [1, 1630, 65, 'MDF titânio trama 15mm', 'none-explicit', ''],
+      [1, 680, 705, 'MDF titânio trama 15mm', 'all', ''],
+      [1, 580, 725, 'MDF branco 15mm', 'all', ''],
+      [1, 1670, 135, 'MDF titânio trama comum 15mm', 'all', ''],
+      [2, 370, 110, 'MDF branco comum 15mm', 'maior-um', ''],
+      [1, 1415, 395, 'MDF branco comum 6mm', 'none-explicit', ''],
+      [2, 400, 100, 'MDF branco comum 15mm', 'all', ''],
+    ]);
+  });
+
+  it('"mm" colado nas medidas diz a unidade: a lista é lida como mm sem perguntar', () => {
+    expect(result.unitFactor).toBe(1);
+  });
+
+  it('ferragem com quantidade e sem medidas é ignorada e não vira cabeçalho nem Função das peças seguintes', () => {
+    expect(result.discarded).toHaveLength(0);
+    expect(result.pieces.every((p) => p.funcao === '')).toBe(true);
+    expect(result.pieces.some((p) => /rod[ií]zio|piston|kit/i.test(p.material))).toBe(false);
+  });
+
+  it('peça sem frase de fita numa lista que traz fita nas outras fica sem fita, anotando a suposição', () => {
+    expect(result.pieces[0]!.assumptions).toEqual([ASSUMED_NO_FITA_NOTE]);
+  });
+
+  it('cm nas medidas ("50cm x 30cm") vira fator 10', () => {
+    const cm = analyzeText('MDF branco 15mm\n2- 50cm x 30cm', makeNextId());
+    expect(cm.unitFactor).toBe(10);
+    expect([cm.pieces[0]!.compr, cm.pieces[0]!.larg]).toEqual([50, 30]);
+  });
+
+  it('a frase "medidas em cm" vale mais que o "mm" das medidas', () => {
+    const said = analyzeText('Medidas em cm\nMDF branco 15mm\n2- 50mm x 30mm', makeNextId());
+    expect(said.unitFactor).toBe(10);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
+import { tryMatchDimensionsThicknessLine,
   tryMatchPieceLine,
   splitIntoPieceSegments,
   tryMatchDimensionFirstLine,
@@ -244,5 +244,25 @@ describe('tryMatchDimensionFirstLine — "comprimento x largura=quantidade" (rea
 
   it('não confunde com o formato principal "quantidade=comprimento/largura"', () => {
     expect(tryMatchDimensionFirstLine('2=47/47')).toBeNull();
+  });
+});
+
+describe('tryMatchDimensionsThicknessLine', () => {
+  it('lê "550 X 660 X 15 = 8" e variações de espaço, ":" e "mm"', () => {
+    const expected = { qty: 8, compr: 550, larg: 660, lineThicknessMm: 15 };
+    expect(tryMatchDimensionsThicknessLine('550 X 660 X 15 = 8')).toMatchObject(expected);
+    expect(tryMatchDimensionsThicknessLine('550x660x15=8')).toMatchObject(expected);
+    expect(tryMatchDimensionsThicknessLine('550 x 660 x 15mm: 8')).toMatchObject(expected);
+    expect(tryMatchDimensionsThicknessLine('550 × 660 × 15 = 8 pç')).toMatchObject(expected);
+  });
+
+  it('terceiro número que não é espessura de chapa não é esse formato', () => {
+    expect(tryMatchDimensionsThicknessLine('100 x 200 x 300 = 2')).toBeNull();
+    expect(tryMatchDimensionsThicknessLine('100 x 200 x 2 = 2')).toBeNull();
+  });
+
+  it('linhas de outros formatos não batem', () => {
+    expect(tryMatchDimensionsThicknessLine('550 x 660 = 8')).toBeNull();
+    expect(tryMatchDimensionsThicknessLine('3 X 0,80 X 0,505')).toBeNull();
   });
 });

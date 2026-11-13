@@ -109,6 +109,19 @@ export const DIMENSION_FIRST_EQUALS_RE = new RegExp(
 );
 
 /**
+ * Sétimo formato (real user list): "550 X 660 X 15 = 8" — comprimento x
+ * largura x ESPESSURA, e a quantidade depois do "=" (ou ":"). O terceiro
+ * número é a espessura em mm (ver tryMatchDimensionsThicknessLine, que só
+ * aceita valores plausíveis de chapa).
+ */
+export const DIMENSIONS_THICKNESS_QTY_RE = new RegExp(
+  "^(\\d+(?:[.,']\\d+)?)\\s*[x×]\\s*(\\d+(?:[.,']\\d+)?)\\s*[x×]\\s*(\\d+(?:[.,']\\d+)?)\\s*(?:mm)?\\s*[=:]\\s*(\\d+)\\s*(?:" +
+    QUANTITY_MARKER_WORDS +
+    ')?\\.?$',
+  'i',
+);
+
+/**
  * Quinto formato (real user list, lista de marcadores): "4 peças — 1200 ×
  * 700 mm" — quantidade + palavra de quantidade ("peças") + travessão/hífen
  * + as duas medidas + unidade "mm" opcional. A palavra de quantidade é

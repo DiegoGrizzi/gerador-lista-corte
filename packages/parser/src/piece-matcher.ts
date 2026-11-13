@@ -16,6 +16,7 @@ import {
   QUANTITY_PARENS_FIRST_RE,
   QUANTITY_DASH_DIMENSIONS_RE,
   DIMENSION_FIRST_EQUALS_RE,
+  DIMENSIONS_THICKNESS_QTY_RE,
   PC_ASTERISK_RE,
   THICKNESS_SUFFIX_RE,
   PIECE_SEPARATOR_RE,
@@ -111,6 +112,8 @@ export interface DimensionFirstMatch {
   larg: number;
   /** Medidas escritas com ponto decimal de verdade (ver RawPiece.cmDecimals); ausente quando nenhuma. */
   cmDecimals?: { compr: boolean; larg: boolean };
+  /** Espessura (mm) que a própria linha traz ("550 x 660 x 15 = 8"); ausente nos demais formatos. */
+  lineThicknessMm?: number;
 }
 
 /** Marca de ponto decimal por medida, ou undefined quando nenhuma das duas tem. */
@@ -182,6 +185,26 @@ export function tryMatchDimensionFirstLine(line: string): DimensionFirstMatch | 
   }
 
   return null;
+}
+
+/**
+ * Tenta reconhecer "comprimento x largura x espessura = quantidade" (ver
+ * DIMENSIONS_THICKNESS_QTY_RE). O terceiro número só vale como espessura se
+ * for um valor plausível de chapa (3 a 60 mm); senão a linha não é desse
+ * formato e devolve null.
+ */
+export function tryMatchDimensionsThicknessLine(line: string): DimensionFirstMatch | null {
+  const match = DIMENSIONS_THICKNESS_QTY_RE.exec(line);
+  if (!match) return null;
+  const thickness = toNumber(match[3]!);
+  if (!(thickness >= 3 && thickness <= 60)) return null;
+  return {
+    qty: parseInt(match[4]!, 10),
+    compr: toNumber(match[1]!),
+    larg: toNumber(match[2]!),
+    lineThicknessMm: thickness,
+    cmDecimals: cmDecimalsOf(match[1]!, match[2]!),
+  };
 }
 
 /**

@@ -53,6 +53,7 @@ import {
   buildPieceFromMatch,
   splitIntoPieceSegments,
   tryMatchDimensionFirstLine,
+  tryMatchDimensionsThicknessLine,
   tryMatchPcAsteriskLine,
   buildPieceFromDimensionFirstMatch,
 } from './piece-matcher.js';
@@ -72,6 +73,14 @@ import type { AnalyzeResult, DiscardedItem, FitamentoType, NextIdFn, ParseContex
  * seguido de uma nota de fita entre parênteses: "Nichos:", "Portas:  (todas
  * fitado 4 lados )".
  */
+/**
+ * Rótulo de seção terminado em ponto, com o material opcional depois:
+ * "Laterias. Naval", "Base. Naval.", "Portas.", "Portas .". Só vale quando a
+ * primeira palavra é uma Função conhecida (classifyHeaderLine), para não
+ * confundir com frase ("Obrigado. Abraço.").
+ */
+const SECTION_DOT_LABEL_RE = /^([a-zà-öø-ÿ][a-zà-öø-ÿ ]{0,28}?)\s*\.\s*([a-zà-öø-ÿ][a-zà-öø-ÿ ]{0,28}?)?\s*\.?\s*$/i;
+
 const SECTION_LABEL_RE = /^([a-zà-öø-ÿ][a-zà-öø-ÿ ]{0,28}?)\s*:\s*(?:\(\s*([^()]*?)\s*\)?)?\s*$/i;
 
 /** Rótulos com dois-pontos que NÃO são seção de peças (observação, total...) — continuam sendo ignorados como antes. */
@@ -419,6 +428,19 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
       return;
     }
 
+    // "550 X 660 X 15 = 8": comprimento x largura x espessura = quantidade.
+    // Antes do tratamento de "3 X 0,80 X 0,505" (quantidade primeiro) logo
+    // abaixo, que desmontaria esta linha.
+    const dimensionThicknessMatch = tryMatchDimensionsThicknessLine(line);
+    if (dimensionThicknessMatch) {
+      if (!isValidPiece(dimensionThicknessMatch.compr, dimensionThicknessMatch.larg, dimensionThicknessMatch.qty)) {
+        pushDiscarded(line);
+        return;
+      }
+      addDimensionFirstPiece(dimensionThicknessMatch, snapshotContext(), { thicknessMm: dimensionThicknessMatch.lineThicknessMm });
+      return;
+    }
+
     // Códigos de fita colados ao final da linha (ex: "... 1M 1m", "... 3L")
     // — ver fita-codes.ts. Só tenta em linhas que começam com dígito (a
     // quantidade), o mesmo universo de linhas que os formatos de peça
@@ -594,6 +616,18 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     // também vale para as peças já lidas sem fita). Fica de fora tudo que é
     // ambiente/móvel (Complemento, tratado mais abaixo), "Ferragens:" e
     // companhia, e "Fita de borda:".
+    const dotLabelMatch = line.match(SECTION_DOT_LABEL_RE);
+    if (dotLabelMatch && classifyHeaderLine(dotLabelMatch[1]!.trim()) === 'funcao') {
+      const dotMaterial = dotLabelMatch[2]?.trim();
+      pendingMaterialName = null;
+      currentFuncao = dotLabelMatch[1]!.trim();
+      // O mesmo material repetido em cada seção não reabre o bloco.
+      if (dotMaterial && dotMaterial.toLowerCase() !== currentMaterial.toLowerCase()) {
+        setNewMaterial(dotMaterial, null, null);
+      }
+      return;
+    }
+
     const sectionLabelMatch = line.match(SECTION_LABEL_RE);
     if (sectionLabelMatch && !/mdf/i.test(line)) {
       const label = sectionLabelMatch[1]!.trim();

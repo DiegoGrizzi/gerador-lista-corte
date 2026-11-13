@@ -789,3 +789,15 @@ export const PECAS_ACIMA_MATERIAL_POR_BLOCO_MESSAGE = [
   '1=42,5×67',
   'Essa peças acima MDF de 6mm',
 ].join('\n');
+
+/**
+ * Lista de chapas inteiras: o número na frente do material é a quantidade de
+ * chapas, e cada peça vem com "cortar:" na frente e a quantidade, com zero à
+ * esquerda, depois do "=".
+ */
+export const CORTAR_DOIS_PONTOS_MESSAGE = [
+  '02 - MDF 15mm cinza fóssil ',
+  'cortar: 2750 x 610 = 06',
+  '01 - MDF 06mm cinza fóssil ',
+  'cortar: 2750 x 600 = 01',
+].join('\n');

@@ -54,6 +54,10 @@ export const ENVIRONMENT_OR_FURNITURE_KEYWORDS = [
 export const PIECE_ROLE_KEYWORDS = [
   'gaveta',
   'lateral',
+  'laterais',
+  'laterias',
+  'régua',
+  'regua',
   'fundo',
   'tampo',
   'porta',

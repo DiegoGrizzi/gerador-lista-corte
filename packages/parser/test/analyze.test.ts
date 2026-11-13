@@ -34,6 +34,7 @@ import {
   BEIGE_HANDWRITTEN_MESSAGE,
   BEIGE_DECIMALS_ARE_CM_MESSAGE,
   MDF_POR_LINHA_COM_FERRAGEM_MESSAGE,
+  NAVAL_COMPR_LARG_ESPESSURA_MESSAGE,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -1046,5 +1047,35 @@ describe('analyzeText — MDF em cada linha, "mm" nas medidas, "revestimento" e 
   it('a frase "medidas em cm" vale mais que o "mm" das medidas', () => {
     const said = analyzeText('Medidas em cm\nMDF branco 15mm\n2- 50mm x 30mm', makeNextId());
     expect(said.unitFactor).toBe(10);
+  });
+});
+
+describe('analyzeText — "comprimento X largura X espessura = quantidade" com seções "Nome. Material"', () => {
+  const result = analyzeText(NAVAL_COMPR_LARG_ESPESSURA_MESSAGE, makeNextId());
+  const summary = result.pieces.map((p) => [p.qtd, p.compr, p.larg, p.thicknessMm, p.material, p.funcao]);
+
+  it('lê quantidade depois do "=", espessura da própria linha, material e Função da seção', () => {
+    expect(summary).toEqual([
+      [8, 550, 660, 15, 'Naval 15mm', 'Laterias'],
+      [1, 550, 470, 15, 'Naval 15mm', 'Base'],
+      [1, 550, 870, 25, 'Naval 25mm', 'Base'],
+      [1, 470, 100, 15, 'Naval 15mm', 'Régua'],
+      [6, 320, 720, 15, 'Naval 15mm', 'Régua'],
+      [3, 490, 715, 18, 'Naval 18mm', 'Portas'],
+      [1, 425, 895, 18, 'Naval 18mm', 'Porta'],
+      [2, 380, 720, 25, 'Naval 25mm', 'Laterias'],
+      [2, 345, 2001, 18, 'Naval 18mm', 'Portas'],
+      [2, 670, 320, 15, 'Naval 15mm', 'Portas'],
+    ]);
+  });
+
+  it('não joga nada na conferência e sabe que o material foi citado', () => {
+    expect(result.discarded).toHaveLength(0);
+    expect(result.materialMentioned).toBe(true);
+  });
+
+  it('o formato antigo "3 X 0,80 X 0,505" (quantidade primeiro) continua lendo a quantidade na frente', () => {
+    const old = analyzeText('MDF branco 15mm\n3 X 0,80 X 0,505', makeNextId());
+    expect([old.pieces[0]!.qtd, old.pieces[0]!.compr, old.pieces[0]!.larg]).toEqual([3, 0.8, 0.505]);
   });
 });

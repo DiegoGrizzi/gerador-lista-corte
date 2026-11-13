@@ -732,3 +732,35 @@ export const MDF_POR_LINHA_COM_FERRAGEM_MESSAGE = [
   '1kit de rodanas com mola para porta de correr ',
   '2- peças de 400mm x 100mm Mdf branco comum de 15mm revestimento nos 4 lados ',
 ].join('\n');
+
+/**
+ * Lista de marceneiro de naval: "comprimento X largura X espessura = quantidade"
+ * (a espessura vem na linha, de peça em peça), rótulos de seção terminados em
+ * ponto ("Laterias. Naval", "Base. Naval.", "Portas.") e o material dito só
+ * em alguns rótulos.
+ */
+export const NAVAL_COMPR_LARG_ESPESSURA_MESSAGE = [
+  'Laterias. Naval ',
+  '550 X 660 X 15 = 8',
+  '',
+  'Base. Naval.',
+  '550 X 470 X 15 = 1',
+  '550 X 870 X 25 = 1',
+  '',
+  'Régua. Naval.',
+  '470 X 100 X 15 = 1',
+  '',
+  '320 X 720 X 15 = 6',
+  '',
+  'Portas.',
+  '490 X 715 X 18 = 3',
+  '',
+  'Porta.',
+  '425 X 895 X 18 = 1',
+  'Laterias.',
+  '380 X 720 X 25 = 2',
+  '',
+  'Portas .',
+  '345 X 2001 X 18 = 2',
+  '   670 X 320 X 15 =2',
+].join('\n');

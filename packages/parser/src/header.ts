@@ -63,3 +63,40 @@ export function extractHeaderInfo(rawLine: string): HeaderInfo {
     .trim();
   return { material, fitamento, thickness };
 }
+
+/** Espessura numa declaração falada: "de 15 mm", "de 6mm", "de 15" ou "15mm" solto. */
+const ABOVE_THICKNESS_RE = /(?:\bde\s+(\d+(?:[.,]\d+)?)(?:\s*(?:mm|ml|m)\b)?|\b(\d+(?:[.,]\d+)?)\s*(?:mm|ml)\b)/i;
+
+/** Palavras que abrem um comentário solto depois do material ("... o MDF mais em conta"). */
+const COMMENTARY_START_WORDS = new Set(['o', 'a', 'os', 'as', 'que', 'é', 'e', 'mais', 'pois', 'porque', 'por', 'para', 'ok', 'blz']);
+
+/** Corta o texto na primeira palavra de comentário (depois da primeira palavra, que é o material). */
+function cutAtCommentary(text: string): string {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  const stop = words.findIndex((word, index) => index > 0 && COMMENTARY_START_WORDS.has(word.toLowerCase().replace(/[.,;:]+$/, '')));
+  return (stop < 0 ? words : words.slice(0, stop)).join(' ').replace(/[\s,;.:]+$/, '');
+}
+
+/**
+ * Material e espessura de uma declaração sobre as peças já listadas ("Essas
+ * peças acima MDF branco de 15 mm o MDF mais em conta" → o que sobra depois
+ * de "acima": "MDF branco de 15 mm o MDF mais em conta"). O comentário solto
+ * no fim não entra no nome; uma cor logo depois da espessura ("MDF de 15mm
+ * titânio trama") entra. Devolve null quando o texto não parece um material:
+ * sem "mdf" e sem espessura (ex: "estão em cm").
+ */
+export function extractAboveDeclaration(rest: string): { material: string; thickness: number | null } | null {
+  const thicknessMatch = rest.match(ABOVE_THICKNESS_RE);
+  const thickness = thicknessMatch ? toNumber((thicknessMatch[1] || thicknessMatch[2])!) : null;
+  const before = thicknessMatch ? rest.slice(0, thicknessMatch.index) : rest;
+  const after = thicknessMatch ? rest.slice(thicknessMatch.index! + thicknessMatch[0].length) : '';
+  let material = cutAtCommentary(before);
+  const afterWords = after.trim().split(/\s+/).filter(Boolean);
+  const startsWithCommentary = afterWords.length > 0 && COMMENTARY_START_WORDS.has(afterWords[0]!.toLowerCase());
+  if (!startsWithCommentary && afterWords.length > 0 && afterWords.length <= 3 && /^[a-zà-öø-ÿ\s]+$/i.test(after.trim())) {
+    material = (material + ' ' + after.trim()).trim();
+  }
+  if (!material) return null;
+  if (thickness == null && !/mdf/i.test(rest)) return null;
+  return { material, thickness };
+}

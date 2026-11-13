@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { analyzeText } from '../src/analyze.js';
+import { extractAboveDeclaration } from '../src/header.js';
 import { ASSUMED_NO_FITA_NOTE, convertPieceToMm } from '../src/finalize.js';
 import {
   HEADER_THEN_PIECES,
@@ -35,6 +36,7 @@ import {
   BEIGE_DECIMALS_ARE_CM_MESSAGE,
   MDF_POR_LINHA_COM_FERRAGEM_MESSAGE,
   NAVAL_COMPR_LARG_ESPESSURA_MESSAGE,
+  PECAS_ACIMA_MATERIAL_POR_BLOCO_MESSAGE,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -1077,5 +1079,55 @@ describe('analyzeText — "comprimento X largura X espessura = quantidade" com s
   it('o formato antigo "3 X 0,80 X 0,505" (quantidade primeiro) continua lendo a quantidade na frente', () => {
     const old = analyzeText('MDF branco 15mm\n3 X 0,80 X 0,505', makeNextId());
     expect([old.pieces[0]!.qtd, old.pieces[0]!.compr, old.pieces[0]!.larg]).toEqual([3, 0.8, 0.505]);
+  });
+});
+
+describe('analyzeText — "Essas peças acima <material>" declara o material de cada bloco', () => {
+  const result = analyzeText(PECAS_ACIMA_MATERIAL_POR_BLOCO_MESSAGE, makeNextId());
+
+  it('cada declaração vale só para as peças desde a anterior, com a espessura escrita junto', () => {
+    expect(result.pieces.map((p) => [p.qtd, p.compr, p.larg, p.material])).toEqual([
+      [1, 42, 43, 'MDF branco 15mm'],
+      [2, 42, 8, 'MDF branco 15mm'],
+      [2, 43, 67, 'MDF branco 15mm'],
+      [1, 79, 56.5, 'MDF branco 15mm'],
+      [2, 56.5, 67, 'MDF branco 15mm'],
+      [8, 255, 51.5, 'MDF branco 15mm'],
+      [12, 147, 51.5, 'MDF branco 15mm'],
+      [4, 150, 255, 'MDF 6mm'],
+      [1, 42.5, 67, 'MDF 6mm'],
+    ]);
+    expect(result.pieces.map((p) => p.thicknessMm)).toEqual([15, 15, 15, 15, 15, 15, 15, 6, 6]);
+  });
+
+  it('o comentário solto ("o MDF mais em conta") não vai para o nome do material', () => {
+    expect(result.pieces.some((p) => /conta|pe[çc]as/i.test(p.material))).toBe(false);
+    expect(result.materialMentioned).toBe(true);
+    expect(result.discarded).toHaveLength(0);
+  });
+
+  it('o material da primeira declaração não vaza para as peças do bloco seguinte', () => {
+    expect(result.pieces[7]!.material).toBe('MDF 6mm');
+  });
+
+  it('frase "peças acima" que não fala de material ("as medidas acima estão em cm") não muda nada', () => {
+    const r = analyzeText('MDF branco 15mm\n2=100x50\nAs medidas acima estão em cm', makeNextId());
+    expect(r.pieces[0]!.material).toBe('MDF branco 15mm');
+  });
+});
+
+describe('extractAboveDeclaration', () => {
+  it.each([
+    ['MDF branco de 15 mm o MDF mais em conta', { material: 'MDF branco', thickness: 15 }],
+    ['MDF de 6mm', { material: 'MDF', thickness: 6 }],
+    ['MDF de 15mm titânio trama', { material: 'MDF titânio trama', thickness: 15 }],
+    ['MDF branco 15mm', { material: 'MDF branco', thickness: 15 }],
+    ['MDF branco o mais barato', { material: 'MDF branco', thickness: null }],
+  ])('%s', (rest, expected) => {
+    expect(extractAboveDeclaration(rest)).toEqual(expected);
+  });
+
+  it('texto que não parece material (sem "mdf" e sem espessura) devolve null', () => {
+    expect(extractAboveDeclaration('estão em cm')).toBeNull();
   });
 });

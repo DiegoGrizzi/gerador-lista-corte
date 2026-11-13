@@ -43,7 +43,7 @@ import { parseFitamentoPhrase } from './fitamento.js';
 import { extractTrailingFitaCodes, extractTrailingFitaSigns, applyFitaCodesToPiece } from './fita-codes.js';
 import { parseFitaByDimensionLine, applyFitaByDimensionRules } from './fita-by-dimension.js';
 import type { FitaByDimensionRule } from './fita-by-dimension.js';
-import { classifyHeaderLine, extractHeaderInfo } from './header.js';
+import { classifyHeaderLine, extractAboveDeclaration, extractHeaderInfo } from './header.js';
 import { isMarkdownTableSeparatorLine, parseMarkdownTableHeader, parseMarkdownTableRow } from './markdown-table.js';
 import { parseTsvTableHeader, parseTsvTableRow } from './tsv-table.js';
 import type { TableColumns, TableRow } from './table-columns.js';
@@ -80,6 +80,15 @@ import type { AnalyzeResult, DiscardedItem, FitamentoType, NextIdFn, ParseContex
  * confundir com frase ("Obrigado. Abraço.").
  */
 const SECTION_DOT_LABEL_RE = /^([a-zà-öø-ÿ][a-zà-öø-ÿ ]{0,28}?)\s*\.\s*([a-zà-öø-ÿ][a-zà-öø-ÿ ]{0,28}?)?\s*\.?\s*$/i;
+
+/**
+ * Declaração sobre as peças já listadas: "Essas peças acima MDF branco de 15
+ * mm o MDF mais em conta", "Essa peças acima MDF de 6mm". Vale para as peças
+ * lidas desde a declaração anterior desse tipo (ou desde o começo) e não vira
+ * o material das peças seguintes.
+ */
+const ABOVE_PIECES_DECLARATION_RE =
+  /^(?:tod[ao]s\s+)?(?:essas?|estas?|esses|estes|as|os)\s+(?:\S+\s+){0,2}?acima\b[\s,:.\-–]*(?:(?:s[ãa]o|[ée]|em|de)\s+)?(.+)$/i;
 
 const SECTION_LABEL_RE = /^([a-zà-öø-ÿ][a-zà-öø-ÿ ]{0,28}?)\s*:\s*(?:\(\s*([^()]*?)\s*\)?)?\s*$/i;
 
@@ -177,6 +186,9 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
    * análise.
    */
   let perPieceFitaSeen = false;
+
+  /** Índice da primeira peça ainda não coberta por uma declaração "peças acima ..." (ver ABOVE_PIECES_DECLARATION_RE). */
+  let aboveBlockStart = 0;
 
   /**
    * Materiais já declarados em cabeçalhos, com a espessura de cada um — uma
@@ -591,6 +603,25 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     // a palavra MDF, cairia batendo em nenhum dos dois e só seria
     // reconhecida (na melhor das hipóteses) como um cabeçalho de material
     // solto SEM aproveitar a espessura, perdendo a peça de "15mm".
+    const aboveMatch = line.match(ABOVE_PIECES_DECLARATION_RE);
+    const aboveDeclaration = aboveMatch ? extractAboveDeclaration(aboveMatch[1]!) : null;
+    if (aboveDeclaration) {
+      const block = pieces.slice(aboveBlockStart);
+      block.forEach((piece) => {
+        piece.material = aboveDeclaration.material;
+        if (aboveDeclaration.thickness != null) piece.thicknessMm = aboveDeclaration.thickness;
+      });
+      // Já resolvidas: um cabeçalho de material mais abaixo não pode reescrevê-las.
+      pendingMaterial = pendingMaterial.filter((entry) => !block.includes(entry as RawPiece));
+      pendingThickness = pendingThickness.filter((entry) => !block.includes(entry as RawPiece));
+      aboveBlockStart = pieces.length;
+      if (aboveDeclaration.thickness != null) {
+        declaredMaterials.push({ material: aboveDeclaration.material, thickness: aboveDeclaration.thickness });
+      }
+      materialMentioned = true;
+      return;
+    }
+
     const thicknessWithMaterialMatch = line.match(THICKNESS_WITH_TRAILING_MATERIAL_RE);
     if (thicknessWithMaterialMatch) {
       const thicknessVal = toNumber(thicknessWithMaterialMatch[1]!);

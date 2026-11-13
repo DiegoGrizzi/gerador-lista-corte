@@ -37,6 +37,7 @@ import {
   MDF_POR_LINHA_COM_FERRAGEM_MESSAGE,
   NAVAL_COMPR_LARG_ESPESSURA_MESSAGE,
   PECAS_ACIMA_MATERIAL_POR_BLOCO_MESSAGE,
+  CORTAR_DOIS_PONTOS_MESSAGE,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -1129,5 +1130,34 @@ describe('extractAboveDeclaration', () => {
 
   it('texto que não parece material (sem "mdf" e sem espessura) devolve null', () => {
     expect(extractAboveDeclaration('estão em cm')).toBeNull();
+  });
+});
+
+describe('analyzeText — "cortar: C x L = quantidade" sob "NN - MDF Nmm cor"', () => {
+  const result = analyzeText(CORTAR_DOIS_PONTOS_MESSAGE, makeNextId());
+
+  it('ignora o "cortar:" e lê a quantidade com zero à esquerda', () => {
+    expect(result.pieces.map((p) => [p.qtd, p.compr, p.larg, p.material, p.thicknessMm])).toEqual([
+      [6, 2750, 610, 'MDF cinza fóssil 15mm', 15],
+      [1, 2750, 600, 'MDF cinza fóssil 6mm', 6],
+    ]);
+    expect(result.discarded).toHaveLength(0);
+  });
+
+  it('"medidas = quantidade" com espaços em volta do "x" (sem "cortar:") também é lida', () => {
+    const r = analyzeText('MDF branco 15mm\n2750 x 610 = 06\n240 X 35 = 8', makeNextId());
+    expect(r.pieces.map((p) => [p.qtd, p.compr, p.larg])).toEqual([
+      [6, 2750, 610],
+      [8, 240, 35],
+    ]);
+    expect(r.discarded).toHaveLength(0);
+  });
+
+  it('"Cortar:" com maiúscula e "corte:" também são só enfeite', () => {
+    const r = analyzeText('MDF branco 15mm\nCortar: 100 x 50 = 2\ncorte: 80 x 40 = 1', makeNextId());
+    expect(r.pieces.map((p) => [p.qtd, p.compr, p.larg])).toEqual([
+      [2, 100, 50],
+      [1, 80, 40],
+    ]);
   });
 });

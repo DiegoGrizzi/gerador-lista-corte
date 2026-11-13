@@ -90,6 +90,9 @@ const SECTION_DOT_LABEL_RE = /^([a-zà-öø-ÿ][a-zà-öø-ÿ ]{0,28}?)\s*\.\s*(
 const ABOVE_PIECES_DECLARATION_RE =
   /^(?:tod[ao]s\s+)?(?:essas?|estas?|esses|estes|as|os)\s+(?:\S+\s+){0,2}?acima\b[\s,:.\-–]*(?:(?:s[ãa]o|[ée]|em|de)\s+)?(.+)$/i;
 
+/** Verbo de instrução na frente da peça ("cortar: 2750 x 610 = 06"): só enfeite, a peça é o que vem depois. */
+const CUT_VERB_PREFIX_RE = /^cort(?:ar|es?)\s*:\s*/i;
+
 const SECTION_LABEL_RE = /^([a-zà-öø-ÿ][a-zà-öø-ÿ ]{0,28}?)\s*:\s*(?:\(\s*([^()]*?)\s*\)?)?\s*$/i;
 
 /** Rótulos com dois-pontos que NÃO são seção de peças (observação, total...) — continuam sendo ignorados como antes. */
@@ -357,7 +360,7 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     // no início do processamento da linha: sem isso, a quantidade por
     // extenso nunca fica no começo da linha (onde QUANTITY_RE espera um
     // dígito) e a peça inteira não é reconhecida.
-    line = normalizeLeadingNumberWord(stripGreetingPrefix(line));
+    line = normalizeLeadingNumberWord(stripGreetingPrefix(line)).replace(CUT_VERB_PREFIX_RE, '');
 
     // Tabela em formato Markdown (delimitada por "|", ver
     // markdown-table.ts) ou colada de planilha (delimitada por tabulação,
@@ -477,7 +480,8 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
       // 0,505") repete o separador "X" também entre a quantidade e o
       // comprimento — sem remover esse "X" solto, ele sobraria como prefixo
       // da linha e viraria (erroneamente) a Função da peça.
-      line = line.replace(/^(\d+)\s+[xX]\s+/, '$1 ');
+      // Não vale para "2750 x 610 = 06" (medidas primeiro): ali o primeiro número já é o comprimento.
+      if (!tryMatchDimensionFirstLine(line)) line = line.replace(/^(\d+)\s+[xX]\s+/, '$1 ');
     }
 
     // Linha inteira só de espessura (ex: "De 15mm", "18mm" sozinha) —

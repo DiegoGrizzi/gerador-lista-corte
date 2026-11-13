@@ -764,3 +764,28 @@ export const NAVAL_COMPR_LARG_ESPESSURA_MESSAGE = [
   '345 X 2001 X 18 = 2',
   '   670 X 320 X 15 =2',
 ].join('\n');
+
+/**
+ * Plano de corte pedido por conversa: saudação, "quantidade=comprimento×largura"
+ * com "×" e vírgula decimal, e o material dito DEPOIS de cada bloco ("Essas peças
+ * acima MDF branco de 15 mm o MDF mais em conta", "Essa peças acima MDF de 6mm").
+ */
+export const PECAS_ACIMA_MATERIAL_POR_BLOCO_MESSAGE = [
+  'Bom dia minha amiga por gentileza a Sra poderia vê esse  plano de corte para mim.',
+  '',
+  '1 =42x43',
+  '2= 42 x8',
+  '2=43×67',
+  '',
+  '1=79×56,5',
+  '2=56,5×67',
+  '',
+  '8=255×51,5',
+  '12=147x51,5',
+  '',
+  'Essas peças acima MDF branco de 15 mm o MDF mais em conta ',
+  '',
+  '4=150×255',
+  '1=42,5×67',
+  'Essa peças acima MDF de 6mm',
+].join('\n');

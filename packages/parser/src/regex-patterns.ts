@@ -122,6 +122,16 @@ export const DIMENSIONS_THICKNESS_QTY_RE = new RegExp(
 );
 
 /**
+ * Oitavo formato (real user list): "230x25-4" — duas medidas coladas e a
+ * quantidade depois do traço, no fim da linha. Um "-" no fim SEM número
+ * depois continua sendo o sinal de fita (ver extractTrailingFitaSigns).
+ */
+export const DIMENSION_FIRST_DASH_RE = new RegExp(
+  "^(\\d+(?:[.,']\\d+)?)\\s*[x×]\\s*(\\d+(?:[.,']\\d+)?)\\s*-\\s*(\\d+)\\s*(?:" + QUANTITY_MARKER_WORDS + ')?\\.?$',
+  'i',
+);
+
+/**
  * Quinto formato (real user list, lista de marcadores): "4 peças — 1200 ×
  * 700 mm" — quantidade + palavra de quantidade ("peças") + travessão/hífen
  * + as duas medidas + unidade "mm" opcional. A palavra de quantidade é

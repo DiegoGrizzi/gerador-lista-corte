@@ -38,6 +38,7 @@ import {
   NAVAL_COMPR_LARG_ESPESSURA_MESSAGE,
   PECAS_ACIMA_MATERIAL_POR_BLOCO_MESSAGE,
   CORTAR_DOIS_PONTOS_MESSAGE,
+  MEDIDA_X_MEDIDA_TRACO_QTD_MESSAGE,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -1158,6 +1159,84 @@ describe('analyzeText — "cortar: C x L = quantidade" sob "NN - MDF Nmm cor"', 
     expect(r.pieces.map((p) => [p.qtd, p.compr, p.larg])).toEqual([
       [2, 100, 50],
       [1, 80, 40],
+    ]);
+  });
+});
+
+describe('analyzeText — "medida x medida - quantidade" (230x25-4)', () => {
+  it('lê a quantidade depois do traço, com decimal em ponto ou vírgula', () => {
+    const r = analyzeText(MEDIDA_X_MEDIDA_TRACO_QTD_MESSAGE, makeNextId());
+    expect(r.pieces.map((p) => [p.qtd, p.compr, p.larg])).toEqual([
+      [4, 230, 25],
+      [6, 107, 25],
+      [1, 46, 25],
+      [2, 46, 54.6],
+      [2, 44.3, 25],
+      [2, 135.5, 50],
+      [1, 87.3, 50],
+      [2, 43.5, 32],
+    ]);
+    expect(r.discarded).toHaveLength(0);
+    expect(r.thirdNumberAmbiguous).toBeUndefined();
+  });
+
+  it('o "-" no fim da linha, sem número, continua sendo o sinal de fita', () => {
+    const r = analyzeText('MDF branco 15mm\n2 = 100x50 -', makeNextId());
+    expect(r.pieces[0]!.qtd).toBe(2);
+  });
+});
+
+describe('analyzeText — "medida x medida x N": N é quantidade ou espessura?', () => {
+  const qty = ['230x25x4', '107x25x6', '46x25x1', '46x54.6x2'].join('\n');
+
+  it('algum terceiro número que não é espessura de chapa (1, 2, 4...) decide: é quantidade', () => {
+    const r = analyzeText(qty, makeNextId());
+    expect(r.pieces.map((p) => [p.qtd, p.compr, p.larg])).toEqual([
+      [4, 230, 25],
+      [6, 107, 25],
+      [1, 46, 25],
+      [2, 46, 54.6],
+    ]);
+    expect(r.thirdNumberAmbiguous).toBeUndefined();
+  });
+
+  it('com espaços ("230 x 25 x 4") e primeiro número 100 ou mais, também é medida primeiro', () => {
+    const r = analyzeText('230 x 25 x 4\n107 x 25 x 6', makeNextId());
+    expect(r.pieces.map((p) => [p.qtd, p.compr, p.larg])).toEqual([
+      [4, 230, 25],
+      [6, 107, 25],
+    ]);
+  });
+
+  it('o formato antigo "quantidade X comprimento X largura" (espaços e quantidade pequena) segue igual', () => {
+    const r = analyzeText('MDF branco 15mm\n2 x 800 x 500\n3 X 0,80 X 0,505', makeNextId());
+    expect(r.pieces.map((p) => [p.qtd, p.compr, p.larg])).toEqual([
+      [2, 800, 500],
+      [3, 0.8, 0.505],
+    ]);
+  });
+
+  it('todos os terceiros números poderiam ser espessura: ambíguo, vai para a conferência e avisa', () => {
+    const r = analyzeText('230x25x15\n107x25x18', makeNextId());
+    expect(r.thirdNumberAmbiguous).toBe(true);
+    expect(r.pieces).toHaveLength(0);
+    expect(r.discarded.map((d) => d.text)).toEqual(['230x25x15', '107x25x18']);
+  });
+
+  it('respondido "quantidade", lê o terceiro número como quantidade', () => {
+    const r = analyzeText('230x25x15\n107x25x18', makeNextId(), { thirdNumber: 'quantity' });
+    expect(r.pieces.map((p) => [p.qtd, p.compr, p.larg])).toEqual([
+      [15, 230, 25],
+      [18, 107, 25],
+    ]);
+    expect(r.thirdNumberAmbiguous).toBeUndefined();
+  });
+
+  it('respondido "espessura", lê o terceiro número como espessura e a quantidade é 1', () => {
+    const r = analyzeText('230x25x15\n107x25x18', makeNextId(), { thirdNumber: 'thickness' });
+    expect(r.pieces.map((p) => [p.qtd, p.compr, p.larg, p.thicknessMm])).toEqual([
+      [1, 230, 25, 15],
+      [1, 107, 25, 18],
     ]);
   });
 });

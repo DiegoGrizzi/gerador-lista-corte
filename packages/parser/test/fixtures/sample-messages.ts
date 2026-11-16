@@ -801,3 +801,18 @@ export const CORTAR_DOIS_PONTOS_MESSAGE = [
   '01 - MDF 06mm cinza fóssil ',
   'cortar: 2750 x 600 = 01',
 ].join('\n');
+
+/**
+ * Lista só de medidas, de trás para frente: "comprimento x largura - quantidade"
+ * (medidas em cm, com ponto e vírgula decimal). Não diz material nem fita.
+ */
+export const MEDIDA_X_MEDIDA_TRACO_QTD_MESSAGE = [
+  '230x25-4',
+  '107x25-6',
+  '46x25-1',
+  '46x54.6-2',
+  '44.3x25-2',
+  '135,5x50-2',
+  '87.3x50-1',
+  '43.5x32-2',
+].join('\n');

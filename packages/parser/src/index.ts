@@ -19,6 +19,7 @@ export type {
   ParseContext,
   DiscardedItem,
   AnalyzeResult,
+  AnalyzeOptions,
   FitaState,
   FitamentoType,
   NextIdFn,

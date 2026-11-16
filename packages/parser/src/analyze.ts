@@ -38,6 +38,8 @@ import {
   detectStatedUnitFactor,
   extractStatedTotal,
   stripMeasureUnits,
+  resolveThreeNumberLines,
+  matchThreeNumbersLine,
 } from './text-normalize.js';
 import { parseFitamentoPhrase } from './fitamento.js';
 import { extractTrailingFitaCodes, extractTrailingFitaSigns, applyFitaCodesToPiece } from './fita-codes.js';
@@ -66,7 +68,7 @@ import {
   markFitaUnknownIfNeeded,
   MIN_EDGE_BANDING_THICKNESS_MM,
 } from './finalize.js';
-import type { AnalyzeResult, DiscardedItem, FitamentoType, NextIdFn, ParseContext, Piece, RawPiece } from './types.js';
+import type { AnalyzeOptions, AnalyzeResult, DiscardedItem, FitamentoType, NextIdFn, ParseContext, Piece, RawPiece } from './types.js';
 
 /**
  * Rótulo de seção numa linha própria, terminado em dois-pontos e opcionalmente
@@ -127,7 +129,7 @@ type PendingEntry = ParseContext | RawPiece;
  * informações só aparece mais abaixo no texto (comum quando o material
  * vem no fim da lista de peças).
  */
-export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
+export function analyzeText(text: string, nextId: NextIdFn, options: AnalyzeOptions = {}): AnalyzeResult {
   const pieces: RawPiece[] = [];
   const discarded: DiscardedItem[] = [];
 
@@ -346,7 +348,11 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
   const { text: textWithoutUnits, unitFactor: measureUnitFactor } = stripMeasureUnits(
     normalizeDotAfterQuantity(stripWhatsAppExportPrefixes(textWithoutTotal)),
   );
-  const expandedText = expandPcSeparatedPieces(joinSplitQuantityLines(mergeMdfThicknessAndColorLines(textWithoutUnits)));
+  const { text: textResolved, ambiguous: threeNumbersAmbiguous } = resolveThreeNumberLines(
+    textWithoutUnits,
+    options.thirdNumber,
+  );
+  const expandedText = expandPcSeparatedPieces(joinSplitQuantityLines(mergeMdfThicknessAndColorLines(textResolved)));
 
   expandedText.split('\n').forEach((rawLine) => {
     // Marcador de lista ("* 4 peças ...", "• ...", "- ...") — só quando
@@ -440,6 +446,13 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
     const fitaByDimensionRule = parseFitaByDimensionLine(line);
     if (fitaByDimensionRule) {
       fitaByDimensionRules.push(fitaByDimensionRule);
+      return;
+    }
+
+    // "230x25x4" sem como saber se o 4 é espessura ou quantidade: vai para a
+    // conferência até o usuário responder (ver resolveThreeNumberLines).
+    if (threeNumbersAmbiguous && matchThreeNumbersLine(line)) {
+      pushDiscarded(line);
       return;
     }
 
@@ -825,5 +838,6 @@ export function analyzeText(text: string, nextId: NextIdFn): AnalyzeResult {
   const result: AnalyzeResult = { pieces: finalizedPieces, discarded, materialMentioned };
   if (unitFactor != null) result.unitFactor = unitFactor;
   if (statedTotal != null) result.statedTotal = statedTotal;
+  if (threeNumbersAmbiguous) result.thirdNumberAmbiguous = true;
   return result;
 }

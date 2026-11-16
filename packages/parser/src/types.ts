@@ -143,6 +143,12 @@ export interface DiscardedItem {
   context: ParseContext;
 }
 
+/** Opções de analyzeText. */
+export interface AnalyzeOptions {
+  /** O que o terceiro número de "230x25x4" é, quando a lista não deixa claro (ver resolveThreeNumberLines). */
+  thirdNumber?: 'quantity' | 'thickness';
+}
+
 /** Resultado de analyzeText: peças reconhecidas, itens de conferência e um sinalizador de material mencionado. */
 export interface AnalyzeResult {
   pieces: Piece[];
@@ -154,6 +160,12 @@ export interface AnalyzeResult {
    * Ausente quando a lista não informa.
    */
   statedTotal?: number;
+  /**
+   * A lista tem linhas "A x B x N" em que o terceiro número pode ser espessura
+   * ou quantidade. Essas linhas foram para a conferência: quem chama pergunta
+   * ao usuário e analisa de novo com AnalyzeOptions.thirdNumber.
+   */
+  thirdNumberAmbiguous?: boolean;
   /**
    * Fator para converter as medidas em milímetros quando a própria mensagem
    * diz a unidade (ex: "As medidas seguem em milímetros" → 1; "em cm" → 10;

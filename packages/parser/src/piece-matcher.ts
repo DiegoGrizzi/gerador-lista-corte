@@ -16,6 +16,7 @@ import {
   QUANTITY_PARENS_FIRST_RE,
   QUANTITY_DASH_DIMENSIONS_RE,
   DIMENSION_FIRST_EQUALS_RE,
+  DIMENSION_FIRST_DASH_RE,
   DIMENSIONS_THICKNESS_QTY_RE,
   PC_ASTERISK_RE,
   THICKNESS_SUFFIX_RE,
@@ -171,6 +172,16 @@ export function tryMatchDimensionFirstLine(line: string): DimensionFirstMatch | 
       compr: toNumber(equalsMatch[1]!),
       larg: toNumber(equalsMatch[2]!),
       cmDecimals: cmDecimalsOf(equalsMatch[1]!, equalsMatch[2]!),
+    };
+  }
+
+  const dashMatch = DIMENSION_FIRST_DASH_RE.exec(line);
+  if (dashMatch) {
+    return {
+      qty: parseInt(dashMatch[3]!, 10),
+      compr: toNumber(dashMatch[1]!),
+      larg: toNumber(dashMatch[2]!),
+      cmDecimals: cmDecimalsOf(dashMatch[1]!, dashMatch[2]!),
     };
   }
 

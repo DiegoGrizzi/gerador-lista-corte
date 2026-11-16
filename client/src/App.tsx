@@ -9,7 +9,7 @@
  * ---------------------------------------------------------------------------
  */
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { analyzeText, quickParseLine } from '@corte-cloud/parser';
 import { useCutList } from './state/cutListContext.js';
 import {
@@ -27,6 +27,7 @@ import { PieceReviewTable } from './components/PieceReviewTable.js';
 import { ResultCard } from './components/ResultCard.js';
 import { MmUnitModal } from './components/modals/MmUnitModal.js';
 import { ThreeLadosModal } from './components/modals/ThreeLadosModal.js';
+import { ThirdNumberModal } from './components/modals/ThirdNumberModal.js';
 import { FitaMissingModal } from './components/modals/FitaMissingModal.js';
 import { MaterialModal } from './components/modals/MaterialModal.js';
 import { MaterialColorModal } from './components/modals/MaterialColorModal.js';
@@ -49,31 +50,44 @@ export function App(): JSX.Element {
   const currentVersion = useCurrentVersion();
   const resultCardRef = useRef<HTMLDivElement>(null);
   const colorMaterial = firstMaterialNeedingColor(state.pieces, state.colorAskedMaterials) ?? '';
+  /** Lista com "230x25x4" sem como saber se o 4 é quantidade ou espessura: espera a resposta antes de analisar. */
+  const [thirdNumberPending, setThirdNumberPending] = useState(false);
 
-  const handleAnalyze = useCallback(() => {
-    if (!state.rawText.trim()) {
-      dispatch({ type: 'SHOW_ERROR', message: MSG_EMPTY_TEXT });
-      return;
-    }
+  const analyze = useCallback(
+    (thirdNumber?: 'quantity' | 'thickness') => {
+      if (!state.rawText.trim()) {
+        dispatch({ type: 'SHOW_ERROR', message: MSG_EMPTY_TEXT });
+        return;
+      }
 
-    const { nextId, getIdCounter } = createNextId(state.idCounter);
-    const result = analyzeText(state.rawText, nextId);
+      const { nextId, getIdCounter } = createNextId(state.idCounter);
+      const result = analyzeText(state.rawText, nextId, thirdNumber ? { thirdNumber } : {});
 
-    if (result.pieces.length === 0 && result.discarded.length === 0) {
-      dispatch({ type: 'SHOW_ERROR', message: MSG_NO_PIECES_FOUND });
-      return;
-    }
+      if (result.thirdNumberAmbiguous) {
+        setThirdNumberPending(true);
+        return;
+      }
+      setThirdNumberPending(false);
 
-    dispatch({
-      type: 'ANALYZE_SUCCEEDED',
-      pieces: result.pieces,
-      discarded: result.discarded,
-      materialMentioned: result.materialMentioned,
-      idCounter: getIdCounter(),
-      unitFactor: result.unitFactor,
-      statedTotal: result.statedTotal,
-    });
-  }, [state.rawText, state.idCounter, dispatch]);
+      if (result.pieces.length === 0 && result.discarded.length === 0) {
+        dispatch({ type: 'SHOW_ERROR', message: MSG_NO_PIECES_FOUND });
+        return;
+      }
+
+      dispatch({
+        type: 'ANALYZE_SUCCEEDED',
+        pieces: result.pieces,
+        discarded: result.discarded,
+        materialMentioned: result.materialMentioned,
+        idCounter: getIdCounter(),
+        unitFactor: result.unitFactor,
+        statedTotal: result.statedTotal,
+      });
+    },
+    [state.rawText, state.idCounter, dispatch],
+  );
+
+  const handleAnalyze = useCallback(() => analyze(), [analyze]);
 
   const handleClear = useCallback(() => {
     dispatch({ type: 'CLEAR_INPUT' });
@@ -114,7 +128,12 @@ export function App(): JSX.Element {
       if (!state.mmAsked) {
         // Primeira peça válida da sessão vinda de um resgate — pergunta
         // sobre mm antes de finalizar (ver DISCARD_RETRY_SUCCEEDED_AS_PENDING).
-        dispatch({ type: 'DISCARD_RETRY_SUCCEEDED_AS_PENDING', index, rescued, idCounter: getIdCounter() });
+        dispatch({
+          type: 'DISCARD_RETRY_SUCCEEDED_AS_PENDING',
+          index,
+          rescued,
+          idCounter: getIdCounter(),
+        });
       } else {
         dispatch({ type: 'DISCARD_RETRY_SUCCEEDED', index, rescued, idCounter: getIdCounter() });
       }
@@ -136,7 +155,10 @@ export function App(): JSX.Element {
     [dispatch],
   );
 
-  const handleRemove = useCallback((id: string) => dispatch({ type: 'PIECE_REMOVED', id }), [dispatch]);
+  const handleRemove = useCallback(
+    (id: string) => dispatch({ type: 'PIECE_REMOVED', id }),
+    [dispatch],
+  );
 
   return (
     <div className="wrap">
@@ -175,6 +197,7 @@ export function App(): JSX.Element {
         isOpen={state.activeModal === 'mm'}
         onAnswered={(factor, decimalAsCm) => dispatch({ type: 'MM_ANSWERED', factor, decimalAsCm })}
       />
+      <ThirdNumberModal isOpen={thirdNumberPending} onAnswered={(choice) => analyze(choice)} />
       <ThreeLadosModal
         isOpen={state.activeModal === 'threeLados'}
         onAnswered={(choice) => dispatch({ type: 'THREE_LADOS_ANSWERED', choice })}
@@ -190,8 +213,12 @@ export function App(): JSX.Element {
       <MaterialColorModal
         isOpen={state.activeModal === 'materialColor'}
         material={colorMaterial}
-        onConfirm={(color) => dispatch({ type: 'MATERIAL_COLOR_ANSWERED', material: colorMaterial, color })}
-        onSkip={() => dispatch({ type: 'MATERIAL_COLOR_ANSWERED', material: colorMaterial, color: '' })}
+        onConfirm={(color) =>
+          dispatch({ type: 'MATERIAL_COLOR_ANSWERED', material: colorMaterial, color })
+        }
+        onSkip={() =>
+          dispatch({ type: 'MATERIAL_COLOR_ANSWERED', material: colorMaterial, color: '' })
+        }
       />
       <PhotoMaterialModal
         isOpen={state.activeModal === 'photoMaterial'}
@@ -205,7 +232,11 @@ export function App(): JSX.Element {
         onClose={() => dispatch({ type: 'ERROR_MODAL_CLOSED' })}
       />
       <UpdateProgressModal
-        isOpen={autoUpdate.status === 'updating' || autoUpdate.status === 'restarting' || autoUpdate.status === 'error'}
+        isOpen={
+          autoUpdate.status === 'updating' ||
+          autoUpdate.status === 'restarting' ||
+          autoUpdate.status === 'error'
+        }
         isError={autoUpdate.status === 'error'}
         updating={autoUpdate.status === 'updating'}
         errorMessage={autoUpdate.errorMessage}

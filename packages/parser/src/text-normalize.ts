@@ -347,3 +347,50 @@ export function stripMeasureUnits(text: string): { text: string; unitFactor: num
   const unitFactor = units.size === 1 ? (units.has('mm') ? 1 : 10) : null;
   return { text: out, unitFactor };
 }
+
+/** Linha só com três números ("230x25x4", "46 x 54.6 x 2"); o grupo 2 é o espaço entre o primeiro número e o "x". */
+const THREE_NUMBERS_LINE_RE = /^\s*(\d+(?:[.,']\d+)?)(\s*)[x×]\s*(\d+(?:[.,']\d+)?)\s*[x×]\s*(\d+)\s*$/i;
+
+/**
+ * "230x25x4", "46x54.6x2" (medida x medida x quantidade ou espessura): devolve o
+ * resultado do regex, ou null quando a linha deve ser lida como o formato
+ * "quantidade X comprimento X largura" ("3 X 80 X 50"), que sempre tem espaço
+ * antes do primeiro "x" e cujo primeiro número é uma quantidade pequena. Com o
+ * "x" colado, ou com o primeiro número em 100 ou mais (não é quantidade), é
+ * medida primeiro.
+ */
+export function matchThreeNumbersLine(line: string): RegExpExecArray | null {
+  const m = THREE_NUMBERS_LINE_RE.exec(line);
+  if (!m) return null;
+  return m[2] === '' || parseFloat(m[1]!.replace(',', '.')) >= 100 ? m : null;
+}
+
+/** Espessuras de chapa que aparecem de verdade (mm). Qualquer outro terceiro número só pode ser quantidade. */
+const PLAUSIBLE_THICKNESSES_MM = new Set([3, 6, 9, 12, 15, 16, 18, 19, 20, 22, 25, 30, 35, 38, 40]);
+
+/**
+ * Resolve as linhas "A x B x N" olhando o terceiro número da lista inteira:
+ * se algum não é espessura de chapa (1, 2, 4, 5...), é quantidade; se todos
+ * poderiam ser espessura (15, 18, 6...), é ambíguo e só o usuário decide.
+ * Com a resposta (meaning), reescreve cada linha no formato que o resto do
+ * leitor já entende: "A x B = N" (quantidade) ou "A x B x N = 1" (espessura).
+ * Sem resposta e ambíguo, devolve o texto como está e ambiguous = true.
+ */
+export function resolveThreeNumberLines(
+  text: string,
+  meaning?: 'quantity' | 'thickness',
+): { text: string; ambiguous: boolean } {
+  const lines = text.split('\n');
+  const thirds = lines.map((line) => matchThreeNumbersLine(line)).filter((m): m is RegExpExecArray => m != null);
+  if (thirds.length === 0) return { text, ambiguous: false };
+
+  const resolved = meaning ?? (thirds.some((m) => !PLAUSIBLE_THICKNESSES_MM.has(Number(m[4]))) ? 'quantity' : null);
+  if (resolved == null) return { text, ambiguous: true };
+
+  const rewritten = lines.map((line) => {
+    const m = matchThreeNumbersLine(line);
+    if (!m) return line;
+    return resolved === 'quantity' ? m[1] + ' x ' + m[3] + ' = ' + m[4] : m[1] + ' x ' + m[3] + ' x ' + m[4] + ' = 1';
+  });
+  return { text: rewritten.join('\n'), ambiguous: false };
+}

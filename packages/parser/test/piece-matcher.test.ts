@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { tryMatchDimensionsThicknessLine,
+import { tryMatchDimensionFirstLine as tryMatchDash, tryMatchDimensionsThicknessLine,
   tryMatchPieceLine,
   splitIntoPieceSegments,
   tryMatchDimensionFirstLine,
@@ -264,5 +264,18 @@ describe('tryMatchDimensionsThicknessLine', () => {
   it('linhas de outros formatos não batem', () => {
     expect(tryMatchDimensionsThicknessLine('550 x 660 = 8')).toBeNull();
     expect(tryMatchDimensionsThicknessLine('3 X 0,80 X 0,505')).toBeNull();
+  });
+});
+
+describe('tryMatchDimensionFirstLine — "medida x medida - quantidade"', () => {
+  it('lê "230x25-4" e variações', () => {
+    expect(tryMatchDash('230x25-4')).toMatchObject({ qty: 4, compr: 230, larg: 25 });
+    expect(tryMatchDash('135,5 x 50 - 2')).toMatchObject({ qty: 2, compr: 135.5, larg: 50 });
+    expect(tryMatchDash('46x54.6-2')).toMatchObject({ qty: 2, cmDecimals: { compr: false, larg: true } });
+  });
+
+  it('não confunde com linha sem quantidade depois do traço', () => {
+    expect(tryMatchDash('230x25-')).toBeNull();
+    expect(tryMatchDash('230x25')).toBeNull();
   });
 });

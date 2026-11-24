@@ -8,16 +8,26 @@ export interface DiscardedItemRowProps {
   onRetry: (index: number, editedText: string) => void;
 }
 
-export function DiscardedItemRow({ item, index, error, onRetry }: DiscardedItemRowProps): JSX.Element {
+export function DiscardedItemRow({
+  item,
+  index,
+  error,
+  onRetry,
+}: DiscardedItemRowProps): JSX.Element {
   const inputRef = useRef<HTMLInputElement>(null);
   const prefillValue = item.suggested || item.text;
 
   return (
     <div className="discard-item" data-idx={index}>
+      {item.line != null ? (
+        <p className="discard-location">
+          <strong>Linha {item.line}</strong> do texto
+        </p>
+      ) : null}
       {item.suggested ? (
         <p className="discard-suggestion">
-          Original: <span className="mono">{item.text}</span> — parece um erro de digitação. Confirme a correção
-          abaixo:
+          Original: <span className="mono">{item.text}</span> — parece um erro de digitação.
+          Confirme a correção abaixo:
         </p>
       ) : null}
       <div className="discard-item-row">

@@ -510,6 +510,12 @@ td.check-cell input {
   align-items: center;
 }
 
+.discard-location {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0 0 4px;
+}
+
 .discard-suggestion {
   font-size: 12px;
   color: var(--text-secondary);

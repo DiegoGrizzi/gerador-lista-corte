@@ -48,6 +48,7 @@ import type { FitaByDimensionRule } from './fita-by-dimension.js';
 import { classifyHeaderLine, extractAboveDeclaration, extractHeaderInfo } from './header.js';
 import { isMarkdownTableSeparatorLine, parseMarkdownTableHeader, parseMarkdownTableRow } from './markdown-table.js';
 import { parseTsvTableHeader, parseTsvTableRow } from './tsv-table.js';
+import { locateDiscardedLines } from './discarded-location.js';
 import type { TableColumns, TableRow } from './table-columns.js';
 import {
   isValidPiece,
@@ -843,6 +844,7 @@ export function analyzeText(text: string, nextId: NextIdFn, options: AnalyzeOpti
   }
 
   const unitFactor = detectStatedUnitFactor(text) ?? measureUnitFactor;
+  locateDiscardedLines(text, discarded);
   const result: AnalyzeResult = { pieces: finalizedPieces, discarded, materialMentioned };
   if (unitFactor != null) result.unitFactor = unitFactor;
   if (statedTotal != null) result.statedTotal = statedTotal;

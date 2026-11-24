@@ -46,6 +46,12 @@ describe('locateDiscardedLines', () => {
     expect(items[0]!.line).toBe(2);
   });
 
+  it('acha a linha quando o leitor tirou o "X" depois da quantidade e o código de fita do fim ("3L")', () => {
+    const items = [item('4 0,6a0 X 0,258')];
+    locateDiscardedLines('PEÇAS 15mm NAVAL BR\n1 X 1,00 X 0,505  1M\n4 X 0,6a0 X 0,258  3L', items);
+    expect(items[0]!.line).toBe(3);
+  });
+
   it('sem achar, deixa o item sem linha', () => {
     const items = [item('texto que não existe')];
     locateDiscardedLines('uma\noutra', items);
@@ -64,6 +70,27 @@ describe('analyzeText — linha dos itens da conferência', () => {
       ['107x25x18', 4],
       ['46x25x18', 5],
     ]);
+  });
+
+  it('lista em metros com um erro de digitação ("0,6a0"): a conferência diz a linha 13', () => {
+    const text = [
+      'PEÇAS 15mm NAVAL BR',
+      '3 X 0,80 X 0,505  1M  1m',
+      '1 X 1,46 X 0,505  1M',
+      '1 X 1,46 X 0,060  1M',
+      '2 X 0,80 X 0,485  3L',
+      '4 X 0,19 X 0,485  3L',
+      '1 X 1,00 X 0,505  1M',
+      '3 X 0,80 X 0,505  1M',
+      '2 X 1,22 X 0,505  1M',
+      '1 X 1,22 X 0,060  1M',
+      '3 X 0,80 X 0,405  3L',
+      '1 X 0,20 X 0,60    3L',
+      '4 X 0,6a0 X 0,258  3L',
+    ].join('\n');
+    const result = analyzeText(text, makeNextId());
+    expect(result.pieces).toHaveLength(11);
+    expect(result.discarded.map((d) => d.line)).toEqual([13]);
   });
 
   it('com CRLF o número da linha é o mesmo', () => {

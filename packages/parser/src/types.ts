@@ -143,6 +143,10 @@ export interface DiscardedItem {
   context: ParseContext;
   /** Linha (a partir de 1) do texto colado em que o item está, para o vendedor achar na lista dele. Ausente quando não foi possível localizar. */
   line?: number;
+  /** Texto que explica o item (ex: a descrição da peça de uma tabela), mostrado junto da linha em vez de dentro do campo de edição. */
+  label?: string;
+  /** Texto que o campo de edição traz já preenchido, no lugar de `text` (ex: só as medidas, esperando a quantidade). */
+  editText?: string;
 }
 
 /** Opções de analyzeText. */

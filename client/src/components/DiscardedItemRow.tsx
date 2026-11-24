@@ -15,13 +15,19 @@ export function DiscardedItemRow({
   onRetry,
 }: DiscardedItemRowProps): JSX.Element {
   const inputRef = useRef<HTMLInputElement>(null);
-  const prefillValue = item.suggested || item.text;
+  const prefillValue = item.suggested || item.editText || item.text;
 
   return (
     <div className="discard-item" data-idx={index}>
-      {item.line != null ? (
+      {item.line != null || item.label ? (
         <p className="discard-location">
-          <strong>Linha {item.line}</strong> do texto
+          {item.line != null ? (
+            <>
+              <strong>Linha {item.line}</strong> do texto
+            </>
+          ) : null}
+          {item.line != null && item.label ? ' — ' : null}
+          {item.label ? <span className="discard-label">{item.label}</span> : null}
         </p>
       ) : null}
       {item.suggested ? (

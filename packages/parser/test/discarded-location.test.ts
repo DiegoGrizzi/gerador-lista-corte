@@ -99,3 +99,34 @@ describe('analyzeText — linha dos itens da conferência', () => {
     expect(result.discarded.map((d) => d.line)).toEqual([3, 4, 5]);
   });
 });
+
+describe('analyzeText — linha de tabela recusada (quantidade 0)', () => {
+  const text = [
+    'Descrição\tQuantidade\tDimensão\tMaterial',
+    'Base 15\t1\t1080 x 350 x 15\tMDF Duratex Trama Titânio 15mm',
+    'QUANTIDADE NÃO LIDA (página 6, linha 2): Sarrafo 15mm (Frontal)\t0\t80 x 200 x 15\tMDF Duratex Trama Titânio 15mm',
+    'Rodapé Linear\t2\t620 x 80 x 15\tMDF Duratex Trama Titânio 15mm',
+  ].join('\n');
+  const result = analyzeText(text, makeNextId());
+
+  it('as outras linhas da tabela seguem sendo lidas', () => {
+    expect(result.pieces.map((p) => [p.qtd, p.compr, p.larg])).toEqual([
+      [1, 1080, 350],
+      [2, 620, 80],
+    ]);
+  });
+
+  it('a descrição vira o rótulo e o campo de edição traz "? = medidas", esperando a quantidade', () => {
+    expect(result.discarded).toHaveLength(1);
+    const item = result.discarded[0]!;
+    expect(item.line).toBe(3);
+    expect(item.label).toBe('QUANTIDADE NÃO LIDA (página 6, linha 2): Sarrafo 15mm (Frontal)');
+    expect(item.editText).toBe('? = 80 x 200');
+  });
+
+  it('o contexto do item já traz o material da linha, para o "Tentar novamente"', () => {
+    const item = result.discarded[0]!;
+    expect(item.context.material).toBe('MDF Duratex Trama Titânio');
+    expect(item.context.thicknessMm).toBe(15);
+  });
+});

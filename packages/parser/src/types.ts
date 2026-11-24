@@ -141,6 +141,8 @@ export interface DiscardedItem {
   text: string;
   suggested: string | null;
   context: ParseContext;
+  /** Linha (a partir de 1) do texto colado em que o item está, para o vendedor achar na lista dele. Ausente quando não foi possível localizar. */
+  line?: number;
 }
 
 /** Opções de analyzeText. */

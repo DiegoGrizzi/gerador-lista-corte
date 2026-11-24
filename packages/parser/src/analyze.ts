@@ -42,11 +42,19 @@ import {
   normalizeThicknessUnitTypos,
 } from './text-normalize.js';
 import { parseFitamentoPhrase } from './fitamento.js';
-import { extractTrailingFitaCodes, extractTrailingFitaSigns, applyFitaCodesToPiece } from './fita-codes.js';
+import {
+  extractTrailingFitaCodes,
+  extractTrailingFitaSigns,
+  applyFitaCodesToPiece,
+} from './fita-codes.js';
 import { parseFitaByDimensionLine, applyFitaByDimensionRules } from './fita-by-dimension.js';
 import type { FitaByDimensionRule } from './fita-by-dimension.js';
 import { classifyHeaderLine, extractAboveDeclaration, extractHeaderInfo } from './header.js';
-import { isMarkdownTableSeparatorLine, parseMarkdownTableHeader, parseMarkdownTableRow } from './markdown-table.js';
+import {
+  isMarkdownTableSeparatorLine,
+  parseMarkdownTableHeader,
+  parseMarkdownTableRow,
+} from './markdown-table.js';
 import { parseTsvTableHeader, parseTsvTableRow } from './tsv-table.js';
 import { locateDiscardedLines } from './discarded-location.js';
 import type { TableColumns, TableRow } from './table-columns.js';
@@ -69,7 +77,16 @@ import {
   markFitaUnknownIfNeeded,
   MIN_EDGE_BANDING_THICKNESS_MM,
 } from './finalize.js';
-import type { AnalyzeOptions, AnalyzeResult, DiscardedItem, FitamentoType, NextIdFn, ParseContext, Piece, RawPiece } from './types.js';
+import type {
+  AnalyzeOptions,
+  AnalyzeResult,
+  DiscardedItem,
+  FitamentoType,
+  NextIdFn,
+  ParseContext,
+  Piece,
+  RawPiece,
+} from './types.js';
 
 /**
  * Rótulo de seção numa linha própria, terminado em dois-pontos e opcionalmente
@@ -82,7 +99,8 @@ import type { AnalyzeOptions, AnalyzeResult, DiscardedItem, FitamentoType, NextI
  * primeira palavra é uma Função conhecida (classifyHeaderLine), para não
  * confundir com frase ("Obrigado. Abraço.").
  */
-const SECTION_DOT_LABEL_RE = /^([a-zà-öø-ÿ][a-zà-öø-ÿ ]{0,28}?)\s*\.\s*([a-zà-öø-ÿ][a-zà-öø-ÿ ]{0,28}?)?\s*\.?\s*$/i;
+const SECTION_DOT_LABEL_RE =
+  /^([a-zà-öø-ÿ][a-zà-öø-ÿ ]{0,28}?)\s*\.\s*([a-zà-öø-ÿ][a-zà-öø-ÿ ]{0,28}?)?\s*\.?\s*$/i;
 
 /**
  * Declaração sobre as peças já listadas: "Essas peças acima MDF branco de 15
@@ -130,7 +148,11 @@ type PendingEntry = ParseContext | RawPiece;
  * informações só aparece mais abaixo no texto (comum quando o material
  * vem no fim da lista de peças).
  */
-export function analyzeText(text: string, nextId: NextIdFn, options: AnalyzeOptions = {}): AnalyzeResult {
+export function analyzeText(
+  text: string,
+  nextId: NextIdFn,
+  options: AnalyzeOptions = {},
+): AnalyzeResult {
   const pieces: RawPiece[] = [];
   const discarded: DiscardedItem[] = [];
 
@@ -215,9 +237,23 @@ export function analyzeText(text: string, nextId: NextIdFn, options: AnalyzeOpti
   }
 
   /** Registra uma linha na lista de conferência, junto com o contexto do momento. */
-  function pushDiscarded(text: string, suggested?: string | null): void {
+  function pushDiscarded(
+    text: string,
+    suggested?: string | null,
+    extra?: Pick<DiscardedItem, 'label' | 'editText'> & {
+      material?: string | null;
+      thicknessMm?: number | null;
+    },
+  ): void {
     const ctx = snapshotContext();
-    discarded.push({ text, suggested: suggested || null, context: ctx });
+    // Linha de tabela com material próprio: resgatar a linha depois (Tentar
+    // novamente) tem que usar o material dela, não o do contexto corrente.
+    if (extra?.material) ctx.material = extra.material;
+    if (extra?.thicknessMm != null) ctx.thicknessMm = extra.thicknessMm;
+    const item: DiscardedItem = { text, suggested: suggested || null, context: ctx };
+    if (extra?.label) item.label = extra.label;
+    if (extra?.editText) item.editText = extra.editText;
+    discarded.push(item);
     // O contexto capturado é o mesmo objeto usado pela peça, então, se
     // for atualizado depois (ver setNewMaterial), o item na conferência
     // também recebe o valor correto ao ser resgatado.
@@ -228,11 +264,21 @@ export function analyzeText(text: string, nextId: NextIdFn, options: AnalyzeOpti
 
   /** Atualiza o contexto corrente ao encontrar um novo cabeçalho de material,
    * propagando o valor retroativamente para tudo que estava pendente. */
-  function setNewMaterial(materialText: string, fitType: FitamentoType | null, thicknessVal: number | null): void {
+  function setNewMaterial(
+    materialText: string,
+    fitType: FitamentoType | null,
+    thicknessVal: number | null,
+  ): void {
     materialBeforeHeader = currentMaterial
-      ? { material: currentMaterial, fitaType: currentFitamentoType, thickness: currentThickness, pieceCount: pieces.length }
+      ? {
+          material: currentMaterial,
+          fitaType: currentFitamentoType,
+          thickness: currentThickness,
+          pieceCount: pieces.length,
+        }
       : null;
-    if (thicknessVal != null) declaredMaterials.push({ material: materialText, thickness: thicknessVal });
+    if (thicknessVal != null)
+      declaredMaterials.push({ material: materialText, thickness: thicknessVal });
     pendingMaterialName = null;
     pendingMaterial.forEach((entry) => {
       entry.material = materialText;
@@ -264,20 +310,42 @@ export function analyzeText(text: string, nextId: NextIdFn, options: AnalyzeOpti
   /** Constrói e registra uma peça a partir de um resultado de tryMatchPieceLine já validado. */
   function addSinglePiece(match: PieceMatch, ctx: ParseContext): void {
     pendingMaterialName = null;
-    const built = buildPieceFromMatch(match.qty, match.prefix, match.dimensionMatch, match.suffix, ctx);
+    const built = buildPieceFromMatch(
+      match.qty,
+      match.prefix,
+      match.dimensionMatch,
+      match.suffix,
+      ctx,
+    );
     built.piece.id = nextId();
     pieces.push(built.piece);
     if (built.explicitFita) perPieceFitaSeen = true;
-    if (!built.newMaterialInfo && built.inlineThicknessMm != null && built.inlineThicknessMm !== ctx.thicknessMm) {
-      const declared = [...declaredMaterials].reverse().find((d) => d.thickness === built.inlineThicknessMm);
+    if (
+      !built.newMaterialInfo &&
+      built.inlineThicknessMm != null &&
+      built.inlineThicknessMm !== ctx.thicknessMm
+    ) {
+      const declared = [...declaredMaterials]
+        .reverse()
+        .find((d) => d.thickness === built.inlineThicknessMm);
       if (declared) {
         built.piece.material = declared.material;
-        addAssumption(built.piece, 'material do bloco de ' + built.inlineThicknessMm + 'mm declarado acima: ' + declared.material);
+        addAssumption(
+          built.piece,
+          'material do bloco de ' +
+            built.inlineThicknessMm +
+            'mm declarado acima: ' +
+            declared.material,
+        );
       }
     }
 
     if (built.newMaterialInfo) {
-      setNewMaterial(built.newMaterialInfo.material, built.newMaterialInfo.fitamento, built.newMaterialInfo.thickness);
+      setNewMaterial(
+        built.newMaterialInfo.material,
+        built.newMaterialInfo.fitamento,
+        built.newMaterialInfo.thickness,
+      );
     }
     if (!currentMaterial) pendingMaterial.push(built.piece);
     if (built.fitaPending) pendingFitamento.push(built.piece);
@@ -303,7 +371,11 @@ export function analyzeText(text: string, nextId: NextIdFn, options: AnalyzeOpti
    * explícita — nesses casos a própria linha é a fonte da verdade,
    * sobrescrevendo o que estiver em vigor no contexto corrente.
    */
-  function addDimensionFirstPiece(match: DimensionFirstMatch, ctx: ParseContext, overrides?: DimensionFirstOverrides): void {
+  function addDimensionFirstPiece(
+    match: DimensionFirstMatch,
+    ctx: ParseContext,
+    overrides?: DimensionFirstOverrides,
+  ): void {
     pendingMaterialName = null;
     const piece = buildPieceFromDimensionFirstMatch(match, ctx);
     if (overrides?.funcao) piece.funcao = overrides.funcao;
@@ -335,7 +407,10 @@ export function analyzeText(text: string, nextId: NextIdFn, options: AnalyzeOpti
         if (!segMatch) return false;
         const segComprimento = toNumber(segMatch.dimensionMatch[1]!);
         const segLargura = toNumber(segMatch.dimensionMatch[3]!);
-        return isValidPiece(segComprimento, segLargura, segMatch.qty) && !SUSPICIOUS_ADJACENT_RE.test(segMatch.rawSuffix);
+        return (
+          isValidPiece(segComprimento, segLargura, segMatch.qty) &&
+          !SUSPICIOUS_ADJACENT_RE.test(segMatch.rawSuffix)
+        );
       });
 
     if (!allValid) {
@@ -354,14 +429,18 @@ export function analyzeText(text: string, nextId: NextIdFn, options: AnalyzeOpti
   // da função processa cada peça normalmente a partir daqui.
   const { text: textWithoutTotal, total: statedTotal } = extractStatedTotal(text);
   const { text: textWithoutUnits, unitFactor: measureUnitFactor } = stripMeasureUnits(
-    normalizeDotAfterQuantity(stripWhatsAppExportPrefixes(normalizeThicknessUnitTypos(textWithoutTotal))),
+    normalizeDotAfterQuantity(
+      stripWhatsAppExportPrefixes(normalizeThicknessUnitTypos(textWithoutTotal)),
+    ),
   );
   const {
     text: textResolved,
     ambiguous: threeNumbersAmbiguous,
     ambiguousLines: ambiguousThreeNumberLines,
   } = resolveThreeNumberLines(textWithoutUnits, options.thirdNumber);
-  const expandedText = expandPcSeparatedPieces(joinSplitQuantityLines(mergeMdfThicknessAndColorLines(textResolved)));
+  const expandedText = expandPcSeparatedPieces(
+    joinSplitQuantityLines(mergeMdfThicknessAndColorLines(textResolved)),
+  );
 
   expandedText.split('\n').forEach((rawLine) => {
     // Marcador de lista ("* 4 peças ...", "• ...", "- ...") — só quando
@@ -406,10 +485,25 @@ export function analyzeText(text: string, nextId: NextIdFn, options: AnalyzeOpti
     }
     if (tableColumns) {
       const tableRow: TableRow | null =
-        tableDelimiter === 'markdown' ? parseMarkdownTableRow(line, tableColumns) : parseTsvTableRow(line, tableColumns);
+        tableDelimiter === 'markdown'
+          ? parseMarkdownTableRow(line, tableColumns)
+          : parseTsvTableRow(line, tableColumns);
       if (tableRow) {
         if (!isValidPiece(tableRow.compr, tableRow.larg, tableRow.qty)) {
-          pushDiscarded(line);
+          // A descrição da linha vira o rótulo (fora do campo de edição) e o
+          // campo traz só as medidas, esperando a quantidade.
+          pushDiscarded(line, null, {
+            label: tableRow.funcao ?? undefined,
+            // "quantidade = compr x larg": o "?" é para o vendedor trocar pela quantidade.
+            editText:
+              (tableRow.qty > 0 ? tableRow.qty : '?') +
+              ' = ' +
+              tableRow.compr +
+              ' x ' +
+              tableRow.larg,
+            material: tableRow.material,
+            thicknessMm: tableRow.thicknessMm,
+          });
           return;
         }
         addDimensionFirstPiece(tableRow, snapshotContext(), {
@@ -470,11 +564,19 @@ export function analyzeText(text: string, nextId: NextIdFn, options: AnalyzeOpti
     // abaixo, que desmontaria esta linha.
     const dimensionThicknessMatch = tryMatchDimensionsThicknessLine(line);
     if (dimensionThicknessMatch) {
-      if (!isValidPiece(dimensionThicknessMatch.compr, dimensionThicknessMatch.larg, dimensionThicknessMatch.qty)) {
+      if (
+        !isValidPiece(
+          dimensionThicknessMatch.compr,
+          dimensionThicknessMatch.larg,
+          dimensionThicknessMatch.qty,
+        )
+      ) {
         pushDiscarded(line);
         return;
       }
-      addDimensionFirstPiece(dimensionThicknessMatch, snapshotContext(), { thicknessMm: dimensionThicknessMatch.lineThicknessMm });
+      addDimensionFirstPiece(dimensionThicknessMatch, snapshotContext(), {
+        thicknessMm: dimensionThicknessMatch.lineThicknessMm,
+      });
       return;
     }
 
@@ -539,7 +641,9 @@ export function analyzeText(text: string, nextId: NextIdFn, options: AnalyzeOpti
     // usada no formato principal) e cortaria a linha no lugar errado.
     const dimensionFirstMatch = tryMatchDimensionFirstLine(line);
     if (dimensionFirstMatch) {
-      if (!isValidPiece(dimensionFirstMatch.compr, dimensionFirstMatch.larg, dimensionFirstMatch.qty)) {
+      if (
+        !isValidPiece(dimensionFirstMatch.compr, dimensionFirstMatch.larg, dimensionFirstMatch.qty)
+      ) {
         pushDiscarded(line);
         return;
       }
@@ -642,7 +746,10 @@ export function analyzeText(text: string, nextId: NextIdFn, options: AnalyzeOpti
       pendingThickness = pendingThickness.filter((entry) => !block.includes(entry as RawPiece));
       aboveBlockStart = pieces.length;
       if (aboveDeclaration.thickness != null) {
-        declaredMaterials.push({ material: aboveDeclaration.material, thickness: aboveDeclaration.thickness });
+        declaredMaterials.push({
+          material: aboveDeclaration.material,
+          thickness: aboveDeclaration.thickness,
+        });
       }
       materialMentioned = true;
       return;
@@ -751,7 +858,11 @@ export function analyzeText(text: string, nextId: NextIdFn, options: AnalyzeOpti
       // A palavra de acabamento depois da espessura ("Branco 6mm comum") faz
       // parte do nome do material.
       const finish = genericHeaderMatch[3] ? ' ' + genericHeaderMatch[3] : '';
-      setNewMaterial(genericHeaderMatch[1]!.trim() + finish, null, toNumber(genericHeaderMatch[2]!));
+      setNewMaterial(
+        genericHeaderMatch[1]!.trim() + finish,
+        null,
+        toNumber(genericHeaderMatch[2]!),
+      );
       return;
     }
 
@@ -802,7 +913,9 @@ export function analyzeText(text: string, nextId: NextIdFn, options: AnalyzeOpti
     }
   });
 
-  applyFitaByDimensionRules(pieces, fitaByDimensionRules).forEach((unmatchedLine) => pushDiscarded(unmatchedLine));
+  applyFitaByDimensionRules(pieces, fitaByDimensionRules).forEach((unmatchedLine) =>
+    pushDiscarded(unmatchedLine),
+  );
 
   // Marca ANTES de defaultar fitaType pendente pra 'none-explicit' logo
   // abaixo - só nesse momento "fitaType == null" significa de verdade que

@@ -24,6 +24,7 @@
 import sharp from 'sharp';
 
 import { cleanupTempFile, writeTempImage } from '../temp-file.js';
+import { cleanModelarTable } from './modelar-table.js';
 import { extractNativePdfWords, type NativePdfPage } from './native-pdf-words.js';
 import {
   findNativeTableStatedTotal,
@@ -43,7 +44,12 @@ export interface PdfTableExtractorDeps {
   findNativeTableStatedTotal?: (words: OcrWord[]) => number | null;
   renderPdfPages: (pdfBuffer: Buffer) => Promise<RenderedPage[]>;
   detectRotation: (tesseractPath: string, imagePath: string) => Promise<number>;
-  recognizeWords: (tesseractPath: string, lang: string, imagePath: string, psm: number) => Promise<OcrWord[]>;
+  recognizeWords: (
+    tesseractPath: string,
+    lang: string,
+    imagePath: string,
+    psm: number,
+  ) => Promise<OcrWord[]>;
   reconstructTableText: (words: OcrWord[]) => string | null;
   rotateImage: (imagePath: string, degrees: number) => Promise<string>;
   tesseractPath: string;
@@ -65,7 +71,10 @@ async function defaultRotateImage(imagePath: string, degrees: number): Promise<s
   return rotatedPath;
 }
 
-export function createDefaultPdfTableExtractorDeps(tesseractPath: string, lang: string): PdfTableExtractorDeps {
+export function createDefaultPdfTableExtractorDeps(
+  tesseractPath: string,
+  lang: string,
+): PdfTableExtractorDeps {
   return {
     extractNativePdfWords,
     reconstructNativeTableRows,
@@ -88,7 +97,10 @@ export function createDefaultPdfTableExtractorDeps(tesseractPath: string, lang: 
  * não é um erro, só significa que o PDF não tinha nada aproveitável (ex:
  * só desenhos, ou nenhuma página de lista).
  */
-export async function extractPdfTableText(pdfBuffer: Buffer, deps: PdfTableExtractorDeps): Promise<string> {
+export async function extractPdfTableText(
+  pdfBuffer: Buffer,
+  deps: PdfTableExtractorDeps,
+): Promise<string> {
   const nativePages = await deps.extractNativePdfWords(pdfBuffer);
   const renderedPages = await deps.renderPdfPages(pdfBuffer);
   const tableBlocks: string[] = [];
@@ -118,7 +130,9 @@ export async function extractPdfTableText(pdfBuffer: Buffer, deps: PdfTableExtra
         const words = await deps.recognizeWords(deps.tesseractPath, deps.lang, correctedPath, psm);
         const tableText = deps.reconstructTableText(words);
         if (tableText) {
-          tableBlocks.push(tableText);
+          // A tabela do Modelar sai do OCR com linhas quebradas e o desenho da
+          // borda virando lixo: ver modelar-table.ts.
+          tableBlocks.push(cleanModelarTable(tableText) ?? tableText);
           break;
         }
       }
@@ -130,6 +144,7 @@ export async function extractPdfTableText(pdfBuffer: Buffer, deps: PdfTableExtra
 
   // A linha do total vai no fim do texto: o parser a reconhece (extractStatedTotal)
   // e a interface confere a soma das quantidades lidas contra ela.
-  if (statedTotal != null && tableBlocks.length > 0) tableBlocks.push('Total de peças: ' + statedTotal);
+  if (statedTotal != null && tableBlocks.length > 0)
+    tableBlocks.push('Total de peças: ' + statedTotal);
   return tableBlocks.join('\n\n');
 }

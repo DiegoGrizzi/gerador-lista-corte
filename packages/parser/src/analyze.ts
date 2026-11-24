@@ -39,7 +39,7 @@ import {
   extractStatedTotal,
   stripMeasureUnits,
   resolveThreeNumberLines,
-  matchThreeNumbersLine,
+  normalizeThicknessUnitTypos,
 } from './text-normalize.js';
 import { parseFitamentoPhrase } from './fitamento.js';
 import { extractTrailingFitaCodes, extractTrailingFitaSigns, applyFitaCodesToPiece } from './fita-codes.js';
@@ -237,6 +237,13 @@ export function analyzeText(text: string, nextId: NextIdFn, options: AnalyzeOpti
       entry.material = materialText;
     });
     pendingMaterial = [];
+    // Espessura declarada junto com o material, depois das peças ("Gianduia
+    // trama 18mm" no fim da lista): vale para as peças ainda sem espessura.
+    if (thicknessVal != null) {
+      pendingThickness.forEach((entry) => {
+        if (entry.thicknessMm == null) entry.thicknessMm = thicknessVal;
+      });
+    }
     pendingFitamento.forEach((entry) => {
       // Um novo cabeçalho SEM fita própria encerra o bloco anterior: as peças
       // dele que nunca tiveram informação de fita continuam "desconhecidas"
@@ -346,12 +353,13 @@ export function analyzeText(text: string, nextId: NextIdFn, options: AnalyzeOpti
   // da função processa cada peça normalmente a partir daqui.
   const { text: textWithoutTotal, total: statedTotal } = extractStatedTotal(text);
   const { text: textWithoutUnits, unitFactor: measureUnitFactor } = stripMeasureUnits(
-    normalizeDotAfterQuantity(stripWhatsAppExportPrefixes(textWithoutTotal)),
+    normalizeDotAfterQuantity(stripWhatsAppExportPrefixes(normalizeThicknessUnitTypos(textWithoutTotal))),
   );
-  const { text: textResolved, ambiguous: threeNumbersAmbiguous } = resolveThreeNumberLines(
-    textWithoutUnits,
-    options.thirdNumber,
-  );
+  const {
+    text: textResolved,
+    ambiguous: threeNumbersAmbiguous,
+    ambiguousLines: ambiguousThreeNumberLines,
+  } = resolveThreeNumberLines(textWithoutUnits, options.thirdNumber);
   const expandedText = expandPcSeparatedPieces(joinSplitQuantityLines(mergeMdfThicknessAndColorLines(textResolved)));
 
   expandedText.split('\n').forEach((rawLine) => {
@@ -451,7 +459,7 @@ export function analyzeText(text: string, nextId: NextIdFn, options: AnalyzeOpti
 
     // "230x25x4" sem como saber se o 4 é espessura ou quantidade: vai para a
     // conferência até o usuário responder (ver resolveThreeNumberLines).
-    if (threeNumbersAmbiguous && matchThreeNumbersLine(line)) {
+    if (threeNumbersAmbiguous && ambiguousThreeNumberLines.includes(line)) {
       pushDiscarded(line);
       return;
     }

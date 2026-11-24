@@ -39,6 +39,7 @@ import {
   PECAS_ACIMA_MATERIAL_POR_BLOCO_MESSAGE,
   CORTAR_DOIS_PONTOS_MESSAGE,
   MEDIDA_X_MEDIDA_TRACO_QTD_MESSAGE,
+  QTD_NA_FRENTE_IRREGULAR_MESSAGE,
 } from './fixtures/sample-messages.js';
 
 function makeNextId() {
@@ -71,16 +72,14 @@ describe('analyzeText — retroactive backfill', () => {
 
     expect(result.materialMentioned).toBe(true);
     expect(result.pieces).toHaveLength(2);
-    // NOTE: this mirrors a real quirk of the legacy engine — setNewMaterial
-    // backfills pendingMaterial (and defaults pendingFitamento to
-    // 'none-explicit'), but clears pendingThickness WITHOUT writing back
-    // into those entries. So a thickness declared alongside a retroactive
-    // material ("MDF branco de 15mm") never reaches pieces read earlier:
-    // thicknessMm stays null and the material label carries no "Nmm" suffix.
-    expect(result.pieces[0]!.material).toBe('MDF branco');
-    expect(result.pieces[0]!.thicknessMm).toBeNull();
-    expect(result.pieces[1]!.material).toBe('MDF branco');
-    expect(result.pieces[1]!.thicknessMm).toBeNull();
+    // A espessura declarada junto com o material, depois das peças ("MDF
+    // branco de 15mm"), também vale para as peças já lidas: antes ela se
+    // perdia (o motor legado só preenchia o material) e a peça ficava sem
+    // espessura, com o material sem o "Nmm".
+    expect(result.pieces[0]!.material).toBe('MDF branco 15mm');
+    expect(result.pieces[0]!.thicknessMm).toBe(15);
+    expect(result.pieces[1]!.material).toBe('MDF branco 15mm');
+    expect(result.pieces[1]!.thicknessMm).toBe(15);
   });
 });
 
@@ -1237,6 +1236,40 @@ describe('analyzeText — "medida x medida x N": N é quantidade ou espessura?',
     expect(r.pieces.map((p) => [p.qtd, p.compr, p.larg, p.thicknessMm])).toEqual([
       [1, 230, 25, 15],
       [1, 107, 25, 18],
+    ]);
+  });
+});
+
+describe('analyzeText — quantidade na frente com espaçamento irregular e "mlm"', () => {
+  const result = analyzeText(QTD_NA_FRENTE_IRREGULAR_MESSAGE, makeNextId());
+
+  it('"15 x 140x60", "6 x76x58", "3x76x58" e "2x80x58" têm a quantidade na frente', () => {
+    expect(result.pieces.map((p) => [p.qtd, p.compr, p.larg])).toEqual([
+      [15, 140, 60],
+      [6, 76, 58],
+      [3, 76, 58],
+      [2, 80, 58],
+    ]);
+    expect(result.pieces.every((p) => p.funcao === '')).toBe(true);
+    expect(result.thirdNumberAmbiguous).toBeUndefined();
+  });
+
+  it('"Gianduia trama 18 mlm" depois das peças vale como material e espessura delas', () => {
+    expect(result.pieces.map((p) => [p.material, p.thicknessMm])).toEqual([
+      ['Gianduia trama 18mm', 18],
+      ['Gianduia trama 18mm', 18],
+      ['Gianduia trama 18mm', 18],
+      ['Gianduia trama 18mm', 18],
+    ]);
+    expect(result.materialMentioned).toBe(true);
+  });
+
+  it('a lista de quantidade no fim ("230x25x4": primeiros grandes, terceiros pequenos) segue sendo quantidade no fim', () => {
+    const r = analyzeText('230x25x4\n107x25x6\n46x25x1', makeNextId());
+    expect(r.pieces.map((p) => [p.qtd, p.compr, p.larg])).toEqual([
+      [4, 230, 25],
+      [6, 107, 25],
+      [1, 46, 25],
     ]);
   });
 });

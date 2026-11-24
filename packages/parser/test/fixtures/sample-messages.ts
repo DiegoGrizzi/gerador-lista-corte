@@ -816,3 +816,17 @@ export const MEDIDA_X_MEDIDA_TRACO_QTD_MESSAGE = [
   '87.3x50-1',
   '43.5x32-2',
 ].join('\n');
+
+/**
+ * Lista "quantidade x comprimento x largura" digitada com espaçamento irregular
+ * ("15 x 140x60", "6 x76x58", "3x76x58") e o material depois das peças, com a
+ * unidade da espessura errada ("18 mlm").
+ */
+export const QTD_NA_FRENTE_IRREGULAR_MESSAGE = [
+  '15 x 140x60',
+  '6 x76x58',
+  '3x76x58',
+  '2x80x58',
+  '',
+  'Gianduia trama 18 mlm',
+].join('\n');

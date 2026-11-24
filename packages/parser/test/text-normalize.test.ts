@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   extractStatedTotal,
   stripMeasureUnits,
+  normalizeThicknessUnitTypos,
   stripWhatsAppFormatting,
   normalizeTypos,
   stripFillers,
@@ -307,5 +308,17 @@ describe('stripMeasureUnits', () => {
     expect(stripMeasureUnits('1- 1000 x 500 x 15mm')).toEqual({ text: '1- 1000 x 500 x 15mm', unitFactor: null });
     expect(stripMeasureUnits('MDF 15mm x 2750')).toEqual({ text: 'MDF 15mm x 2750', unitFactor: null });
     expect(stripMeasureUnits('2 = 100x50')).toEqual({ text: '2 = 100x50', unitFactor: null });
+  });
+});
+
+describe('normalizeThicknessUnitTypos', () => {
+  it('"mlm" e "mmm" depois de um número viram "mm"', () => {
+    expect(normalizeThicknessUnitTypos('Gianduia trama 18 mlm')).toBe('Gianduia trama 18mm');
+    expect(normalizeThicknessUnitTypos('MDF 15mmm')).toBe('MDF 15mm');
+  });
+
+  it('não mexe em "mm" certo nem em palavra que só contém "mlm"', () => {
+    expect(normalizeThicknessUnitTypos('MDF 15mm')).toBe('MDF 15mm');
+    expect(normalizeThicknessUnitTypos('amlmo')).toBe('amlmo');
   });
 });

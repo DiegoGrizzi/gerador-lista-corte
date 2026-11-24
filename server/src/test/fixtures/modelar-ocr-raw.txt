@@ -1,0 +1,282 @@
+Descrição	Quantidad	Dimensão	Borda	Descrição	da	fita	de	borda	Veio	Matéria-prima	Obs.
+	e										
+5070-Lateral 15 (Dir)	2	2262 x 525 x 15		19-1-Branco					Cores.Branco	MDF 15	
+		Teo									
+5111-Prateleira Linear de Madeira 15	1 483.	x504x15		19-1-Branco					Cores.Branco	MDF 15	
+(Móvel)		Í									
+15	1	2330 x 605 x 15		19-1-Branco					Cores.Branco	MDF 15	4930-Base
+		Teo									
+15 (Fixa)	1 400	x 605 x 15		19-1-Branco					Cores.Branco	MDF 15	4937-Divisória
+		Dm									
+5102-Base Linear 15	2	1480 x 525 x 15		19-1-Branco					Cores.Branco	MDF 15	
+		Cm									
+5074-Base Linear 15	4 620	x 525 x 15		19-1-Branco					Cores.Branco	MDF 15	
+		[O									
+Travessa 15	1	2330 x 70x 15							Cores.Branco	MDF 15	4928-Fundo
+		4									
+5041-Rodapé Linear	3 460	x 80 x 15		19-1-Branco					Cores.Branco	MDF 15	
+		[O									
+5588-Sarrafo 15mm (Frontal)	1 960	x 80 x 15		19-1-Branco					Cores.Branco	MDF 15	
+		o									
+5069-Lateral 15 (Esq)	2	2262 x 525 x 15 ff,		(19-1-Branco					Cores.Branco	MDF 15	
+		O T—aE									
+5040-Rodapé Linear	1 80	x 460 x 15		19-1-Branco					Cores.Branco	MDF 15	
+		[o									
+15	1	390 x 460 x 15		19-1-Branco					Cores.Branco	MDF 15	4791-Base
+		Dm									
+15	1 600	x 1010 x 15		19-1-Branco					Cores.Branco	MDF 15	4852-Base
+		o									
+de Gaveta 15mm (Dir)	1	564 x 120 x 15 ff,		(19-1-Branco					Cores.Branco	MDF 15	4904-Lateral
+		O T—aE									
+de Gaveta 15mm (Esq)	1	564 x 120 x 15		19-1-Branco					Cores.Branco	MDF 15	4903-Lateral
+		eo									
+15 (Esq)	2 600	x 760 x 15 =,		19-0.4-Branco					Cores.Branco	MDF 15	4850-Lateral
+		O T—D									
+15 (Dir)	1 600	x 760 x 15		19-0.4-Branco					Cores.Branco	MDF 15	4832-Lateral
+		eo									
+5569-Lateral 15 (Dir)	1	285 x 760 x 15 =,		19-0.4-Branco					Cores.Branco	MDF 15	
+		O T—D									
+Linear (Fixa)	1	390 x 455 x 15		19-0.4-Branco					Cores.Branco	MDF 15	4788-Prateleira
+		Dm									
+5625-Sarrafo 15mm (Frontal)	1 80	x 430 x 15 ff,		(19-1-Branco					Cores.Branco	MDF 15	
+		O T—D									
+Frente de Gaveta 15mm	2	120 x 452 x 15 —m		19-1-Branco					Cores.Branco	MDF 15	4902-Contra
+		4									
+
+Descrição	Quantidad	Dimensão	Borda	Descrição	da	fita	de	borda	Veio	Matéria-prima	Obs.
+	e										
+de Gaveta 15	1	120 x 452 x 15 DO eee		19-1-Branco					Cores.Branco	MDF 15	4900-Posterior
+5613-Lateral 15 (Dir)	1 760	x 380 x 15		19-0.4-Branco					Cores.Branco	MDF 15	
+		o									
+5612-Lateral 15 (Esq)	1 760	x 380 x 15 E,		19-0.4-Branco					Cores.Branco	MDF 15	
+		O T—eaD									
+5163-Tamponamento Inferior 15	1	1510 x 150 x 15		19-0.4-Branco					Cores.Branco	MDF 15	
+de Gaveta 15	1 452	x 120 x 15 —em		19-1-Branco					Cores.Branco	MDF 15	4889-Posterior
+15 (Dir)	1 415	x 605 x 15		19-0.4-Branco					Cores.Branco	MDF 15	4927-Lateral
+		Dm									
+15 (Esq)	1 415	x 605 x 15		19-0.4-Branco					Cores.Branco	MDF 15	4926-Lateral
+		DD									
+15	1 600	x 600 x 15		19-1-Branco					Cores.Branco	MDF 15	4833-Base
+		o									
+Linear (Móvel)	1 485	x 594 x 15		19-0.4-Branco					Cores.Branco	MDF 15	4867-Prateleira
+		DD									
+5083-Prateleira Linear de Madeira 15	9	506 x 590 x 15		19-1-Branco					Cores.Branco	MDF 15	
+(Móvel)											
+5100-Lateral 15 (Dir)	1 710	x 525 x 15 F——		19-1-Branco					Cores.Branco	MDF 15	
+		o T—eaD									
+5099-Lateral 15 (Esq)	1 710	x 525 x 15		19-1-Branco					Cores.Branco	MDF 15	
+		o									
+Frente de Gaveta 15mm	1	180 x 452 x 15 —emm		(19-1-Branco					Cores.Branco	MDF 15	4880-Contra
+15 (Dir)	1 460	x 710 x 15		19-0.4-Branco					Cores.Branco	MDF 15	4790-Lateral
+		o									
+de Gaveta 15	1 452	x 180 x 15 —m		19-1-Branco					Cores.Branco	MDF 15	4878-Posterior
+5611-Prateleira Linear (Móvel)	1 430	x 374 x 15		19-0.4-Branco					Cores.Branco	MDF 15	
+		o									
+5636-Base 15	1	1050 x 350 x 15 FF		19-1-Branco					Cores.Branco	MDF 15	
+		O T—aD									
+5634-Fundo Travessa 15	1	1050 x 70 x 15							Cores.Branco	MDF 15	
+		4									
+5631-Prateleira Linear (Móvel)	1	1050 x 329 x 15 E,		19-0.4-Branco					Cores.Branco	MDF 15	
+		O T—aD									
+5110-Prateleira Linear de Madeira 15	1 981	x 504 x 15		19-1-Branco					Cores.Branco	MDF 15	
+5633-Lateral 15 (Dir)	1	350 x 865 x 15 E,		19-0.4-Branco					Cores.Branco	MDF 15	
+		O T—aD									
+5632-Lateral 15 (Esq)	1	350 x 865 x 15		19-0.4-Branco					Cores.Branco	MDF 15	
+		——									
+15 (Móvel)	1	584 x 400 x 15		19-1-Branco					Cores.Branco	MDF 15	4938-Divisória
+		DD									
+5570-Base 15	1 960	x 285 x 15		19-1-Branco					Cores.Branco	MDF 15	
+		o									
+5568-Lateral 15 (Esq)	1 760	x 285 x 15 E,		19-0.4-Branco					Cores.Branco	MDF 15	
+		O T—aD									
+15 (Esq)	1 710	x 460 x 15		19-0.4-Branco					Cores.Branco	MDF 15	4789-Lateral
+		o									
+
+Descrição	Quantidad	Dimensão	Borda	Descrição	da	fita	de	borda	Veio	Matéria-prima	Obs.
+	e										
+5109-Divisória 15 (Móvel)	1 680	x 504 x 15 E,		(19-1-Branco					Cores.Branco	MDF 15	
+		o T—aD									
+5048-Prateleira Linear de Madeira 15	1	590 x 506 x 15		19-1-Branco					Cores.Branco	MDF 15	
+(Móvel)											
+15 (Fixa)	1 730	x 600 x 15 F———		19-1-Branco					Cores.Branco	MDF 15	4866-Divisória
+		o T—aD									
+de Gaveta 15mm (Dir)	1	120 x 564 x 15		19-1-Branco					Cores.Branco	MDF 15	4893-Lateral
+		o									
+de Gaveta 15mm (Esq)	1	120 x 564 x 15 E,		(19-1-Branco					Cores.Branco	MDF 15	4892-Lateral
+		o T—aD									
+5614-Base 15	1	380 x 430 x 15		19-1-Branco					Cores.Branco	MDF 15	
+		o									
+de Gaveta 15mm (Dir)	1	564 x 180 x 15 E,		(19-1-Branco					Cores.Branco	MDF 15	4882-Lateral
+		o T—aD									
+de Gaveta 15mm (Esq)	1	564 x 180 x 15		19-1-Branco					Cores.Branco	MDF 15	4881-Lateral
+		o									
+5567-Prateleira Linear (Móvel)	1 960	x 279 x 15 E,		19-0.4-Branco					Cores.Branco	MDF 15	
+		o T—eaD									
+5078-Fundo 6	2	2272 x 600 x 6							Cores.Branco	MDF 6	
+		4									
+de Gaveta 6	3 462	x 544 x 6 F—							Cores.Branco	MDF 6	4901-Fundo
+5651-Fundo 6	1 860	x 1060 x 6							Cores.Branco	MDF 6	
+		4									
+6	1	1648 x410x6 ———							Cores.Branco	MDF 6	4931-Fundo
+5103-Fundo 6	1	1490 x 690 x 6							Cores.Branco	MDF 6	
+		4									
+6	1 410	x 686 x 6 ——							Cores.Branco	MDF 6	4960-Fundo
+5586-Fundo 6	1 735	x970 x 6							Cores.Branco	MDF 6	
+		4									
+5151-Tamponamento Inferior 15	1	1646 x 550 x 15		19-0.4-Cumaru		Raiz			Pam	Duratex.Essencial Wood.Cumaru MDF 15	
+15	2	170 x 470 x 15		19-1-Cumaru		Raiz				Duratex.Essencial Wood.Cumaru MDF 15)	4784-Base
+		Dm							1		
+15	2	200 x 470 x 15		19-1-Cumaru		Raiz				Duratex.Essencial Wood.Cumaru MDF 15)	4783-Base
+		Dm							1		
+15 (Dir)	2	317 x 470 x 15		19-0.4-Cumaru		Raiz				Duratex.Essencial Wood.Cumaru MDF 15	4781-Lateral
+		Dm							1		
+Travessa 15	2	170 x 70x 15 ——							Pam	Duratex.Essencial Wood.Cumaru MDF 15)	4782-Fundo
+Travessa 15	1 670	x 70 x 15								Duratex.Essencial Wood.Cumaru MDF 15)	4813-Fundo
+									1		
+		4									
+5676-Painel Horizontal 15	4	2100 x 1195 x 15		19-0.4-Cumaru		Raiz			Pam	Duratex.Essencial Wood.Cumaru MDF 15)	
+Travessa 15	1	1660 x 70 x 15								Duratex.Essencial Wood.Cumaru MDF 15)	4917-Fundo
+									1		
+		4									
+15 (Esq)	2	317 x 470 x 15		19-0.4-Cumaru		Raiz				Duratex.Essencial Wood.Cumaru MDF 15	4780-Lateral
+		DD							1		
+5602-Fundo 15	1	140 x 735 x 15								Duratex.Essencial Wood.Cumaru MDF 15)	
+									1		
+		4									
+
+Descrição	Quantidad	Dimensão	Borda	Descrição	da	fita	de	borda	Veio	Matéria-prima	Obs.
+	e										
+15	2	320 x 285 x 15		19-1-Cumaru		Raiz			Pam	Duratex.Essencial Wood.Cumaru MDF 15)	4972-Divisória
+		E									
+5604-Sarrafo 15mm (Frontal)	1	130 x 80x 15		19-1-Cumaru		Raiz				Duratex.Essencial Wood.Cumaru MDF 15	
+									1		
+5600-Base 15	1	130 x 300 x 15		19-1-Cumaru		Raiz				Duratex.Essencial Wood.Cumaru MDF 15)	
+		Dm							1		
+5597-Prateleira Linear (Móvel)	4	130 x 294 x 15		19-0.4-Cumaru		Raiz				Duratex.Essencial Wood.Cumaru MDF 15	
+		Dm							1		
+5017-Tampo Linear Reto	2	2650 x 200 x 15		19-1-Cumaru		Raiz			Pam	Duratex.Essencial Wood.Cumaru MDF 15	
+5155-Painel Horizontal 15	1 650	x 1450 x 15		19-0.4-Cumaru		Raiz				Duratex.Essencial Wood.Cumaru MDF 15)	
+									1		
+15	1	1670 x 380 x 15 ———							Pam	Duratex.Essencial Wood.Cumaru MDF 15)	4920-Fundo
+15	1	180 x 312 x 15								Duratex.Essencial Wood.Cumaru MDF 15)	4775-Fundo
+									1		
+		4									
+5139-Tamponamento Inferior 15	1	1450 x 550 x 15		19-0.4-Cumaru		Raiz			Pam	Duratex.Essencial Wood.Cumaru MDF 15	
+15	1	320 x 300 x 15		19-1-Cumaru		Raiz				Duratex.Essencial Wood.Cumaru MDF 15)	4974-Lateral
+									1		
+		o									
+5145-Tamponamento Inferior 15	1	1654 x 550 x 15		19-0.4-Cumaru		Raiz			Pam	Duratex.Essencial Wood.Cumaru MDF 15	
+5144-Tamponamento Inferior 15	1	1653 x 100 x 15		19-0.4-Cumaru		Raiz				Duratex.Essencial Wood.Cumaru MDF 15	
+									1		
+5150-Tamponamento Inferior 15	1	1651 x 100 x 15		19-0.4-Cumaru		Raiz			Pam	Duratex.Essencial Wood.Cumaru MDF 15	
+5138-Tamponamento Inferior 15	1	1510 x 100 x 15		19-0.4-Cumaru		Raiz				Duratex.Essencial Wood.Cumaru MDF 15	
+									1		
+15 (Dir)	1 935	x 170 x 15		19-0.4-Cumaru		Raiz			“>	Duratex.Essencial Wood.Cumaru MDF 15	4812-Lateral
+		E									
+15 (Esq)	1 935	x 170 x 15		19-0.4-Cumaru		Raiz				Duratex.Essencial Wood.Cumaru MDF 15	4811-Lateral
+									1		
+5599-Lateral 15 (Dir)	1 760	x 300 x 15		19-0.4-Cumaru		Raiz			“>	Duratex.Essencial Wood.Cumaru MDF 15	
+		E									
+Reta (Dir)	1	553. x314x15		19-1-Cumaru		Raiz				Duratex.Essencial Wood.Cumaru MDF 15	4984-Porta
+									1		
+Reta (Dir)	1	547 x314x 15		19-1-Cumaru		Raiz			“>	Duratex.Essencial Wood.Cumaru MDF 15	4991-Porta
+		E									
+15	1 670	x 170 x 15		19-1-Cumaru		Raiz				Duratex.Essencial Wood.Cumaru MDF 15)	4815-Base
+									1		
+		o									
+15	1 700	x 170 x 15 FE		19-1-Cumaru		Raiz			Pam	Duratex.Essencial Wood.Cumaru MDF 15)	4814-Base
+		O T—aD									
+Linear (Móvel)	2 670	x 147 x 15		19-0.4-Cumaru		Raiz				Duratex.Essencial Wood.Cumaru MDF 15	4810-Prateleira
+									1		
+		o									
+5598-Lateral 15 (Esq)	1 760	x 300 x 15 FE,		19-0.4-Cumaru		Raiz			“>	Duratex. Essencial Wood.Cumaru MDF 15)	
+		O T—aD									
+5682-Painel Horizontal 6	2	2080 x 820 x 6		6-0.4-Cumaru		Raiz				Duratex.Essencial Wood.Cumaru MDF 6	
+									1		
+6	1	180x312x6 ——								Duratex.Essencial Wood.Cumaru MDF 6	4785-Fundo
+									1		
+6	1 680	x 930 x 6								Duratex.Essencial Wood.Cumaru MDF 6	4825-Fundo
+									1		
+		4									
+
+Descrição	Quantidad	Dimensão	Borda	Descrição	da	fita	de	borda	Veio	Matéria-prima	Obs.
+	e										
+18	1	1660 x 350 x 18 Ff		22-1-Cumaru		Raiz			Pam	Duratex.Essencial Wood.Cumaru Raiz MDF	4919-Base
+										18	
+18 (Dir)	1	385 x 350 x 18		22-0.4-Cumaru		Raiz				Duratex.Essencial Wood.Cumaru Raiz MDF	4916-Lateral
+									1		
+										18	
+18 (Esq)	1	385 x 350 x 18 EF		22-0.4-Cumaru		Raiz			“>	Duratex. Essencial Wood.Cumaru Raiz MDF	4915-Lateral
+										18	
+18	2	1700 x 300 x 18		22-1-Cumaru		Raiz				Duratex.Essencial Wood.Cumaru Raiz MDF	4976-Base
+		CD							1	18	
+18	1	1696 x 350 x 18 =		22-1-Cumaru		Raiz			Pam	Duratex.Essencial Wood.Cumaru Raiz MDF	4918-Base
+										18	
+5656-Prateleira Linear	2	1110 x 250 x 18		22-0.4-Cumaru		Raiz				Duratex.Essencial Wood.Cumaru Raiz MDF	
+									1		
+										18	
+18	1	320 x 300 x 18 =		22-1-Cumaru		Raiz			Pam	Duratex.Essencial Wood.Cumaru Raiz MDF	4973-Lateral
+										18	
+5530-Tamponamento Inferior 15	1	1800 x 450 x 15		19-0.4-Grafite						Duratex.Trama.Grafite MDF 15	
+5463-Lateral 15 (Esq)	1 870	x 450 x 15 FE,		19-0.4-Grafite						Duratex.Trama.Grafite MDF 15	
+		o T—eaD									
+5465-Base 15	1	1740 x 450 x 15		19-1-Grafite						Duratex.Trama.Grafite MDF 15	
+		o									
+5464-Lateral 15 (Dir)	1 870	x 450 x 15 FE,		19-0.4-Grafite						Duratex.Trama.Grafite MDF 15	
+		o T—aD									
+5510-Tampo Linear Reto	1	1770 x 450 x 15		19-1-Grafite						Duratex.Trama.Grafite MDF 15	
+5529-Tamponamento Inferior 15	2 885	x 450 x 15		19-0.4-Grafite						Duratex.Trama.Grafite MDF 15	
+		E									
+5459-Prateleira Linear (Móvel)	1	1740 x 429 x 15		19-0.4-Grafite						Duratex.Trama.Grafite MDF 15	
+		o									
+5496-Fundo 15	1 795	x 1750 x 15 ——								Duratex.Trama.Grafite MDF 15	
+5460-Divisória 15 (Móvel)	1 429	x 560 x 15		19-1-Grafite						Duratex.Trama.Grafite MDF 15	
+		o									
+5462-Prateleira Linear (Móvel)	1 429x	862 x15 E,		19-0.4-Grafite						Duratex.Trama.Grafite MDF 15	
+		O T—aD									
+5489-Porta Reta (Esq)	2	584 x 429 x 15		19-1-Grafite						Duratex.Trama.Grafite MDF 15	
+5482-Porta Reta (Dir)	2	584 x 429 x 15		19-1-Grafite						Duratex.Trama.Grafite MDF 15	
+		E									
+5467-Rodapé	1	1740 x 60 x 15		19-1-Grafite						Duratex.Trama.Grafite MDF 15	
+5461-Prateleira Linear (Móvel)	1 862	x429x15		19-0.4-Grafite						Duratex.Trama.Grafite MDF 15	
+		E									
+5084-Porta Reta (Dir)	2	2286 x 610 x 15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	
+		O									
+15mm (Frontal)	1 80	x 600 x 15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	4844-Sarrafo
+		E									
+Reta	2	180 x 528x 15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	4905-Frente
+		O									
+Reta	1	320 x 528x 15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	4883-Frente
+15mm (Frontal)	1 80	x 390 x 15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	4803-Sarrafo
+
+Descrição	Quantidad	Dimensão	Borda	Descrição	da	fita	de	borda	Veio	Matéria-prima	Obs.
+15mm (Frontal)	É 80	x 200 x 15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	4761-Sarrafo
+		E									
+5635-Base 15	1	1080 x 350 x 15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	
+15mm (Frontal)	1	1010 x 80 x 15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	4966-Sarrafo
+		E									
+5075-Rodapé Linear	2 620	x 80 x 15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	
+		[o									
+15 (Dir)	1 760	x 600 x 15		19-0.4-Titânio						Duratex.Trama.Titânio MDF 15	4851-Lateral
+		E									
+5644-Porta Reta (Esq)	1 874x	535 x15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	
+Reta (Dir)	1	503 x 754 x 15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	4868-Porta
+5616-Porta Reta (Dir)	1 454	x 754 x 15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	
+5579-Porta Reta (Esq)	1 490	x754x15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	
+5572-Porta Reta (Dir)	1 490	x754x15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	
+Reta (Dir)	1 624	x 754x 15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	4835-Porta
+15	1	2360 x 605 x 15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	4929-Base
+15	1	200 x 460 x 15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	4757-Base
+		==									
+15 (Dir)	1 710	x 460 x 15		19-0.4-Titânio						Duratex.Trama.Titânio MDF 15	4756-Lateral
+Reta	1 829	x444x15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	4939-Porta
+15 (Esq)	1 710	x 460 x 15 CO		19-0.4-Titânio						Duratex.Trama.Titânio MDF 15	4755-Lateral
+Linear (Móvel)	1 452	x 200 x 15 ==		19-0.4-Titânio						Duratex.Trama.Titânio MDF 15	4754-Prateleira
+5112-Porta Reta (Esq)	1 700	x 497.33 x 15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	
+5126-Porta Reta (Esq)	1 700	x 496 x 15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	
+5119-Porta Reta (Dir)	1 700	x 496 x 15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	
+Reta	1 823	x444x15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	4946-Porta
+Reta	1 694	x 444 x 15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	4953-Porta
+Reta (Esq)	1 704	x 414 x 15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	4793-Porta
+5637-Porta Reta (Dir)	1	535 x87/4x15		19-1-Titânio						Duratex.Trama.Titânio MDF 15	
+5659-Tamponamento Inferior 18	1	2089 x 623 x 18		22-0.4-Titânio						Duratex.Trama.Titânio MDF 18	

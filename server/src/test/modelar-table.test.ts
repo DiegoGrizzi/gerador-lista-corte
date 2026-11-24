@@ -113,10 +113,9 @@ describe('cleanModelarTable', () => {
 });
 
 describe('cleanModelarTable — saída real de OCR do PDF inteiro', () => {
-  const pages = readFileSync(
-    new URL('./fixtures/modelar-ocr-raw.txt', import.meta.url),
-    'utf8',
-  ).split('\n\n');
+  // Num checkout do Windows o git pode trocar o fim de linha da fixture por CRLF.
+  const raw = readFileSync(new URL('./fixtures/modelar-ocr-raw.txt', import.meta.url), 'utf8');
+  const pages = raw.replace(/\r\n/g, '\n').split('\n\n');
   const cleanedPages = pages.map((page) => cleanModelarTable(page));
 
   it('reconhece as 6 páginas', () => {

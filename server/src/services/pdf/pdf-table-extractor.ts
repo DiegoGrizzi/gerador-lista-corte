@@ -132,7 +132,7 @@ export async function extractPdfTableText(
         if (tableText) {
           // A tabela do Modelar sai do OCR com linhas quebradas e o desenho da
           // borda virando lixo: ver modelar-table.ts.
-          tableBlocks.push(cleanModelarTable(tableText) ?? tableText);
+          tableBlocks.push(cleanModelarTable(tableText, page.pageNumber) ?? tableText);
           break;
         }
       }

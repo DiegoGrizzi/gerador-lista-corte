@@ -75,9 +75,10 @@ function buildDescription(beforeQuantity: string, rest: string): string {
 
 /**
  * Se o texto de uma página for a tabela do Modelar, devolve ela limpa; senão
- * devolve null (o texto segue como veio).
+ * devolve null (o texto segue como veio). pageNumber (a página do PDF) entra no
+ * aviso das linhas sem quantidade legível, para o vendedor achar a peça no PDF.
  */
-export function cleanModelarTable(tableText: string): string | null {
+export function cleanModelarTable(tableText: string, pageNumber?: number): string | null {
   const lines = tableText.split('\n');
   if (!isModelarTableHeader(lines[0] ?? '')) return null;
 
@@ -111,8 +112,19 @@ export function cleanModelarTable(tableText: string): string | null {
       // Quantidade 0: o leitor de tabelas recusa a peça e manda a linha para a conferência (sem
       // encerrar a tabela, o que faria as linhas seguintes perderem as colunas), em vez de entrar
       // com uma quantidade adivinhada.
-      const description = line.slice(0, dimensionOnly.index).replace(LEADING_CODE_RE, '').trim();
-      out.push(['QUANTIDADE NÃO LIDA: ' + description, '0', dimensionOnly[0], ''].join('\t'));
+      // O caractere solto que o OCR leu no lugar da quantidade ("É") não faz parte da descrição.
+      const before = line.slice(0, dimensionOnly.index).trimEnd().replace(/\s\S$/, '');
+      const description = buildDescription(
+        before,
+        line.slice(dimensionOnly.index + dimensionOnly[0].length),
+      );
+      const location =
+        (pageNumber != null ? 'página ' + pageNumber + ', ' : '') + 'linha ' + out.length;
+      out.push(
+        ['QUANTIDADE NÃO LIDA (' + location + '): ' + description, '0', dimensionOnly[0], ''].join(
+          '\t',
+        ),
+      );
       lastRowIndex = -1;
       continue;
     }

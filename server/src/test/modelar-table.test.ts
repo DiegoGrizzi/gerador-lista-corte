@@ -98,13 +98,33 @@ describe('cleanModelarTable', () => {
     const text = cleanModelarTable(
       [
         HEADER,
+        '5635-Base 15\t1\t1080 x 350 x 15\t\t19-1-Titânio\t\tDuratex.Trama.Titânio MDF 15\t',
         '15mm (Frontal)\tÉ 80\tx 200 x 15\t\t19-1-Titânio\t\tDuratex.Trama.Titânio MDF 15\t4761-Sarrafo',
       ].join('\n'),
+      6,
     )!;
-    const [description, quantity, dimension] = rowsOf(text)[0]!;
+    const [description, quantity, dimension] = rowsOf(text)[1]!;
     expect(description).toContain('QUANTIDADE NÃO LIDA');
     expect(quantity).toBe('0');
     expect(dimension).toBe('80 x 200 x 15');
+  });
+
+  it('o aviso da quantidade não lida diz a página do PDF, a linha da tabela e qual é a peça', () => {
+    const text = cleanModelarTable(
+      [
+        HEADER,
+        '15mm (Frontal)\tÉ 80\tx 200 x 15\t\t19-1-Titânio\t\tDuratex.Trama.Titânio MDF 15\t4761-Sarrafo',
+      ].join('\n'),
+      6,
+    )!;
+    expect(rowsOf(text)[0]![0]).toBe(
+      'QUANTIDADE NÃO LIDA (página 6, linha 1): Sarrafo 15mm (Frontal)',
+    );
+  });
+
+  it('sem o número da página, o aviso diz só a linha', () => {
+    const text = cleanModelarTable([HEADER, '15mm (Frontal)\tÉ 80\tx 200 x 15\t'].join('\n'))!;
+    expect(rowsOf(text)[0]![0]).toBe('QUANTIDADE NÃO LIDA (linha 1): 15mm (Frontal)');
   });
 
   it('devolve null se a tabela não tiver nenhuma linha de peça', () => {
@@ -116,7 +136,14 @@ describe('cleanModelarTable — saída real de OCR do PDF inteiro', () => {
   // Num checkout do Windows o git pode trocar o fim de linha da fixture por CRLF.
   const raw = readFileSync(new URL('./fixtures/modelar-ocr-raw.txt', import.meta.url), 'utf8');
   const pages = raw.replace(/\r\n/g, '\n').split('\n\n');
-  const cleanedPages = pages.map((page) => cleanModelarTable(page));
+  const cleanedPages = pages.map((page, index) => cleanModelarTable(page, index + 1));
+
+  it('a linha sem quantidade é a primeira da página 6 ("4761-Sarrafo 15mm (Frontal)")', () => {
+    const warnings = cleanedPages.flatMap((page) => rowsOf(page!)).filter((r) => r[1] === '0');
+    expect(warnings.map((r) => r[0])).toEqual([
+      'QUANTIDADE NÃO LIDA (página 6, linha 1): Sarrafo 15mm (Frontal)',
+    ]);
+  });
 
   it('reconhece as 6 páginas', () => {
     expect(pages).toHaveLength(6);

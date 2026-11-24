@@ -19,6 +19,8 @@
 import type { DiscardedItem } from './types.js';
 
 const MIN_CONTAINS_LENGTH = 4;
+/** Quantos números a linha precisa ter para a busca "mesmos números e mais alguns no fim" não achar a linha errada. */
+const MIN_PREFIX_NUMBERS = 3;
 
 function alnum(text: string): string {
   return text
@@ -73,6 +75,11 @@ export function locateDiscardedLines(originalText: string, discarded: DiscardedI
     if (found === -1) {
       const signature = numberSignature(item.text);
       if (signature.includes('|')) found = search((i) => signatures[i] === signature);
+      // O leitor também tira códigos de fita do fim da linha ("3L", "1M"), que
+      // têm número: a linha original tem os mesmos números e mais alguns no fim.
+      if (found === -1 && signature.split('|').length >= MIN_PREFIX_NUMBERS) {
+        found = search((i) => signatures[i]!.startsWith(signature + '|'));
+      }
     }
     if (found === -1) continue;
 

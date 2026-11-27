@@ -125,7 +125,7 @@ export function colorFromFileName(fileName: string | null | undefined): string |
   const base = fileName.replace(/^.*[\\/]/, '').replace(/\.pdf$/i, '');
   const words = base
     .replace(/\(\s*\d+\s*\)/g, ' ')
-    .split(/[\s_.\-]+/)
+    .split(/[\s_.-]+/)
     .filter((word) => word !== '')
     .filter((word) => !FILE_NAME_NOISE_RE.test(word) && !FILE_NAME_THICKNESS_RE.test(word) && !/^\d+$/.test(word));
   if (words.length === 0 || words.length > 2) return null;

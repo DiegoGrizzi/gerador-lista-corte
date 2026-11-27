@@ -18,13 +18,13 @@ interface PdfErrorBody {
   error?: string;
 }
 
-export async function requestPdfText(base64Pdf: string): Promise<PdfResponse> {
+export async function requestPdfText(base64Pdf: string, fileName?: string): Promise<PdfResponse> {
   let response: Response;
   try {
     response = await fetch('/api/pdf', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pdf: base64Pdf }),
+      body: JSON.stringify({ pdf: base64Pdf, fileName }),
     });
   } catch (err) {
     if (err instanceof TypeError) {

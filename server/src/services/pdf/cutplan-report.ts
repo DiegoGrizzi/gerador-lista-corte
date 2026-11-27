@@ -89,19 +89,48 @@ export function isCutPlanPage(words: OcrWord[]): boolean {
   return words.some((w) => /^cutplan$/i.test(w.text));
 }
 
-/** "MDF UNICOLOR 15MM" -> "MDF UNICOLOR 15mm". Sem espessura no título, devolve null. */
-function materialFromTitle(lines: Line[]): string | null {
+/**
+ * "MDF UNICOLOR 15MM" -> "MDF UNICOLOR 15mm". Com a cor (que não vem no título
+ * do PDF): "MDF UNICOLOR BRANCO 15mm". Sem espessura no título, devolve null.
+ */
+function materialFromTitle(lines: Line[], color: string | null): string | null {
   for (const line of lines.slice(0, 6)) {
     // O nome do cliente fica na mesma altura do título, mais à esquerda: só um
     // espaço grande separa os dois, então cada trecho é testado sozinho.
     for (const segment of splitByLargeGaps(line.words)) {
       const match = TITLE_MATERIAL_RE.exec(segment);
       if (match && /\p{L}{3,}/u.test(match[1]!)) {
-        return `${match[1]!.replace(/\s+/g, ' ')} ${match[2]!.replace(',', '.')}mm`;
+        const name = match[1]!.replace(/\s+/g, ' ');
+        const withColor = color && !name.toUpperCase().includes(color) ? `${name} ${color}` : name;
+        return `${withColor} ${match[2]!.replace(',', '.')}mm`;
       }
     }
   }
   return null;
+}
+
+/** Palavras do nome do arquivo que não são a cor: tipo do arquivo e espessura. */
+const FILE_NAME_NOISE_RE = /^(?:relat[oó]rio|plano|corte|lista|de|do|da|c[oó]pia|copia|final|novo|pdf|mm+)$/i;
+/** "15mm", "15mnnnn", "6MMM": a espessura escrita à mão no nome do arquivo. */
+const FILE_NAME_THICKNESS_RE = /^\d+(?:[.,]\d+)?m\w*$/i;
+
+/**
+ * A cor vem do nome do arquivo, porque o título do PDF só diz "MDF UNICOLOR":
+ * "relatorio branco 15mnnnn.pdf" -> "BRANCO", "RELATORIO TITANIO 18MMM.pdf" ->
+ * "TITANIO". Sem nada que sobre (ou com mais de duas palavras, que já não parece uma
+ * cor), devolve null.
+ */
+export function colorFromFileName(fileName: string | null | undefined): string | null {
+  if (!fileName) return null;
+  const base = fileName.replace(/^.*[\\/]/, '').replace(/\.pdf$/i, '');
+  const words = base
+    .replace(/\(\s*\d+\s*\)/g, ' ')
+    .split(/[\s_.\-]+/)
+    .filter((word) => word !== '')
+    .filter((word) => !FILE_NAME_NOISE_RE.test(word) && !FILE_NAME_THICKNESS_RE.test(word) && !/^\d+$/.test(word));
+  if (words.length === 0 || words.length > 2) return null;
+  if (!words.every((word) => /^\p{L}+$/u.test(word))) return null;
+  return words.join(' ').toUpperCase();
 }
 
 function toRow(qty: number, compr: string, larg: string, material: string | null): string {
@@ -112,10 +141,10 @@ function toRow(qty: number, compr: string, larg: string, material: string | null
  * Lê uma página do SCM CutPlan. Devolve null só se a página não for do
  * CutPlan; uma página dele sem peças devolve a lista de linhas vazia.
  */
-export function readCutPlanPage(words: OcrWord[]): CutPlanPage | null {
+export function readCutPlanPage(words: OcrWord[], color: string | null = null): CutPlanPage | null {
   if (!isCutPlanPage(words)) return null;
   const lines = groupIntoLines(words);
-  const material = materialFromTitle(lines);
+  const material = materialFromTitle(lines, color);
   const rows: string[] = [];
   let statedTotal: number | null = null;
   // Início da tabela de peças: "Peças cortadas" seguido do cabeçalho da tabela.

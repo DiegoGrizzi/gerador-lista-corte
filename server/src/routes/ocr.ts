@@ -1,6 +1,7 @@
 import { Router } from 'express';
 
 import { config } from '../config/index.js';
+import { detectImageFormat, formatBytes, logEvent } from '../services/event-log.js';
 import { runOcrWithFallback, type OcrOrchestratorProviders } from '../services/ocr/ocr-orchestrator.js';
 import { OcrSpaceProvider } from '../services/ocr/ocr-space-provider.js';
 import { TesseractOcrProvider } from '../services/ocr/tesseract-provider.js';
@@ -62,6 +63,12 @@ export function createOcrRouter(deps: OcrRouteDeps = defaultDeps): Router {
         res.status(400).json({ error: 'Imagem em base64 inválida.' });
         return;
       }
+
+      logEvent(
+        'info',
+        'foto',
+        `Foto recebida: ${detectImageFormat(imageBuffer)}, ${formatBytes(imageBuffer.byteLength)}.`,
+      );
 
       try {
         const providers = deps.createProviders();

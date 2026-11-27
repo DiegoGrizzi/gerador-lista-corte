@@ -1,4 +1,10 @@
+import { describeError, logEvent, type LogLevel } from '../event-log.js';
 import { OcrFailureError, type OcrProvider } from './types.js';
+
+/** Para onde vai o motivo de cada tentativa. Injetável para os testes. */
+export type OcrLogger = (level: LogLevel, message: string) => void;
+
+const defaultLogger: OcrLogger = (level, message) => logEvent(level, 'foto', message);
 
 export interface OcrOrchestratorOptions {
   minUsefulChars: number;
@@ -24,23 +30,36 @@ export async function runOcrWithFallback(
   imageBuffer: Buffer,
   providers: OcrOrchestratorProviders,
   opts: OcrOrchestratorOptions,
+  log: OcrLogger = defaultLogger,
 ): Promise<OcrOrchestratorResult> {
+  const primaryName = providers.primary.name;
+  const fallbackName = providers.fallback.name;
+
   try {
     const result = await providers.primary.recognize(imageBuffer);
-    if (result.text.trim().length >= opts.minUsefulChars) {
-      return { text: result.text, engine: providers.primary.name };
+    const usefulChars = result.text.trim().length;
+    if (usefulChars >= opts.minUsefulChars) {
+      log('info', `Lido pelo ${primaryName}: ${usefulChars} caracteres.`);
+      return { text: result.text, engine: primaryName };
     }
-  } catch {
-    // Primário falhou — tenta o fallback abaixo.
+    log(
+      'warn',
+      `${primaryName} leu só ${usefulChars} caracteres (mínimo ${opts.minUsefulChars}); tentando ${fallbackName}.`,
+    );
+  } catch (error) {
+    log('warn', `${primaryName} falhou (tentando ${fallbackName}): ${describeError(error)}`);
   }
 
   try {
     const fallbackResult = await providers.fallback.recognize(imageBuffer);
-    if (fallbackResult.text.trim().length > 0) {
-      return { text: fallbackResult.text, engine: providers.fallback.name };
+    const usefulChars = fallbackResult.text.trim().length;
+    if (usefulChars > 0) {
+      log('info', `Lido pelo ${fallbackName}: ${usefulChars} caracteres.`);
+      return { text: fallbackResult.text, engine: fallbackName };
     }
-  } catch {
-    // Fallback também falhou — cai no erro final abaixo.
+    log('error', `${fallbackName} não devolveu texto nenhum.`);
+  } catch (error) {
+    log('error', `${fallbackName} falhou: ${describeError(error)}`);
   }
 
   throw new OcrFailureError('Nenhum engine de OCR conseguiu ler o texto da imagem.');

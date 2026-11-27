@@ -108,6 +108,140 @@ h1 {
 }
 
 /* =============================================================================
+   Abas (Gerador / Log) e aba de log
+   ============================================================================= */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+button.tab {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 500;
+  padding: 10px 16px;
+  margin-bottom: -1px;
+}
+
+button.tab:hover {
+  background: var(--surface);
+}
+
+button.tab:active {
+  transform: none;
+}
+
+button.tab-active {
+  color: var(--accent-dark);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+.log-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.log-header .hint {
+  max-width: 70ch;
+}
+
+.log-error {
+  color: var(--danger);
+  background: var(--danger-bg);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 13.5px;
+  margin: 0 0 12px;
+}
+
+.log-empty {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin: 8px 0 0;
+}
+
+.log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  max-height: 62vh;
+  overflow-y: auto;
+}
+
+.log-entry {
+  display: grid;
+  grid-template-columns: 132px 52px 68px 1fr;
+  gap: 10px;
+  align-items: baseline;
+  padding: 8px 12px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+
+.log-entry:last-child {
+  border-bottom: 0;
+}
+
+.log-entry.log-warn {
+  background: var(--suspicious-bg);
+}
+
+.log-entry.log-error {
+  background: var(--danger-bg);
+}
+
+.log-time,
+.log-source {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.log-level {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--success);
+}
+
+.log-level-warn {
+  color: #8a6410;
+}
+
+.log-level-error {
+  color: var(--danger);
+}
+
+.log-message {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 700px) {
+  .log-header {
+    flex-direction: column;
+  }
+
+  .log-entry {
+    grid-template-columns: auto auto 1fr;
+  }
+
+  .log-message {
+    grid-column: 1 / -1;
+  }
+}
+
+/* =============================================================================
    Balão de aviso de atualização
    ============================================================================= */
 .update-banner {

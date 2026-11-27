@@ -7,4 +7,5 @@
 # Arquivos do Docker (Linux) sempre com LF, mesmo num clone no Windows.
 Dockerfile text eol=lf
 docker-compose.yml text eol=lf
+docker-compose.proxy.yml text eol=lf
 .dockerignore text eol=lf

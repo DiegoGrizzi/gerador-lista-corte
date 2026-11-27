@@ -109,8 +109,8 @@ function toRow(qty: number, compr: string, larg: string, material: string | null
 }
 
 /**
- * Lê uma página do SCM CutPlan. Devolve null se a página não tiver tabela de
- * peças (ex: a capa de um relatório) — a página é então ignorada.
+ * Lê uma página do SCM CutPlan. Devolve null só se a página não for do
+ * CutPlan; uma página dele sem peças devolve a lista de linhas vazia.
  */
 export function readCutPlanPage(words: OcrWord[]): CutPlanPage | null {
   if (!isCutPlanPage(words)) return null;
@@ -151,7 +151,9 @@ export function readCutPlanPage(words: OcrWord[]): CutPlanPage | null {
     if (match) rows.push(toRow(Number(match[1]), match[2]!, match[3]!, material));
   }
 
-  if (rows.length === 0 && statedTotal == null) return null;
+  // Página do CutPlan sem peças (ex: a última, só com a "Lista de cortes
+  // utilizáveis") devolve vazio e NÃO cai no OCR: as sobras lidas por OCR
+  // virariam linhas soltas na conferência.
   return { rows, statedTotal };
 }
 

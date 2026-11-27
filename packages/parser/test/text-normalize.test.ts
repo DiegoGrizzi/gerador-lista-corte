@@ -262,6 +262,12 @@ describe('normalizeLeadingNumberWord', () => {
 });
 
 describe('extractStatedTotal', () => {
+  it('soma os totais quando a mensagem junta várias listas (vários PDFs de uma vez)', () => {
+    const text = ['Quantidade', '2 x 100', 'Total de peças: 92', '', '1 x 200', 'Total de peças: 8'].join('\n');
+
+    expect(extractStatedTotal(text)).toEqual({ text: ['Quantidade', '2 x 100', '', '1 x 200'].join('\n'), total: 100 });
+  });
+
   it.each([
     ['Total de peças: 116', 116],
     ['Total peças 116', 116],

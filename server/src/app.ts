@@ -8,6 +8,7 @@ import express, { type Express } from 'express';
 import { config } from './config/index.js';
 import { createBasicAuth } from './middleware/basic-auth.js';
 import { errorHandler } from './middleware/error-handler.js';
+import { createLogsRouter } from './routes/logs.js';
 import { createOcrRouter, type OcrRouteDeps } from './routes/ocr.js';
 import { createPdfRouter, type PdfRouteDeps } from './routes/pdf.js';
 import { createUpdateRouter, type UpdateRouteDeps } from './routes/update.js';
@@ -46,6 +47,7 @@ export function createApp(
   app.use('/api', createPdfRouter(pdfRouteDeps));
   app.use('/api/update', createUpdateRouter(updateRouteDeps));
   app.use('/api/version', createVersionRouter(versionRouteDeps));
+  app.use('/api/logs', createLogsRouter());
 
   // Quando existe um build do client, o próprio servidor Express serve a
   // interface — um único processo, uma única porta, sem depender do Vite

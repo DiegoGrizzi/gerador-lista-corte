@@ -1,6 +1,7 @@
 import { Router } from 'express';
 
 import { config } from '../config/index.js';
+import { describeError, formatBytes, logEvent } from '../services/event-log.js';
 import { createDefaultPdfTableExtractorDeps, extractPdfTableText, type PdfTableExtractorDeps } from '../services/pdf/pdf-table-extractor.js';
 
 const DATA_URL_PREFIX_RE = /^data:application\/pdf;base64,/;
@@ -57,10 +58,16 @@ export function createPdfRouter(deps: PdfRouteDeps = defaultDeps): Router {
         return;
       }
 
+      logEvent('info', 'pdf', `PDF recebido: ${formatBytes(pdfBuffer.byteLength)}.`);
+      const startedAt = Date.now();
+
       try {
         const text = await deps.extractPdfTableText(pdfBuffer, deps.createExtractorDeps(), { fileName });
+        const seconds = ((Date.now() - startedAt) / 1000).toFixed(1);
+        logEvent('info', 'pdf', `PDF lido em ${seconds}s: ${text.trim().length} caracteres.`);
         res.status(200).json({ text });
       } catch (error) {
+        logEvent('error', 'pdf', `Falha ao ler o PDF: ${describeError(error)}`);
         next(error);
       }
     })();

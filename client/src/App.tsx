@@ -40,6 +40,9 @@ import { useClipboardCopy } from './hooks/useClipboardCopy.js';
 import { useAutoUpdate } from './hooks/useAutoUpdate.js';
 import { useCurrentVersion } from './hooks/useCurrentVersion.js';
 import { UpdateBanner } from './components/UpdateBanner.js';
+import { LogPanel } from './components/LogPanel.js';
+
+type AppTab = 'gerador' | 'log';
 
 export function App(): JSX.Element {
   const { state, dispatch } = useCutList();
@@ -52,6 +55,7 @@ export function App(): JSX.Element {
   const colorMaterial = firstMaterialNeedingColor(state.pieces, state.colorAskedMaterials) ?? '';
   /** Lista com "230x25x4" sem como saber se o 4 é quantidade ou espessura: espera a resposta antes de analisar. */
   const [thirdNumberPending, setThirdNumberPending] = useState(false);
+  const [tab, setTab] = useState<AppTab>('gerador');
 
   const analyze = useCallback(
     (thirdNumber?: 'quantity' | 'thickness') => {
@@ -166,6 +170,32 @@ export function App(): JSX.Element {
 
       <Header />
 
+      <nav className="tabs" role="tablist" aria-label="Seções">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'gerador'}
+          className={tab === 'gerador' ? 'tab tab-active' : 'tab'}
+          onClick={() => setTab('gerador')}
+        >
+          Gerador
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'log'}
+          className={tab === 'log' ? 'tab tab-active' : 'tab'}
+          onClick={() => setTab('log')}
+        >
+          Log
+        </button>
+      </nav>
+
+      {tab === 'log' ? <LogPanel active /> : null}
+
+      {/* A aba do gerador só é escondida, nunca desmontada: o texto colado, a
+          conferência e uma leitura em andamento continuam lá ao voltar. */}
+      <div className={tab === 'gerador' ? undefined : 'hidden'}>
       <PasteOrPhotoCard
         rawText={state.rawText}
         onRawTextChange={(text) => dispatch({ type: 'RAW_TEXT_CHANGED', text })}
@@ -192,6 +222,7 @@ export function App(): JSX.Element {
           onGenerate={handleGenerate}
         />
       ) : null}
+      </div>
 
       <MmUnitModal
         isOpen={state.activeModal === 'mm'}
@@ -245,7 +276,7 @@ export function App(): JSX.Element {
         onClose={autoUpdate.dismissError}
       />
 
-      {state.resultVisible ? (
+      {state.resultVisible && tab === 'gerador' ? (
         <ResultCard
           pieces={state.pieces}
           copied={copied}

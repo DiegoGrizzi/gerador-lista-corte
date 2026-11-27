@@ -1,4 +1,6 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
+
+import { getPastedFiles, toFileList } from '../pasted-files.js';
 
 export interface PasteOrPhotoCardProps {
   rawText: string;
@@ -33,12 +35,32 @@ export function PasteOrPhotoCard({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
 
+  // Ctrl+V com um PDF (ou foto/print) na área de transferência faz o mesmo que
+  // os botões "Enviar PDF" / "Enviar foto". Vale em qualquer lugar da página;
+  // colar texto continua colando texto (ver pasted-files.ts).
+  const onFilesSelectedRef = useRef(onFilesSelected);
+  const onPdfFilesSelectedRef = useRef(onPdfFilesSelected);
+  onFilesSelectedRef.current = onFilesSelected;
+  onPdfFilesSelectedRef.current = onPdfFilesSelected;
+  useEffect(() => {
+    function handlePaste(event: ClipboardEvent): void {
+      const pasted = getPastedFiles(event.clipboardData);
+      if (!pasted) return;
+      event.preventDefault();
+      if (pasted.pdfs.length > 0) onPdfFilesSelectedRef.current(toFileList(pasted.pdfs));
+      if (pasted.images.length > 0) onFilesSelectedRef.current(toFileList(pasted.images));
+    }
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, []);
+
   return (
     <div className="card">
       <h2>1. Colar mensagem ou enviar foto</h2>
       <p className="hint">
         Reconhece blocos de material (linhas com &quot;MDF&quot;) e peças no formato{' '}
-        <code>quantidade=comprimento/largura</code>. As demais informações ficará na lista de conferência.
+        <code>quantidade=comprimento/largura</code>. As demais informações ficará na lista de conferência.{' '}
+        Também dá para copiar um PDF ou uma foto e colar aqui com <strong>Ctrl+V</strong>, sem usar os botões.
       </p>
 
       <div className="field">

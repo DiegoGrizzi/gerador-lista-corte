@@ -1,0 +1,13 @@
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+.git
+.github
+.claude
+deploy
+**/.env
+**/.env.local
+**/*.log
+Dockerfile
+docker-compose.yml
+.dockerignore

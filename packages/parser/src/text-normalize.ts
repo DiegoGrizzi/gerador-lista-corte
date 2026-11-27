@@ -294,7 +294,9 @@ const STATED_TOTAL_LINE_RES: RegExp[] = [
 /**
  * Tira do texto a linha que informa o total de peças (para ela não ir parar
  * na conferência como item não reconhecido) e devolve o número informado.
- * Sem linha de total, devolve o texto como está e total null.
+ * Sem linha de total, devolve o texto como está e total null. Com mais de uma
+ * linha de total (vários PDFs importados de uma vez, cada um com o seu), o
+ * total é a SOMA delas: a soma das quantidades lidas cobre todas as listas.
  */
 export function extractStatedTotal(text: string): { text: string; total: number | null } {
   let total: number | null = null;
@@ -302,7 +304,7 @@ export function extractStatedTotal(text: string): { text: string; total: number 
     for (const re of STATED_TOTAL_LINE_RES) {
       const match = line.match(re);
       if (match) {
-        total = Number(match[1]);
+        total = (total ?? 0) + Number(match[1]);
         return false;
       }
     }

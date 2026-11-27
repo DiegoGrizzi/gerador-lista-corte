@@ -24,6 +24,12 @@ o Windows — não precisa abrir terminal nem rodar nenhum comando no dia a
 dia. Basta abrir o atalho **"Gerador de Lista de Corte"** (área de
 trabalho) ou acessar `http://localhost:5175` no navegador.
 
+### Num servidor (Docker)
+
+Também roda num container, em Linux ou no Docker Desktop, e pode ficar num
+endereço público atrás de um proxy com HTTPS e senha. Veja
+[`deploy/LEIA-ME-DOCKER.md`](deploy/LEIA-ME-DOCKER.md).
+
 ### Desenvolvimento
 
 Requer [Node.js](https://nodejs.org/) 20+ instalado.
@@ -92,7 +98,7 @@ Dois formatos de tabela são reconhecidos:
   leitura de texto); a fita fica em branco para ser marcada manualmente
   na tabela de conferência.
 
-Se nem o Tesseract nem o fallback conseguirem ler a imagem, o botão "Enviar foto" mostra uma mensagem de erro clara — o resto do sistema (colar texto) continua funcionando normalmente.
+Se nem o Tesseract nem o fallback conseguirem ler a imagem, o botão "Enviar foto" mostra uma mensagem de erro clara — o resto do sistema (colar texto) continua funcionando normalmente. O motivo de verdade (formato não suportado, foto que o Tesseract leu quase nada, OCR.space sem chave) fica na aba **Log**, ao lado de **Gerador**.
 
 **Sempre revise o texto reconhecido antes de clicar em "Analisar mensagem"**
 — OCR pode errar números, e um comprimento ou largura errado só é
@@ -105,23 +111,15 @@ tende a melhorar bastante a leitura.
 
 ```
 gerador-lista-corte/
-├── packages/
-│   └── parser/         → @corte-cloud/parser: motor de interpretação de texto (TS puro, sem DOM, com testes Vitest)
-├── server/              → @corte-cloud/server: API Express (POST /api/ocr — Tesseract local + fallback OCR.space); em produção também serve a interface compilada (client/dist)
-├── client/              → @corte-cloud/client: interface (React + Vite), consome @corte-cloud/parser e a API do server
-└── deploy/              → instalação e início automático em produção (ver deploy/LEIA-ME.md)
-    ├── instalador.bat  → instalador de ponta a ponta pra uma máquina nova
-    ├── instalar-em-novo-computador.ps1
-    ├── iniciar-servidor-oculto.ps1   → sobe o servidor escondido (sem janela); usado pelo atalho de inicialização e pela auto-atualização
-    ├── iniciar-servidor-oculto.bat   → duplo clique pra (re)iniciar manualmente — só chama o .ps1 acima
-    └── vigia-servidor.ps1            → checagem periódica (a cada 2 min, via tarefa agendada recorrente) que religa sozinho se o servidor cair por qualquer motivo
+├── packages/parser/   → interpreta o texto: peças, material, fita, veio
+├── server/            → API que lê foto e PDF; em produção também serve a interface
+├── client/            → interface (React + Vite)
+└── deploy/            → instalação das lojas (Windows) e do servidor (Docker)
 ```
 
-`packages/parser` não depende do navegador nem do Node especificamente — só recebe texto e devolve dados (`analyzeText(...)`, `quickParseLine(...)`, `convertPieceToMm(...)`). Isso facilita testar a lógica de interpretação isoladamente, e é o pacote com a suite de testes mais extensa do projeto (regras de fitamento, sentido do veio, conversão de números, etc.).
-
-`server` cuida só do OCR: recebe uma foto em base64, tenta o Tesseract local e cai para o OCR.space quando necessário — nenhuma interpretação de peça/material/fita acontece aqui, isso é sempre trabalho do `packages/parser`.
-
-`client` cuida da tela: chama o `packages/parser`, guarda o estado atual (peças, itens em conferência) num reducer React, e chama a API do `server` para o fluxo de foto.
+Arquitetura, comandos, CI, branches, deploy e convenção de commits estão no
+[`AGENTS.md`](AGENTS.md), que vale para quem desenvolve aqui, pessoa ou agente
+de IA.
 
 ## Desenvolvido por
 

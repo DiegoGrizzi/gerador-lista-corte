@@ -1,0 +1,43 @@
+client/src/App.tsx
+  s_7c7cf77c9e208a::t_8c33ad8c889585 43-45,58,173-198,225,279
+client/src/components/LogPanel.tsx
+  s_7c7cf77c9e208a::t_a8abc25ddfebfd 1-68
+client/src/hooks/useServerLog.ts
+  s_7c7cf77c9e208a::t_bc3cdf53749b60 1-50
+client/src/lib/api/logs.ts
+  s_7c7cf77c9e208a::t_7dedbf9cb7749b 1-31
+client/src/styles/style.css
+  s_7c7cf77c9e208a::t_5ef703588c00d8 110-243
+server/src/app.ts
+  s_7c7cf77c9e208a::t_f35291840540d1 11,50
+server/src/middleware/error-handler.ts
+  s_7c7cf77c9e208a::t_7f69e793ebefc3 3-4,10,12
+server/src/routes/logs.ts
+  s_7c7cf77c9e208a::t_c5e70dd53f9fbe 1-18
+server/src/routes/ocr.ts
+  s_7c7cf77c9e208a::t_c91ca201e163a5 4,67-72
+server/src/routes/pdf.ts
+  s_7c7cf77c9e208a::t_44b11c8f620d1c 4,61-63,66-67,70
+server/src/services/event-log.ts
+  s_7c7cf77c9e208a::t_000077945a3482 1-94
+server/src/services/ocr/ocr-orchestrator.ts
+  s_7c7cf77c9e208a::t_5d8861b337e02e 1,4-8,33,35-37,40-43,45-50,55-58,60-62
+server/src/test/event-log.test.ts
+  s_7c7cf77c9e208a::t_95a275933f95a1 1-128
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7878f19293d25158e55eef3e5659f8117f6aa696",
+  "prompts": {},
+  "sessions": {
+    "s_7c7cf77c9e208a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "36c21699-3a60-44cf-b4f8-b39cdc7fe759",
+        "model": "claude-fable-5-2"
+      },
+      "human_author": "Djalma Araújo <djalma@nossomos.cc>"
+    }
+  }
+}

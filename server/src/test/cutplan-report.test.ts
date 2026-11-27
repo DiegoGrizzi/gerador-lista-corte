@@ -88,10 +88,10 @@ describe('readCutPlanPage — plano de corte (Ref / Qtde / Comp / Largura)', () 
     ]);
   });
 
-  it('multiplica pela quantidade de chapas que seguem o mesmo desenho', () => {
-    expect(readCutPlanPage(sheet(3))?.rows).toEqual([
-      '3\t784\t2200\tMDF UNICOLOR 6mm',
-      '3\t708\t977\tMDF UNICOLOR 6mm',
+  it('não multiplica pelo "2 de ... Chapa Inteira": isso só diz quantas chapas o plano usou', () => {
+    expect(readCutPlanPage(sheet(2))?.rows).toEqual([
+      '1\t784\t2200\tMDF UNICOLOR 6mm',
+      '1\t708\t977\tMDF UNICOLOR 6mm',
     ]);
   });
 });

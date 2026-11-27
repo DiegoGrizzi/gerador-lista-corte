@@ -1,0 +1,27 @@
+# Gerador de Lista de Corte em Docker (Linux). Tudo que o sistema precisa
+# (Node, Tesseract em português) já vem dentro da imagem.
+#
+#   docker compose up -d --build     # sobe (e recompila se o código mudou)
+#   docker compose logs -f           # acompanha o log
+#   docker compose down              # desliga
+#
+# Abre em http://localhost:5175 (ou na porta de GERADOR_PORT). Configuração
+# opcional num arquivo ".env" ao lado deste (ele não vai para o GitHub);
+# o exemplo está em deploy/docker.env.example.
+services:
+  gerador:
+    build: .
+    image: gerador-lista-corte:latest
+    container_name: gerador-lista-corte
+    restart: unless-stopped
+    ports:
+      # Porta de fora (a do computador/servidor). Dentro do container é sempre 5175.
+      - '${GERADOR_PORT:-5175}:5175'
+    environment:
+      # Fallback de leitura de foto quando o Tesseract falhar (opcional).
+      OCR_SPACE_API_KEY: ${OCR_SPACE_API_KEY:-}
+      # Origem da interface, para o CORS (só muda se ela ficar em outro endereço).
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-http://localhost:5175}
+      # O botão "Atualizar agora" mexe em git e reinicia o processo: não existe
+      # em container. Para atualizar: git pull e "docker compose up -d --build".
+      AUTO_UPDATE_ENABLED: 'false'

@@ -21,8 +21,8 @@
  *          (2)   1      784    2200
  *     A mesma peça (Ref.) aparece em mais de uma chapa e as quantidades somam.
  *     Só vale o lado esquerdo (antes de "Sobras de Recortes"). A linha
- *     "2 de 2744.2 x 1834.2 Chapa Inteira" diz quantas chapas seguem aquele
- *     desenho: a quantidade das peças daquela página multiplica por esse número.
+ *     "2 de 2744.2 x 1834.2 Chapa Inteira" só diz quantas chapas inteiras o
+ *     plano usou: não muda a quantidade das peças, que fica como está na tabela.
  *
  * O material vem no título da página ("MDF UNICOLOR 15MM"). A saída é uma
  * tabela de 4 colunas (Quantidade, Comprimento, Largura, Material) que o leitor
@@ -43,8 +43,6 @@ const NUM = '\\d+(?:[.,]\\d+)?';
 const REPORT_ROW_RE = new RegExp(`^(\\d{1,4})\\s+(${NUM})\\s+(${NUM})(?:\\s|$)`);
 /** "(2) 1 784 2200": referência entre parênteses, quantidade, comprimento, largura. */
 const PLAN_ROW_RE = new RegExp(`^\\(\\s*\\d+\\s*\\)\\s+(\\d{1,4})\\s+(${NUM})\\s+(${NUM})(?:\\s|$)`);
-/** "1 de 2744.2 x 1834.2 Chapa Inteira": quantas chapas seguem este desenho. */
-const SHEET_COUNT_RE = new RegExp(`^(\\d{1,3})\\s+de\\s+${NUM}\\s*[x×]\\s*${NUM}`, 'i');
 const STATED_TOTAL_RE = /total\s+de\s+pe[çc]as\s+cortadas\s*:\s*(\d+)/i;
 /** Título da página: "MDF UNICOLOR 15MM" (o programa escreve a espessura colada, em maiúsculas). */
 const TITLE_MATERIAL_RE = /^(.*?\S)\s+(\d{1,2}(?:[.,]\d+)?)\s*mm$/i;
@@ -120,7 +118,6 @@ export function readCutPlanPage(words: OcrWord[]): CutPlanPage | null {
   const material = materialFromTitle(lines);
   const rows: string[] = [];
   let statedTotal: number | null = null;
-  let sheetCount = 1;
   // Início da tabela de peças: "Peças cortadas" seguido do cabeçalho da tabela.
   let inPieces = false;
   /** Posição (x) onde começa "Sobras de Recortes": só vale o que está à esquerda dela. */
@@ -132,11 +129,6 @@ export function readCutPlanPage(words: OcrWord[]): CutPlanPage | null {
     if (total) {
       statedTotal = Number(total[1]);
       inPieces = false;
-      continue;
-    }
-    const sheets = SHEET_COUNT_RE.exec(line.text);
-    if (sheets && !inPieces) {
-      sheetCount = Math.max(1, Number(sheets[1]));
       continue;
     }
     if (/^pe[çc]as\s+cortadas\b/i.test(line.text)) {
@@ -156,7 +148,7 @@ export function readCutPlanPage(words: OcrWord[]): CutPlanPage | null {
     const cells = line.words.filter((w) => w.left < leftLimit);
     const text = cells.map((w) => w.text).join(' ');
     const match = PLAN_ROW_RE.exec(text) ?? (leftLimit === Infinity ? REPORT_ROW_RE.exec(text) : null);
-    if (match) rows.push(toRow(Number(match[1]) * sheetCount, match[2]!, match[3]!, material));
+    if (match) rows.push(toRow(Number(match[1]), match[2]!, match[3]!, material));
   }
 
   if (rows.length === 0 && statedTotal == null) return null;

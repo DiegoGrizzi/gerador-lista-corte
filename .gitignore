@@ -29,4 +29,6 @@ deploy/server.log
 
 # Deploy em Docker: trava do script de atualizacao e copias do .env feitas por ferramentas
 .deploy.lock
+deploy/atualizacao.log
+deploy/atualizacao.log.tmp
 .env.*.bak

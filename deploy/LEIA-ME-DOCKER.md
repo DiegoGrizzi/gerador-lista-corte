@@ -89,10 +89,20 @@ deploy/atualizar-servidor.sh            # só age se houver commit novo
 deploy/atualizar-servidor.sh --forcar   # reconstrói mesmo sem commit novo
 ```
 
-Para o servidor se atualizar sozinho, agende esse comando (de hora em hora,
-por exemplo) no agendador da máquina. É o servidor que consulta o GitHub: não
-precisa de webhook nem de porta aberta. Sem commit novo o script sai em um
-segundo; se a imagem nova não compilar, o container antigo continua no ar.
+Para o servidor se atualizar sozinho, rode uma vez, com o mesmo usuário que
+roda o Docker (não precisa de sudo):
+
+```bash
+deploy/instalar-atualizacao-automatica.sh             # confere a cada 5 minutos
+deploy/instalar-atualizacao-automatica.sh 10          # ou a cada 10
+deploy/instalar-atualizacao-automatica.sh --status    # o que está agendado e as últimas execuções
+deploy/instalar-atualizacao-automatica.sh --remover   # tira o agendamento
+```
+
+Ele põe uma linha no cron desse usuário. É o servidor que consulta o GitHub:
+não precisa de webhook nem de porta aberta. Sem commit novo a consulta leva um
+segundo; se a imagem nova não compilar, o container antigo continua no ar. O
+que cada execução fez fica em `deploy/atualizacao.log`.
 
 Para seguir outra branch, defina `DEPLOY_BRANCH` no ambiente do agendador.
 

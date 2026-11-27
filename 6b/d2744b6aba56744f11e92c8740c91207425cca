@@ -1,0 +1,23 @@
+AGENTS.md
+  s_7c7cf77c9e208a::t_16a5a21447fd21 1-143
+CLAUDE.md
+  s_7c7cf77c9e208a::t_3233d97fb39e0a 1
+README.md
+  s_7c7cf77c9e208a::t_aa10a42887b47b 27-32,101,114-117,120-122
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6bd2744b6aba56744f11e92c8740c91207425cca",
+  "prompts": {},
+  "sessions": {
+    "s_7c7cf77c9e208a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "36c21699-3a60-44cf-b4f8-b39cdc7fe759",
+        "model": "claude-fable-5-2"
+      },
+      "human_author": "Djalma Araújo <djalma@nossomos.cc>"
+    }
+  }
+}

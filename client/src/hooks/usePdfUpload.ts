@@ -59,7 +59,7 @@ export function usePdfUpload(dispatch: Dispatch<CutListAction>): UsePdfUploadRes
 
         try {
           const base64 = await readFileAsBase64(file);
-          const { text } = await requestPdfText(base64);
+          const { text } = await requestPdfText(base64, file.name);
 
           if (text.trim()) {
             blocks.push(text.trim());

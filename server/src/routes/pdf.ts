@@ -34,6 +34,10 @@ export function createPdfRouter(deps: PdfRouteDeps = defaultDeps): Router {
         return;
       }
 
+      // Nome do arquivo (opcional): no SCM CutPlan a cor do material só aparece nele.
+      const rawName = body && typeof body === 'object' && 'fileName' in body ? (body as { fileName?: unknown }).fileName : undefined;
+      const fileName = typeof rawName === 'string' ? rawName.slice(0, 255) : undefined;
+
       const base64Data = pdf.replace(DATA_URL_PREFIX_RE, '');
       if (!base64Data) {
         res.status(400).json({ error: 'Nenhum PDF recebido.' });
@@ -54,7 +58,7 @@ export function createPdfRouter(deps: PdfRouteDeps = defaultDeps): Router {
       }
 
       try {
-        const text = await deps.extractPdfTableText(pdfBuffer, deps.createExtractorDeps());
+        const text = await deps.extractPdfTableText(pdfBuffer, deps.createExtractorDeps(), { fileName });
         res.status(200).json({ text });
       } catch (error) {
         next(error);

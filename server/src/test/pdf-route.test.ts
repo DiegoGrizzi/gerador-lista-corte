@@ -22,6 +22,18 @@ describe('POST /api/pdf', () => {
     expect(response.body).toEqual({ text: 'Item\tDescrição\nA\tPeça 1' });
   });
 
+  it('repassa o nome do arquivo à extração (a cor do material vem dele)', async () => {
+    const extractPdfTableText = vi.fn().mockResolvedValue('');
+    const deps: PdfRouteDeps = { createExtractorDeps: fakeExtractorDeps, extractPdfTableText };
+    const app = createApp(undefined, undefined, undefined, deps);
+
+    await request(app).post('/api/pdf').send({ pdf: 'aGVsbG8=', fileName: 'relatorio branco 15mm.pdf' });
+
+    expect(extractPdfTableText).toHaveBeenCalledWith(expect.anything(), expect.anything(), {
+      fileName: 'relatorio branco 15mm.pdf',
+    });
+  });
+
   it('devolve 200 com texto vazio quando nenhuma página tem tabela reconhecível', async () => {
     const deps: PdfRouteDeps = {
       createExtractorDeps: fakeExtractorDeps,

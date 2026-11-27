@@ -24,7 +24,7 @@
 import sharp from 'sharp';
 
 import { cleanupTempFile, writeTempImage } from '../temp-file.js';
-import { cutPlanRowsToText, readCutPlanPage } from './cutplan-report.js';
+import { colorFromFileName, cutPlanRowsToText, readCutPlanPage } from './cutplan-report.js';
 import { cleanModelarTable } from './modelar-table.js';
 import { extractNativePdfWords, type NativePdfPage } from './native-pdf-words.js';
 import {
@@ -98,10 +98,17 @@ export function createDefaultPdfTableExtractorDeps(
  * não é um erro, só significa que o PDF não tinha nada aproveitável (ex:
  * só desenhos, ou nenhuma página de lista).
  */
+export interface ExtractPdfOptions {
+  /** Nome do arquivo enviado: no SCM CutPlan a cor do material só aparece nele. */
+  fileName?: string;
+}
+
 export async function extractPdfTableText(
   pdfBuffer: Buffer,
   deps: PdfTableExtractorDeps,
+  options: ExtractPdfOptions = {},
 ): Promise<string> {
+  const color = colorFromFileName(options.fileName);
   const nativePages = await deps.extractNativePdfWords(pdfBuffer);
   const renderedPages = await deps.renderPdfPages(pdfBuffer);
   const tableBlocks: string[] = [];
@@ -115,7 +122,7 @@ export async function extractPdfTableText(
     const nativeWords = nativePages[i]?.words ?? [];
     if (nativeWords.length > 0) {
       // Relatório / plano de corte do SCM CutPlan (texto nativo, colunas Cant/Base/Altura).
-      const cutPlan = readCutPlanPage(nativeWords);
+      const cutPlan = readCutPlanPage(nativeWords, color);
       if (cutPlan) {
         cutPlanRows.push(...cutPlan.rows);
         statedTotal = cutPlan.statedTotal ?? statedTotal;

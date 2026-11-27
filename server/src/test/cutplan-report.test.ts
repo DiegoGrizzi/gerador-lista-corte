@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { readCutPlanPage } from '../services/pdf/cutplan-report.js';
+import { colorFromFileName, readCutPlanPage } from '../services/pdf/cutplan-report.js';
 import { extractPdfTableText, type PdfTableExtractorDeps } from '../services/pdf/pdf-table-extractor.js';
 import type { OcrWord } from '../services/pdf/table-reconstruct.js';
 
@@ -96,6 +96,44 @@ describe('readCutPlanPage — plano de corte (Ref / Qtde / Comp / Largura)', () 
   });
 });
 
+describe('colorFromFileName', () => {
+  it.each([
+    ['relatorio branco 15mnnnn.pdf', 'BRANCO'],
+    ['RELATORIO TITANIO 18MMM.pdf', 'TITANIO'],
+    ['plano itapua 18mm.pdf', 'ITAPUA'],
+    ['relatorio itapua 6mm (1).pdf', 'ITAPUA'],
+    ['C:\\Users\\x\\Downloads\\relatorio branco 6mmm.pdf', 'BRANCO'],
+    ['relatorio branco gelo 15 mm.pdf', 'BRANCO GELO'],
+  ])('%s -> %s', (fileName, color) => {
+    expect(colorFromFileName(fileName)).toBe(color);
+  });
+
+  it('sem cor no nome do arquivo, ou com nome que não parece cor, devolve null', () => {
+    expect(colorFromFileName('relatorio 15mm.pdf')).toBeNull();
+    expect(colorFromFileName('plano.pdf')).toBeNull();
+    expect(colorFromFileName('lista final do cliente joao silva 15mm.pdf')).toBeNull();
+    expect(colorFromFileName('2284006 bc15mm.pdf')).toBeNull();
+    expect(colorFromFileName(undefined)).toBeNull();
+  });
+});
+
+describe('readCutPlanPage — cor do nome do arquivo', () => {
+  const relatorio = page([
+    ...REPORT_HEADER,
+    [[28, 'Peças'], [60, 'cortadas']],
+    [[3, 'Esquema'], [100, 'Cant'], [140, 'Base'], [180, 'Altura']],
+    [[100, '2'], [140, '380'], [180, '370']],
+  ]);
+
+  it('põe a cor entre o nome do material e a espessura', () => {
+    expect(readCutPlanPage(relatorio, 'BRANCO')?.rows).toEqual(['2	380	370	MDF UNICOLOR BRANCO 15mm']);
+  });
+
+  it('não repete a cor que já está no título', () => {
+    expect(readCutPlanPage(relatorio, 'UNICOLOR')?.rows).toEqual(['2	380	370	MDF UNICOLOR 15mm']);
+  });
+});
+
 describe('readCutPlanPage — outras páginas', () => {
   it('ignora uma página que não é do SCM CutPlan', () => {
     const words = page([[[3, 'Peças'], [40, 'cortadas']], [[3, 'Cant'], [50, 'Base'], [90, 'Altura']], [[3, '2'], [50, '380'], [90, '370']]]);
@@ -162,5 +200,30 @@ describe('extractPdfTableText — SCM CutPlan', () => {
       ].join('\n'),
     );
     expect(recognizeWords).not.toHaveBeenCalled();
+  });
+
+  it('usa a cor do nome do arquivo no material', async () => {
+    const pageOne = page([
+      ...REPORT_HEADER,
+      [[28, 'Peças'], [60, 'cortadas']],
+      [[3, 'Esquema'], [100, 'Cant'], [140, 'Base'], [180, 'Altura']],
+      [[100, '2'], [140, '380'], [180, '370']],
+    ]);
+    const deps: PdfTableExtractorDeps = {
+      extractNativePdfWords: vi.fn().mockResolvedValue([{ pageNumber: 1, words: pageOne }]),
+      reconstructNativeTableRows: vi.fn().mockReturnValue(null),
+      nativeTableRowsToText: vi.fn().mockReturnValue(''),
+      renderPdfPages: vi.fn().mockResolvedValue([{ pageNumber: 1, imageBuffer: Buffer.from('a') }]),
+      detectRotation: vi.fn().mockResolvedValue(0),
+      recognizeWords: vi.fn().mockResolvedValue([] as OcrWord[]),
+      reconstructTableText: vi.fn().mockReturnValue(null),
+      rotateImage: vi.fn(),
+      tesseractPath: 'tesseract',
+      lang: 'por',
+    };
+
+    const text = await extractPdfTableText(Buffer.from('fake-pdf'), deps, { fileName: 'RELATORIO TITANIO 15MM.pdf' });
+
+    expect(text).toBe('Quantidade\tComprimento\tLargura\tMaterial\n2\t380\t370\tMDF UNICOLOR TITANIO 15mm');
   });
 });

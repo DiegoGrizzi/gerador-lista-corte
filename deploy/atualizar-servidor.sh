@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Atualiza a instalação em Docker (servidor Linux) para o que está na branch
-# de produção do GitHub. Feito para rodar sozinho, de tempos em tempos, por um
-# agendador do próprio servidor: é o servidor que pergunta ao GitHub se há
-# novidade, então não precisa de webhook nem de porta aberta.
+# de produção do GitHub. Feito para rodar sozinho, de poucos em poucos minutos,
+# pelo cron do servidor (deploy/instalar-atualizacao-automatica.sh agenda): é o
+# servidor que pergunta ao GitHub se há novidade, então não precisa de webhook
+# nem de porta aberta.
 #
 #   deploy/atualizar-servidor.sh            # só age se houver commit novo
 #   deploy/atualizar-servidor.sh --forcar   # reconstrói mesmo sem commit novo
@@ -18,6 +19,15 @@ HEALTH_TIMEOUT_SECONDS=180
 cd "$(dirname "$0")/.."
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
+
+# O agendamento (deploy/instalar-atualizacao-automatica.sh) escreve a saída
+# deste script em deploy/atualizacao.log a cada poucos minutos: mantém só as
+# linhas mais recentes para o arquivo não crescer para sempre.
+LOG_FILE="deploy/atualizacao.log"
+MAX_LOG_LINES=2000
+if [[ -f "$LOG_FILE" ]] && (($(wc -l <"$LOG_FILE") > MAX_LOG_LINES)); then
+  tail -n $((MAX_LOG_LINES / 2)) "$LOG_FILE" >"$LOG_FILE.tmp" && cat "$LOG_FILE.tmp" >"$LOG_FILE" && rm -f "$LOG_FILE.tmp"
+fi
 
 # Um deploy por vez: a construção da imagem leva minutos e o agendador pode
 # disparar de novo antes de ela terminar.

@@ -1,0 +1,19 @@
+server/src/services/pdf/cutplan-report.ts
+  s_7c7cf77c9e208a::t_fd46252cb4a35f 128
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "10b3d147ef4d9d6bf3049ec8ac9bef46a6bcf82d",
+  "prompts": {},
+  "sessions": {
+    "s_7c7cf77c9e208a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "36c21699-3a60-44cf-b4f8-b39cdc7fe759",
+        "model": "claude-fable-5-2"
+      },
+      "human_author": "Djalma Araújo <djalma@nossomos.cc>"
+    }
+  }
+}

@@ -89,7 +89,7 @@ São dois destinos, cada um seguindo uma branch.
 | Destino | Branch | Como atualiza |
 |---|---|---|
 | Lojas (Windows, uma instalação por PC) | `main` | O sistema compara o commit instalado com o da `main` e mostra o botão **Atualizar agora** (`server/src/services/update/`). |
-| Servidor (Docker, Linux) | `production` | O servidor consulta o GitHub de hora em hora e, se a `production` mudou, reconstrói a imagem (`deploy/atualizar-servidor.sh`). |
+| Servidor (Docker, Linux) | `production` | O cron do servidor consulta o GitHub a cada 5 minutos e, se a `production` mudou, reconstrói a imagem (`deploy/atualizar-servidor.sh`). |
 
 Consequência que precisa estar na cabeça: **o que entra na `main` chega às
 lojas** assim que o vendedor clicar em atualizar. A `main` não é rascunho.
@@ -98,15 +98,21 @@ lojas** assim que o vendedor clicar em atualizar. A `main` não é rascunho.
 
 1. O trabalho entra na `main` por PR, com CI verde.
 2. Abre-se um PR de `main` para `production`.
-3. Depois do merge, o servidor atualiza sozinho em até uma hora.
+3. Depois do merge, o servidor atualiza sozinho em até 5 minutos, mais o tempo
+   de construir a imagem.
 
 O servidor é quem pergunta ao GitHub: não existe webhook nem porta aberta para
-isso. Para não esperar, quem opera o servidor roda na pasta do projeto:
+isso. O agendamento faz parte do projeto e se instala uma vez por servidor, sem
+sudo, no cron do usuário que roda o Docker:
 
 ```bash
-deploy/atualizar-servidor.sh            # só age se houver commit novo
-deploy/atualizar-servidor.sh --forcar   # reconstrói mesmo sem commit novo
+deploy/instalar-atualizacao-automatica.sh             # agenda a cada 5 minutos
+deploy/instalar-atualizacao-automatica.sh --status    # o que está agendado e as últimas execuções
+deploy/atualizar-servidor.sh                          # confere agora, sem esperar
+deploy/atualizar-servidor.sh --forcar                 # reconstrói mesmo sem commit novo
 ```
+
+O histórico fica em `deploy/atualizacao.log`, no servidor.
 
 Se a imagem nova não compilar, o container antigo continua no ar e o script
 sai com erro. O container tem `restart: unless-stopped`: volta sozinho quando o

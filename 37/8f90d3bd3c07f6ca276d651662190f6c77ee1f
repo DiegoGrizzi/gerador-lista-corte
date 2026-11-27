@@ -1,0 +1,39 @@
+.dockerignore
+  s_7c7cf77c9e208a::t_dd858154e28448 13
+.gitattributes
+  s_7c7cf77c9e208a::t_141316859e11e4 10
+deploy/LEIA-ME-DOCKER.md
+  s_7c7cf77c9e208a::t_c64eba03b93625 20-21,32,34-65,95-98
+deploy/docker.env.example
+  s_7c7cf77c9e208a::t_694469f6d84273 6-10,16-30
+docker-compose.proxy.yml
+  s_7c7cf77c9e208a::t_8f68d962a08e48 1-28
+docker-compose.yml
+  s_7c7cf77c9e208a::t_febfd63e69b644 8-9,20-23,32-35
+server/.env.example
+  s_7c7cf77c9e208a::t_b1d17f900dc840 36-40
+server/src/app.ts
+  s_7c7cf77c9e208a::t_63ab51e0df560b 9,37-41
+server/src/config/index.ts
+  s_7c7cf77c9e208a::t_b017f82239843f 38-42,51-65,92
+server/src/middleware/basic-auth.ts
+  s_7c7cf77c9e208a::t_8430e39de43cec 1-60
+server/src/test/basic-auth.test.ts
+  s_7c7cf77c9e208a::t_c0cd9ef0423e93 1-54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "378f90d3bd3c07f6ca276d651662190f6c77ee1f",
+  "prompts": {},
+  "sessions": {
+    "s_7c7cf77c9e208a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "36c21699-3a60-44cf-b4f8-b39cdc7fe759",
+        "model": "claude-fable-5-2"
+      },
+      "human_author": "Djalma Araújo <djalma@nossomos.cc>"
+    }
+  }
+}

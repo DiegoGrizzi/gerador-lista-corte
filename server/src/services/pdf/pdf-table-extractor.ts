@@ -24,6 +24,7 @@
 import sharp from 'sharp';
 
 import { cleanupTempFile, writeTempImage } from '../temp-file.js';
+import { cutPlanRowsToText, readCutPlanPage } from './cutplan-report.js';
 import { cleanModelarTable } from './modelar-table.js';
 import { extractNativePdfWords, type NativePdfPage } from './native-pdf-words.js';
 import {
@@ -105,12 +106,21 @@ export async function extractPdfTableText(
   const renderedPages = await deps.renderPdfPages(pdfBuffer);
   const tableBlocks: string[] = [];
   let statedTotal: number | null = null;
+  // Linhas das páginas do SCM CutPlan: viram uma tabela só, no fim.
+  const cutPlanRows: string[] = [];
 
   for (let i = 0; i < renderedPages.length; i++) {
     const page = renderedPages[i]!;
 
     const nativeWords = nativePages[i]?.words ?? [];
     if (nativeWords.length > 0) {
+      // Relatório / plano de corte do SCM CutPlan (texto nativo, colunas Cant/Base/Altura).
+      const cutPlan = readCutPlanPage(nativeWords);
+      if (cutPlan) {
+        cutPlanRows.push(...cutPlan.rows);
+        statedTotal = cutPlan.statedTotal ?? statedTotal;
+        continue;
+      }
       const nativeRows = deps.reconstructNativeTableRows(nativeWords);
       if (nativeRows) {
         tableBlocks.push(deps.nativeTableRowsToText(nativeRows));
@@ -141,6 +151,8 @@ export async function extractPdfTableText(
       if (correctedPath !== imagePath) await cleanupTempFile(correctedPath);
     }
   }
+
+  if (cutPlanRows.length > 0) tableBlocks.push(cutPlanRowsToText(cutPlanRows));
 
   // A linha do total vai no fim do texto: o parser a reconhece (extractStatedTotal)
   // e a interface confere a soma das quantidades lidas contra ela.

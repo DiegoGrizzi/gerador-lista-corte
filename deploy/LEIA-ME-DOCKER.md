@@ -80,12 +80,21 @@ O container reinicia sozinho se cair ou se o servidor reiniciar
 
 O botão **"Atualizar agora"** do sistema fica desligado no container
 (`AUTO_UPDATE_ENABLED=false`): ele roda git e reinicia o processo, o que não
-existe dentro de uma imagem. Para atualizar:
+existe dentro de uma imagem. Quem atualiza é o script
+`deploy/atualizar-servidor.sh`, que deixa a pasta igual à branch `production`
+do GitHub e reconstrói a imagem:
 
 ```bash
-git pull
-docker compose up -d --build
+deploy/atualizar-servidor.sh            # só age se houver commit novo
+deploy/atualizar-servidor.sh --forcar   # reconstrói mesmo sem commit novo
 ```
+
+Para o servidor se atualizar sozinho, agende esse comando (de hora em hora,
+por exemplo) no agendador da máquina. É o servidor que consulta o GitHub: não
+precisa de webhook nem de porta aberta. Sem commit novo o script sai em um
+segundo; se a imagem nova não compilar, o container antigo continua no ar.
+
+Para seguir outra branch, defina `DEPLOY_BRANCH` no ambiente do agendador.
 
 O rodapé do sistema não mostra o código da versão no container (a imagem não
 tem o git). Para saber a versão, use `git log -1` na pasta do projeto.

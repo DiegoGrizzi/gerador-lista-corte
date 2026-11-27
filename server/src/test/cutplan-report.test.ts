@@ -103,8 +103,15 @@ describe('readCutPlanPage — outras páginas', () => {
     expect(readCutPlanPage(words)).toBeNull();
   });
 
-  it('ignora a página do CutPlan sem tabela de peças', () => {
-    expect(readCutPlanPage(page(REPORT_HEADER))).toBeNull();
+  it('página do CutPlan sem peças (só a lista de sobras) devolve vazio, para não cair no OCR', () => {
+    const onlyOffcuts = page([
+      ...REPORT_HEADER,
+      [[28, 'Lista'], [60, 'de'], [80, 'cortes'], [110, 'utilizáveis']],
+      [[28, 'Id'], [60, 'Cant'], [90, 'Base'], [130, 'Altura']],
+      [[28, 'U1'], [60, '2'], [90, '120'], [130, '15.8']],
+    ]);
+
+    expect(readCutPlanPage(onlyOffcuts)).toEqual({ rows: [], statedTotal: null });
   });
 });
 

@@ -26,3 +26,7 @@ coverage/
 
 # Logs do launcher de producao
 deploy/server.log
+
+# Deploy em Docker: trava do script de atualizacao e copias do .env feitas por ferramentas
+.deploy.lock
+.env.*.bak

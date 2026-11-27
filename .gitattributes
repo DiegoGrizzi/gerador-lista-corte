@@ -9,3 +9,6 @@ Dockerfile text eol=lf
 docker-compose.yml text eol=lf
 docker-compose.proxy.yml text eol=lf
 .dockerignore text eol=lf
+
+# Scripts de shell (servidor Linux) sempre com LF: com CRLF o bash nem os executa.
+*.sh text eol=lf

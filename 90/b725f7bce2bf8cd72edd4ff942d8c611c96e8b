@@ -1,0 +1,27 @@
+.gitignore
+  s_7c7cf77c9e208a::t_88210493590413 32-33
+AGENTS.md
+  s_7c7cf77c9e208a::t_8c0a667064127f 92,101-102,105-106,109-112,115-116
+deploy/LEIA-ME-DOCKER.md
+  s_7c7cf77c9e208a::t_8f8c664e555892 92-105
+deploy/atualizar-servidor.sh
+  s_7c7cf77c9e208a::t_5848c92e7f8306 3-6,23-31
+deploy/instalar-atualizacao-automatica.sh
+  s_7c7cf77c9e208a::t_84f811ad1402a6 1-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "90b725f7bce2bf8cd72edd4ff942d8c611c96e8b",
+  "prompts": {},
+  "sessions": {
+    "s_7c7cf77c9e208a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "36c21699-3a60-44cf-b4f8-b39cdc7fe759",
+        "model": "claude-fable-5-2"
+      },
+      "human_author": "Djalma Araújo <djalma@nossomos.cc>"
+    }
+  }
+}

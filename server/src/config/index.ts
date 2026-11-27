@@ -35,6 +35,11 @@ interface OcrFallbackConfig {
   minUsefulChars: number;
 }
 
+interface BasicAuthConfig {
+  user: string;
+  password: string;
+}
+
 export interface AppConfig {
   port: number;
   clientOrigin: string;
@@ -43,6 +48,21 @@ export interface AppConfig {
   ocrFallback: OcrFallbackConfig;
   bodyLimit: string;
   autoUpdateEnabled: boolean;
+  basicAuth: BasicAuthConfig | undefined;
+}
+
+/**
+ * Senha de acesso (HTTP Basic). Só vale com os DOIS campos preenchidos: sem
+ * eles o sistema abre direto, como sempre abriu nas lojas.
+ */
+function readBasicAuth(): BasicAuthConfig | undefined {
+  const user = process.env['BASIC_AUTH_USER'];
+  const password = process.env['BASIC_AUTH_PASSWORD'];
+  if (!user && !password) return undefined;
+  if (!user || !password) {
+    throw new Error('Defina BASIC_AUTH_USER e BASIC_AUTH_PASSWORD juntos, ou nenhum dos dois.');
+  }
+  return { user, password };
 }
 
 function readNumber(value: string | undefined, fallback: number): number {
@@ -69,6 +89,7 @@ export const config: AppConfig = {
   // Só desativa se explicitamente "false"/"0" — vale por padrão, mesmo sem
   // a variável definida no .env (instalações já existentes).
   autoUpdateEnabled: !['false', '0'].includes((process.env['AUTO_UPDATE_ENABLED'] || '').toLowerCase()),
+  basicAuth: readBasicAuth(),
 };
 
 if (!config.ocrSpace.apiKey) {

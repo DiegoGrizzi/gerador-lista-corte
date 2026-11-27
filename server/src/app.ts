@@ -6,6 +6,7 @@ import cors from 'cors';
 import express, { type Express } from 'express';
 
 import { config } from './config/index.js';
+import { createBasicAuth } from './middleware/basic-auth.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { createOcrRouter, type OcrRouteDeps } from './routes/ocr.js';
 import { createPdfRouter, type PdfRouteDeps } from './routes/pdf.js';
@@ -32,6 +33,11 @@ export function createApp(
   pdfRouteDeps?: PdfRouteDeps,
 ): Express {
   const app = express();
+
+  // Antes de tudo: sem a senha, nem a interface nem a API respondem.
+  if (config.basicAuth) {
+    app.use(createBasicAuth(config.basicAuth));
+  }
 
   app.use(express.json({ limit: config.bodyLimit }));
   app.use(cors({ origin: config.clientOrigin }));

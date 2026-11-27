@@ -5,7 +5,8 @@
 #   docker compose logs -f           # acompanha o log
 #   docker compose down              # desliga
 #
-# Abre em http://localhost:5175 (ou na porta de GERADOR_PORT). Configuração
+# Abre em http://localhost:5175 (ou na porta de GERADOR_PORT). Para publicar num
+# domínio, atrás de um proxy com HTTPS, veja docker-compose.proxy.yml. Configuração
 # opcional num arquivo ".env" ao lado deste (ele não vai para o GitHub);
 # o exemplo está em deploy/docker.env.example.
 services:
@@ -16,7 +17,10 @@ services:
     restart: unless-stopped
     ports:
       # Porta de fora (a do computador/servidor). Dentro do container é sempre 5175.
-      - '${GERADOR_PORT:-5175}:5175'
+      # Por padrão só o próprio computador alcança (127.0.0.1): o Docker fura o
+      # firewall do Linux (ufw), então uma porta aberta aqui fica aberta para a
+      # internet. Para liberar na rede da loja: GERADOR_BIND=0.0.0.0 no .env.
+      - '${GERADOR_BIND:-127.0.0.1}:${GERADOR_PORT:-5175}:5175'
     environment:
       # Fallback de leitura de foto quando o Tesseract falhar (opcional).
       OCR_SPACE_API_KEY: ${OCR_SPACE_API_KEY:-}
@@ -25,3 +29,7 @@ services:
       # O botão "Atualizar agora" mexe em git e reinicia o processo: não existe
       # em container. Para atualizar: git pull e "docker compose up -d --build".
       AUTO_UPDATE_ENABLED: 'false'
+      # Usuário e senha para abrir o sistema (opcional; os dois juntos). Sem
+      # eles abre direto. Obrigatório na prática num endereço público.
+      BASIC_AUTH_USER: ${BASIC_AUTH_USER:-}
+      BASIC_AUTH_PASSWORD: ${BASIC_AUTH_PASSWORD:-}

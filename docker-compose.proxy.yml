@@ -1,0 +1,28 @@
+# Complemento do docker-compose.yml para um servidor que já tem um proxy com
+# HTTPS (Caddy, Traefik, nginx) rodando em Docker. Com ele o container:
+#
+#   - não abre porta nenhuma no servidor: só o proxy o alcança;
+#   - entra na rede Docker do proxy (PROXY_NETWORK), onde o proxy o encontra
+#     pelo nome "gerador-lista-corte", na porta 5175;
+#   - tem um teto de CPU e memória, para a leitura de foto/PDF não disputar o
+#     servidor com o que mais roda nele.
+#
+# Para usar sempre os dois arquivos, sem repetir "-f" a cada comando, ponha no
+# .env (veja deploy/docker.env.example):
+#
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.proxy.yml
+#   PROXY_NETWORK=<nome da rede do proxy>
+#
+# Veja deploy/LEIA-ME-DOCKER.md, seção "Num domínio, atrás de um proxy".
+services:
+  gerador:
+    ports: !reset []
+    networks:
+      - proxy
+    cpus: ${GERADOR_CPUS:-2}
+    mem_limit: ${GERADOR_MEMORY:-1g}
+
+networks:
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:?defina PROXY_NETWORK no .env com o nome da rede Docker do proxy}
